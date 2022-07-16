@@ -7,14 +7,14 @@
 #include "SDL.h"
 #include "SDL_syswm.h"
 
-#include "MLPlatformView.h"
+#include "testAppView.h"
 
 SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Surface *surface;
 int done;
 
-std::unique_ptr< AppView > _appView;
+std::unique_ptr< TestAppView > _appView;
 
 std::unique_ptr< PlatformView > _platformView;
 void* _platformHandle{ nullptr };
@@ -165,9 +165,10 @@ int main(int argc, char *argv[])
 
   int flags = PlatformView::kParentIsNSWindow;
   
-  _appView = make_unique< AppView >();
+  ml::Rect boundsRect(0, 0, w, h);
+  _appView = make_unique< TestAppView >(boundsRect, controllerName);
   
-  _platformView = make_unique< PlatformView >(pParent, Vec4(0, 0, w, h), *_appView, _platformHandle, flags);
+  _platformView = make_unique< PlatformView >(pParent, boundsRect, *_appView, _platformHandle, flags);
 
   
  // _resizeEditor(_constrainSize(Vec2(w, h)));

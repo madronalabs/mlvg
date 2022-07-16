@@ -30,8 +30,8 @@
      source/factoryDefinition.cpp
      source/pluginController.cpp
      source/pluginController.h
-     source/pluginEditorView.cpp
-     source/pluginEditorView.h
+     source/llllpluginnamellll.cpp
+     source/llllpluginnamellll.h
      source/pluginProcessor.cpp
      source/pluginProcessor.h
      source/signalProcessor.h
@@ -674,14 +674,28 @@ source_group(nanosvg REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/external/nanosvg/src
 
 
 #--------------------------------------------------------------------
-# make SDL2 application target (experimental)
+# make SDL2 application target 
 #--------------------------------------------------------------------
 
+
+create_resources (examples/app/resources build/resources/testapp)
+ 
+ 
 set(target testapp)
 
-find_package(SDL2 REQUIRED COMPONENTS SDL2::SDL2)
 
-add_executable(${target} examples/app/main.cpp)
+file(GLOB LOCAL_SOURCES "${CMAKE_SOURCE_DIR}/examples/app/*.cpp")
+file(GLOB LOCAL_INCLUDES "${CMAKE_SOURCE_DIR}/examples/app/*.h")
+
+ 
+list(APPEND test_app_sources ${LOCAL_SOURCES} )
+list(APPEND test_app_sources ${LOCAL_INCLUDES} )
+
+
+
+add_executable(${target} ${test_app_sources})
+
+find_package(SDL2 REQUIRED COMPONENTS SDL2::SDL2)
 target_link_libraries(${target} PRIVATE SDL2::SDL2 mlvg)
 
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})

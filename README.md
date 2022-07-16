@@ -9,6 +9,19 @@ to build:
 
 First, build and install madronalib as a static library using the instructions in the madronalib project.
 
+Now use cmake to generate a project as follows:
+- mkdir build
+- cd build
+- cmake -DVST3_SDK_ROOT="~/dev/vst3sdk" -GXcode .. (Mac OS)
+- cmake -DVST3_SDK_ROOT="~/dev/vst3sdk" -G "Visual Studio 14 2015 Win64" .. (Windows)
+
+
+
+
+
+to build:
+---------
+
 Download the VST3 SDK from Steinberg.
 
 You'll also need to download the CoreAudio SDK from Apple. It's easiest if you put the CoreAudio SDK in a directory next to the VST SDK---this way the VST SDK should find it automatically. The version of the CoreAudio SDK you want comes in a folder "CoreAudio" and has four subfolders: AudioCodecs, AudioFile, AudioUnits and PublicUtility. A current link: https://developer.apple.com/library/archive/samplecode/CoreAudioUtilityClasses/CoreAudioUtilityClasses.zip
