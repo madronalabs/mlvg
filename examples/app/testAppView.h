@@ -19,7 +19,7 @@ const ml::Rect kDefaultPopupStartRect{0, 0, 1, 1};
 
 
 class TestAppView :
-public ml::AppView
+  public ml::AppView
 {
 public:
   TestAppView(Rect size, Path controllerName);
@@ -34,6 +34,8 @@ public:
   void viewResized(NativeDrawContext* nvg, int, int) override;
   void renderView(NativeDrawContext* nvg, Layer* backingLayer) override;
   void pushEvent(GUIEvent g) override;
+  
+  void doAttached (void* pParent, int flags);
 
 private:
   

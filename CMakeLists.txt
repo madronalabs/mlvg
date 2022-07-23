@@ -68,7 +68,7 @@
  message("madronalib library should be at: " ${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME} )
  
  #--------------------------------------------------------------------
- # find mlvg sources - including our juce-code subset and nfd
+ # find mlvg sources - including our juce-core subset and nfd
  #--------------------------------------------------------------------
  
  set (MLVG_SOURCE_DIR "source")
@@ -696,7 +696,7 @@ list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 add_executable(${target} ${test_app_sources})
 
 find_package(SDL2 REQUIRED COMPONENTS SDL2::SDL2)
-target_link_libraries(${target} PRIVATE SDL2::SDL2 mlvg)
+target_link_libraries(${target} PRIVATE SDL2::SDL2 mlvg nfd juce-core)
 
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 

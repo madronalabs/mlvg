@@ -6,7 +6,7 @@
 // use clipboard code from VST3 SDK
 #include "public.sdk/source/common/systemclipboard.h"
 
-#include "testAppController.h"
+#include "TestAppController.h"
 #include "testAppView.h"
 
 // param definitions for this plugin
@@ -45,9 +45,9 @@ Path _incrementVersion(Path currentPath)
 }
 
 //-----------------------------------------------------------------------------
-// testAppController implementation
+// TestAppController implementation
 
-testAppController::testAppController()
+TestAppController::TestAppController()
 {
 #ifdef DEBUG
 #ifdef ML_WINDOWS
@@ -61,6 +61,9 @@ testAppController::testAppController()
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
   buildParameterTree(pdl, _params);
+  setDefaults(_params);
+  
+  _params.dump();
   
   // store IDs by name and param names by ID
   for(size_t i=0; i < pdl.size(); ++i)
@@ -89,25 +92,55 @@ testAppController::testAppController()
   _fileTreeIndex["patches"] = ml::make_unique< FileTree >(patchesRoot, "mlpreset");
 }
 
-testAppController::~testAppController()
+TestAppController::~TestAppController()
 {
   // don't stop the master Timers-- there may be other plugin instances using it!
-  // std::cout << "testAppController: BYE!\n";
+  // std::cout << "TestAppController: BYE!\n";
 }
 
 #pragma mark mlvg
 
-void testAppController::sendMessageToView(Message msg)
+TestAppView* TestAppController::createTestAppView ()
+{
+    auto defaultSize = _params["view_size"].getMatrixValue();
+    float w = defaultSize[0];
+    float h = defaultSize[1];
+    
+    Rect size{0, 0, w, h};
+
+  
+    auto newView = new TestAppView(size, _instanceName);
+    
+    _viewName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(_instanceNum));
+    registerActor(_viewName, newView);
+    
+    // send all collections to view
+    for(auto it = _fileTreeIndex.begin(); it != _fileTreeIndex.end(); ++it)
+    {
+      const Path p = it.getCurrentNodePath();
+      sendMessageToActor(_viewName, {"editor/do/update_collection", pathToText(p)});
+    }
+    
+
+    
+    sendAllParamsToView();
+
+    return newView;
+
+}
+
+
+void TestAppController::sendMessageToView(Message msg)
 {
   sendMessageToActor(_viewName, msg);
 }
 
-void testAppController::sendParamToView(Path pname)
+void TestAppController::sendParamToView(Path pname)
 {
   sendMessageToActor(_viewName, {Path("set_param", pname), _params[pname], kMsgFromController});
 }
 
-void testAppController::sendAllParamsToView()
+void TestAppController::sendAllParamsToView()
 {
   for(auto& pname : _paramNamesByID)
   {
@@ -115,7 +148,7 @@ void testAppController::sendAllParamsToView()
   }
 }
 
-void testAppController::sendAllParamsToProcessor()
+void TestAppController::sendAllParamsToProcessor()
 {
   for(auto& pname : _paramNamesByID)
   {
@@ -124,7 +157,7 @@ void testAppController::sendAllParamsToProcessor()
 }
 
 
-TextFragment testAppController::getPatchHeader(size_t bytes)
+TextFragment TestAppController::getPatchHeader(size_t bytes)
 {
   TextFragment pn2(getAppName(), ":", _params["current_patch"].getTextValue());
   TextFragment pn3(pn2, ":", textUtils::naturalNumberToText(bytes), " bytes");
@@ -132,7 +165,7 @@ TextFragment testAppController::getPatchHeader(size_t bytes)
   return pn4;
 }
 
-TextFragment testAppController::getPatchAsText()
+TextFragment TestAppController::getPatchAsText()
 {
   // TODO manage memory here for patches that might be
   // too big for stack
@@ -145,14 +178,14 @@ TextFragment testAppController::getPatchAsText()
   return t;
 }
 
-void testAppController::setPatchFromText(TextFragment t)
+void TestAppController::setPatchFromText(TextFragment t)
 {
   auto newParams = JSONToValueTree(textToJSON(t));
   _params.setFromPlainValues(newParams);
 }
 
 
-std::vector< uint8_t > testAppController::getPatchAsBinary()
+std::vector< uint8_t > TestAppController::getPatchAsBinary()
 {
   // TODO manage memory here for patches that might be
   // too big for stack
@@ -177,7 +210,7 @@ std::vector< uint8_t > testAppController::getPatchAsBinary()
   return compressedData;
 }
 
-void testAppController::setPatchFromBinary(const std::vector< uint8_t >& p)
+void TestAppController::setPatchFromBinary(const std::vector< uint8_t >& p)
 {
   mz_ulong uncompSize = p.size();
   std::vector< uint8_t > uncompressedData;
@@ -204,22 +237,22 @@ void testAppController::setPatchFromBinary(const std::vector< uint8_t >& p)
   }
 }
 
-void testAppController::sendParamToProcessor(Path pname, uint32_t flags)
+void TestAppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
  
 }
  
-void testAppController::sendMessageToProcessor(Message msg)
+void TestAppController::sendMessageToProcessor(Message msg)
 {
 
 }
 
-void testAppController::handleFullQueue()
+void TestAppController::handleFullQueue()
 {
   std::cout << "Controller: full queue! \n";
 }
 
-FileTree* testAppController::updateCollection(Path which)
+FileTree* TestAppController::updateCollection(Path which)
 {
   FileTree* pTree {_fileTreeIndex[which].get()};
   if(pTree)
@@ -230,19 +263,19 @@ FileTree* testAppController::updateCollection(Path which)
   return pTree;
 }
 
-void testAppController::debug()
+void TestAppController::debug()
 {
-  //std::cout << "testAppController: " << getMessagesAvailable() << " messages in queue. max: " << _maxQueueSize << "\n";
-//  std::cout << "testAppController @ " << std::hex << (this) << std::dec << " : \n";
+  //std::cout << "TestAppController: " << getMessagesAvailable() << " messages in queue. max: " << _maxQueueSize << "\n";
+//  std::cout << "TestAppController @ " << std::hex << (this) << std::dec << " : \n";
 //  std::cout << "        timers @ " << std::hex << (&_timers.get()) << std::dec << "\n";
 }
 
 
-void testAppController::handleMessage(Message m)
+void TestAppController::handleMessage(Message m)
 {
   if(!m.address) return;
   
-  std::cout << "testAppController::handleMessage:" << m.address << " " << m.value << " \n ";
+  std::cout << "TestAppController::handleMessage:" << m.address << " " << m.value << " \n ";
   
   Path addr = m.address;
   switch(hash(head(addr)))
@@ -287,7 +320,7 @@ void testAppController::handleMessage(Message m)
           
         case(hash("view_size")):
         {
-          //std::cout << "testAppController::handleMessage: view_size = " << m.value << " \n ";
+          //std::cout << "TestAppController::handleMessage: view_size = " << m.value << " \n ";
           _params["view_size"] = m.value;
           break;
         }
@@ -318,22 +351,7 @@ void testAppController::handleMessage(Message m)
       Path whatProp = tail(addr);
       switch(hash(head(whatProp)))
       {
-        case(hash("learn_param")):
-        {
-          //std::cout << "testAppController:: let's learn param: " << m.value << " \n ";
-          _currentLearnParam = textToPath(m.value.getTextValue());
-          break;
-        }
-        case(hash("midi_learn_source")):
-        {
-          // midi_learn_source is sent from the Processor when in MIDI learn mode.
-          // ask the learn popup to add an item with name "cc[n]" and the MIDI source as its value.
-          MIDISource source = indexToMIDISource(m.value.getUnsignedLongValue());
-          TextFragment sourceText{"cc", textUtils::naturalNumberToText(source.cc) };
-          sendMessageToView(Message{Path("popup/learn_source_menu/do/add_item", sourceText), m.value});
-          
-          break;
-        }
+
       }
       break;
     }
@@ -349,53 +367,8 @@ void testAppController::handleMessage(Message m)
           _signalsSubscribedByView[sigPath] = 1;
           break;
         }
-        case(hash("start_learn")):
-        {
-          sendMessageToProcessor(Message{"learn_mode", pathToText(_currentLearnParam)});
-          break;
-        }
-        case(hash("stop_learn")):
-        {
-          sendMessageToProcessor(Message{"learn_mode", Text()});
-          break;
-        }
-        case(hash("paste_license")):
-        {
-          Symbol statusSym;
-          if(_params["status"].getTextValue() == "ok")
-          {
-            statusSym = "ok";
-          }
-          else
-          {
-            auto lt(_pasteClipboardText());
-            auto newLicense = decryptLicense(lt);
-            
-            Symbol newLicenseStatus(newLicense["status"].getTextValue());
-            if(newLicenseStatus == "ok")
-            {
-              // sets status and licensor before write.
-              setStatusFromLicense(newLicense);
-              
-              // write and show status.
-              statusSym = writeLicenseToDisk(lt).getTextFragment();
-            }
-            else
-            {
-              statusSym = newLicenseStatus;
-            }
-          }
 
-          showStatusInPopup(statusSym);
-          updateRegLabel();
-          break;
-        }
-        case(hash("check_status")):
-        {
-          setStatusFromLicense(decryptLicense(readLicenseFromDisk()));
-          updateRegLabel();
-          break;
-        }
+          /*
         case(hash("copy_to_clipboard")):
         {
           auto patch = getPatchAsBinary();
@@ -405,6 +378,8 @@ void testAppController::handleMessage(Message m)
           
           break;
         }
+          */
+          
         case(hash("send_current_file_path")):
         {
           // TODO broadcast_param general
@@ -574,6 +549,8 @@ void testAppController::handleMessage(Message m)
             break;
           }
         }
+          
+          /*
         case(hash("paste_from_clipboard")):
         {
           std::string clipText;
@@ -593,7 +570,8 @@ void testAppController::handleMessage(Message m)
             _changedFromRevertValues = false;
             break;
           }
-        }
+        }*/
+          
         case(hash("revert_to_saved")):
         {
           // would be nicer to have just = here, maybe refactor params
@@ -612,7 +590,7 @@ void testAppController::handleMessage(Message m)
     default:
     {
       // TODO forward?
-      std::cout << "testAppController: unhandled message: " << m << " \n ";
+      std::cout << "TestAppController: unhandled message: " << m << " \n ";
       break;
     }
   }

@@ -10,6 +10,7 @@
 
 #include "testAppParameters.h"
 #include "testAppProcessor.h"
+#include "testAppView.h"
 
 #include "version.h"
 
@@ -18,16 +19,17 @@ using namespace ml;
 constexpr int kChangeQueueSize{128};
 
 //-----------------------------------------------------------------------------
-class testAppController :
+class TestAppController :
   public Actor
 {
 public:
   
-  testAppController();
-	~testAppController();
+  TestAppController();
+	~TestAppController();
 
   
-  // testAppController interface
+  // TestAppController interface
+  TestAppView* createTestAppView();
   void sendMessageToView(Message);
   void sendParamToView(Path pname);
   void sendAllParamsToView();

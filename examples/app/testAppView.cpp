@@ -19,7 +19,6 @@
 
 constexpr float textSizeFix{0.85f};
 
-
 TestAppView::TestAppView(Rect size, Path controllerName) :
 _controllerName(controllerName)
 {
@@ -92,7 +91,6 @@ _controllerName(controllerName)
     {"trigger_popup", true }
   } );
   
-  
   _view->_widgets.add_unique< Resizer >("resizer", WithValues{
     {"fix_ratio", kGridUnitsX/kGridUnitsY},
     {"z", -2}, // stay on top
@@ -100,7 +98,6 @@ _controllerName(controllerName)
     {"fixed_bounds", { -16, -16, 16, 16 }},
     {"anchor", {1, 1}} // for fixed-size widgets, anchor is a point on the view from top left {0, 0} to bottom right {1, 1}.
   } );
-  
   
   _initializeParams();
 
@@ -127,7 +124,7 @@ _controllerName(controllerName)
 
 TestAppView::~TestAppView ()
 {
-   _ioTimer.stop();
+  _ioTimer.stop();
   Actor::stop();
   removeActor(this);
   
@@ -146,8 +143,8 @@ int TestAppView::getElapsedTime()
   return elapsedTime;
 }
 
-#pragma mark from ml::AppView
 
+#pragma mark from ml::AppView
 
 void TestAppView::initializeResources(NativeDrawContext* nvg)
 {
@@ -349,6 +346,24 @@ void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
   // end the frame.
   nvgEndFrame(nvg);
   _view->setDirty(false);
+}
+
+
+void TestAppView::doAttached (void* pParent, int flags)
+{
+  
+  float w = _defaultSystemSize.x();
+  float h = _defaultSystemSize.y();
+  
+  if(pParent != _parent)
+  {
+    _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, w, h), this, _platformHandle, flags);
+    _parent = pParent;
+  }
+
+
+  
+  _resizeEditor(_constrainSize(Vec2(w, h)));
 }
 
 
@@ -602,6 +617,8 @@ void TestAppView::handleMessage(Message msg)
           sendMessageToActor(_controllerName, {"set_param/view_size", newSize});
           break;
         }
+          
+          /*
         case(hash("update_collection")):
         {
           // a Widget or the Controller is requesting a collection be updated.
@@ -624,7 +641,9 @@ void TestAppView::handleMessage(Message msg)
             }
           }
           break;
-        }
+        }*/
+          
+          /*
         case(hash("display_version")):
         {
           TextFragment nameAndVersion (getAppName(), " ", getPluginVersion());
@@ -633,7 +652,8 @@ void TestAppView::handleMessage(Message msg)
           TextFragment info(nameAndVersion, waa);
           _popupPropertiesBuffer["message"] = info;
           break;
-        }
+        }*/
+          
         default:
         {
           break;

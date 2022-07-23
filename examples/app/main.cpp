@@ -8,6 +8,7 @@
 #include "SDL_syswm.h"
 
 #include "testAppView.h"
+#include "TestAppController.h"
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -15,8 +16,9 @@ SDL_Surface *surface;
 int done;
 
 std::unique_ptr< TestAppView > _appView;
+std::unique_ptr< TestAppController > _appController;
 
-std::unique_ptr< PlatformView > _platformView;
+
 void* _platformHandle{ nullptr };
 Vec2 _defaultSystemSize{1280, 720};
 
@@ -163,17 +165,16 @@ int main(int argc, char *argv[])
 //  void* pParent = static_cast< NSView* > ();
   
 
-  int flags = PlatformView::kParentIsNSWindow;
+  _appController = make_unique< TestAppController >();
   
   ml::Rect boundsRect(0, 0, w, h);
-  _appView = make_unique< TestAppView >(boundsRect, controllerName);
   
-  _platformView = make_unique< PlatformView >(pParent, boundsRect, *_appView, _platformHandle, flags);
-
-  
- // _resizeEditor(_constrainSize(Vec2(w, h)));
+  TestAppView* viewPtr = _appController->createTestAppView();
+  _appView = std::unique_ptr< TestAppView >(viewPtr);
   
   
+  int flags = PlatformView::kParentIsNSWindow;
+  _appView->doAttached(static_cast< void* >(pParent), flags);
   
   /* Draw the Image on rendering surface */
   done = 0;

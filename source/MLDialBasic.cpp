@@ -378,10 +378,8 @@ void DialBasic::draw(ml::DrawContext dc)
 
   // properties
   float opacity = getFloatPropertyWithDefault("opacity", 1.0f);
-  auto dialFillOpacity = getColor(dc, "dial_fill_opacity");
-  float fillOpacity = getFloatPropertyWithDefault("fill_opacity", dialFillOpacity.a);
+
   bool opaqueBg = getBoolPropertyWithDefault("opaque_bg", false);
-  bool clipIndicator = getBoolPropertyWithDefault("clip_indicator", true);
   
   bool bipolar = getBoolPropertyWithDefault("bipolar", false);
   bool enabled = getBoolPropertyWithDefault("enabled", true);
@@ -395,23 +393,7 @@ void DialBasic::draw(ml::DrawContext dc)
 
   // colors
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
-  auto shadowColor = multiplyAlpha(getColor(dc, "shadow"), opacity);
-  //auto textColor = multiplyAlpha(getColor(dc, "dial_text_color"), opacity);
-  auto textColor = multiplyAlpha(getColorPropertyWithDefault("dial_text_color", getColor(dc, "dial_text_color")), opacity);
 
-  auto fill0 = getColorProperty("color");
-  auto white = rgba(1, 1, 1, 1);
-  auto indicator0 = getColorProperty("indicator");
-    
-  auto fill1 = multiplyAlpha(fill0, fillOpacity);
-  auto indicator1 = multiplyAlpha(indicator0, fillOpacity);
-  auto fillInterp = fill1;//getColorPropertyWithDefault("color2", nvgLerpRGBA(fill1, indicator1, 0.5f));
-
-  // be sure to multiply by overall opacity for fadeouts
-  auto fillColor = multiplyAlpha(fill1, opacity);
-  auto fillColor2 = multiplyAlpha(fillInterp, opacity);
-  
-  auto indicatorColor = multiplyAlpha(indicator0, opacity);
   
   float normalizedValue = enabled ? currentNormalizedValue : 0.f;
   
@@ -471,48 +453,24 @@ void DialBasic::draw(ml::DrawContext dc)
     nvgSave(nvg);
     nvgTranslate(nvg, getCenter(bounds).getIntPart());
     
-    NVGcolor trackColor;
-    if(opaqueBg)
-    {
-      trackColor = getColor(dc, "opaque_track");
-    }
-    else
-    {
-      trackColor = getColorPropertyWithDefault("track", getColor(dc, "track"));
-    }
+    auto indicatorColor = markColor;
+    //auto trackColor = multiplyAlpha(markColor, opacity);
+    auto fillColor = multiplyAlpha(markColor, 0.25f);
+    
 
     // draw background fill. (fill color paints over this)
     bool wholeCircle = fabs(fmod(a0, kTwoPi) - fmod(a1, kTwoPi)) < kMinAngle;
-    if(!wholeCircle)
-    {
-      // draw wedge
-      nvgBeginPath(nvg);
-      nvgMoveTo(nvg, 0, 0);
-      nvgLineTo(nvg, nvgAngle2Vec(a0)*r1);
-      nvgArc(nvg, 0, 0, r1, a0, a1, NVG_CW);
-      nvgClosePath(nvg);
-      nvgFillColor(nvg, trackColor);
-      nvgFill(nvg);
-    }
-    else
-    {
-      // draw circle
-      nvgBeginPath(nvg);
-      nvgCircle(nvg, 0, 0, r1);
-      nvgFillColor(nvg, trackColor);
-      nvgFill(nvg);
-    }
+
           
     // fill color
     if(enabled && (a3 - a2 > kMinAngle))
     {
-      auto fillGradient = nvgLinearGradient(nvg, 0, -r1, 0, r1, fillColor2, fillColor );
       nvgBeginPath(nvg);
       nvgMoveTo(nvg, 0, 0);
       nvgLineTo(nvg, nvgAngle2Vec(a2)*r1);
       nvgArc(nvg, 0, 0, r1, a2, a3, NVG_CW);
       nvgClosePath(nvg);
-      nvgFillPaint(nvg, fillGradient);
+      nvgFillColor(nvg, fillColor);
       nvgFill(nvg);
     }
     
@@ -527,7 +485,7 @@ void DialBasic::draw(ml::DrawContext dc)
       {
         // allow everything after angle a0
         nvgRotate(nvg, a0);
-        if(clipIndicator) nvgIntersectScissor(nvg, 0, 0, cw, ch);
+        nvgIntersectScissor(nvg, 0, 0, cw, ch);
         // rotate to indicator angle
         nvgRotate(nvg, a4 - a0);
       }
@@ -535,7 +493,7 @@ void DialBasic::draw(ml::DrawContext dc)
       {
         // allow everything before angle a1
         nvgRotate(nvg, a1);
-        if(clipIndicator) nvgIntersectScissor(nvg, 0, -ch, cw, ch);
+        nvgIntersectScissor(nvg, 0, -ch, cw, ch);
         // rotate to indicator angle
         nvgRotate(nvg, a4 - a1);
       }
@@ -563,76 +521,16 @@ void DialBasic::draw(ml::DrawContext dc)
       }
       nvgRestore(nvg);
     }
-    
-    // shadow arc in track under fill
-    drawShadowArc(nvg, a0, a1, r1, r1 - shadowDepth*2.f, markColor, 0.25f);
-
-    // gradient edges in track where arc starts and stops, over fill
-    if(!wholeCircle)
-    {
-      // radial gradient in track
-      float wedgeStartAngle = a0 + kPi/2;
-      float wedgeEndAngle = a1 - kPi/2;
-      
-      auto trackShadowGlowStart = multiplyAlpha(shadowColor, 0.125f);
-      auto trackShadowGlowEnd = multiplyAlpha(shadowColor, 0.f);
-      
-      float sizeMult = 0.5f;
-      
-      // wedge joining gradient edges
-      if(wedgeStartAngle < wedgeEndAngle - 0.0001f)
-      {
-        nvgBeginPath(nvg);
-        nvgMoveTo(nvg, 0, 0);
-        nvgArc(nvg, 0, 0, shadowDepth, wedgeStartAngle, wedgeEndAngle, NVG_CW);
-        nvgClosePath(nvg);
-        auto wedgeGradient = nvgRadialGradient(nvg, 0, 0, 0, shadowDepth*sizeMult, trackShadowGlowStart, trackShadowGlowEnd);
-        nvgFillPaint(nvg, wedgeGradient);
-        nvgFill(nvg);
-      }
-      
-      float gradAngle = asinf(shadowDepth/r1);
-      {
-        nvgSave(nvg);
-        nvgRotate(nvg, a0);
-        nvgBeginPath(nvg);
-        nvgMoveTo(nvg, 0, 0);
-        nvgLineTo(nvg, r1, 0);
-        nvgArc(nvg, 0, 0, r1, 0, gradAngle, NVG_CW);
-        nvgLineTo(nvg, 0, shadowDepth);
-        nvgClosePath(nvg);
-        auto shadowGradient = nvgLinearGradient(nvg, 0, 0, 0, shadowDepth*sizeMult, trackShadowGlowStart, trackShadowGlowEnd);
-        nvgFillPaint(nvg, shadowGradient);
-        nvgFill(nvg);
-        nvgRestore(nvg);
-      }
-      {
-        nvgSave(nvg);
-        nvgRotate(nvg, a1);
-        nvgBeginPath(nvg);
-        nvgMoveTo(nvg, 0, 0);
-        nvgLineTo(nvg, r1, 0);
-        nvgArc(nvg, 0, 0, r1, 0, -gradAngle, NVG_CCW);
-        nvgLineTo(nvg, 0, -shadowDepth);
-        nvgClosePath(nvg);
-        auto shadowGradient = nvgLinearGradient(nvg, 0, 0, 0, -shadowDepth*sizeMult, trackShadowGlowStart, trackShadowGlowEnd);
-        nvgFillPaint(nvg, shadowGradient);
-        nvgFill(nvg);
-        nvgRestore(nvg);
-      }
-    }
-        
+ 
     // outline arc
     if(outline)
     {
-      nvgStrokeColor(nvg, shadowColor);
+      nvgStrokeColor(nvg, markColor);
       nvgStrokeWidth(nvg, strokeWidth);
       nvgBeginPath(nvg);
       nvgArc(nvg, 0, 0, r1 + strokeWidth*0.5f, a0, a1, NVG_CW);
       nvgStroke(nvg);
-      
-      // thin shadow arc over fill
-      drawShadowArc(nvg, a0, a1, r1, r1 - shadowDepth/2., shadowColor, 0.25f);
+
     }
 
     // ticks
@@ -699,18 +597,21 @@ void DialBasic::draw(ml::DrawContext dc)
         nvgFontSize(nvg, textSize);
         nvgTextLetterSpacing(nvg, 1.0f);
         nvgTextAlign(nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
-        nvgFillColor(nvg, textColor);
+        nvgFillColor(nvg, markColor);
         nvgText(nvg, -numWidth/4.f, r1*0.125f, numText.getText(), nullptr);
       }
       else
       {
         auto image = getVectorImage(dc, "infinity");
-        float imgSrcWidth = image->width;
-        float imageDestWidth = numWidth*3.5;
-        float imgScale = imageDestWidth/imgSrcWidth;
-        nvgTranslate(nvg, -numWidth/4.f, r1*0.1875f  );
-        nvgScale(nvg, imgScale, imgScale);
-        nvgDrawSVG(nvg, image->_pImage);
+        if(image)
+        {
+          float imgSrcWidth = image->width;
+          float imageDestWidth = numWidth*3.5;
+          float imgScale = imageDestWidth/imgSrcWidth;
+          nvgTranslate(nvg, -numWidth/4.f, r1*0.1875f  );
+          nvgScale(nvg, imgScale, imgScale);
+          nvgDrawSVG(nvg, image->_pImage);
+        }
       }
     }
     

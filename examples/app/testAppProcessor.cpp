@@ -3,7 +3,7 @@
 // see LICENSE.txt for details
 
 #include "testAppProcessor.h"
-#include "testAppController.h"
+#include "TestAppController.h"
 #include "testAppParameters.h"
 
 
@@ -19,6 +19,7 @@ using namespace ml;
 // testAppProcessor
   
 testAppProcessor::testAppProcessor()
+  : SignalProcessor(kInputChannels, kOutputChannels)
 {
   // register self
   _uniqueID = _registry->getUniqueID();
@@ -55,29 +56,16 @@ testAppProcessor::~testAppProcessor()
 
 // processVector() does all of the audio processing, in DSPVector-sized chunks.
 // It is called every time a new buffer of audio is needed.
-DSPVectorArray< 2 > testAppProcessor::processVector()
+void testAppProcessor::processVector(MainInputs inputs, MainOutputs outputs, void *stateData)
 {
-  DSPVectorArray< 2 > stereoOutput;
   
   // TEST
   //debug << "ppq: " << _currentTime._quarterNotesPhase << ", secs: " << _currentTime._seconds << "\n";
 
-  if(1)
-  {
-    _test += kFloatsPerDSPVector;
-    if(_test > sr)
-    {
-      _test -= sr;
-
-      
- //     debug << "ppq: " << _currentTime._quarterNotesPhase << ", secs: " << _currentTime._seconds << "\n";
-      
-      //std::cout << std::setprecision(9) << " time: " << _currentTime._seconds << "\n\n";
-      //std::cout << std::setprecision(9) << " phase: " << _currentTime._secondsPhase  << "\n\n";
-    }
-  }
   
-  return stereoOutput;
+  const float kNoiseLevel{0.01f};
+  outputs[0] = _noise0()*kNoiseLevel;
+  outputs[1] = _noise1()*kNoiseLevel;
   
 }
 

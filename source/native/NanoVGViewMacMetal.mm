@@ -392,10 +392,22 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
     return;
   }
   if(!pParent) return;
-  NSView* parent = (__bridge NSView *)(pParent);
+  
+  // get parent view, from either NSWindow or NSView according to flag
+  NSView* parentView{nullptr};
+  if(platformFlags & PlatformView::kParentIsNSWindow)
+  {
+    auto parentWindow = (__bridge NSWindow *)(pParent);
+    parentView = [parentWindow contentView];
+  }
+  else
+  {
+    parentView = (__bridge NSView *)(pParent);
+  }
+
   NSRect boundsRectDefault = NSMakeRect(0, 0, bounds.width(), bounds.height());
-  NSRect boundsRectBacking = [parent convertRectToBacking: boundsRectDefault];
-  NSRect parentFrame = [parent frame];
+  NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
+  NSRect parentFrame = [parentView frame];
   float displayScale = boundsRectBacking.size.width / boundsRectDefault.size.width;
   ml::Rect pixelBounds = bounds*displayScale;
   CGRect boundsRect = NSMakeRect(parentFrame.origin.x, parentFrame.origin.y, pixelBounds.width(), pixelBounds.height());
@@ -437,7 +449,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   view.preferredFramesPerSecond = 60;
   
   // add the view to our parent view supplied by the host.
-  [parent addSubview: view];
+  [parentView addSubview: view];
 
   _pImpl = ml::make_unique< Impl >();
   _pImpl->_mtkView = view;

@@ -136,27 +136,28 @@ protected:
       enqueueMessage(m);
     }
   }
-  
-  // send message to another Actor.
-  //
-  // TODO handle situations where sender is not able to use a pointer
-  // to the receiver, as when it is on a different computer on the network.
-  // to start we will need a "main" host with the registry.
-  // - if receiver is on same host?
-  //    then send directly as below.
-  // -- else
-  //      serialize the message
-  //      transmit serialized message to the receiver's host (UDP)
-  inline void sendMessageToActor(Path actorName, Message m)
-  {
-    SharedResourcePointer< ActorRegistry > registry;
-    if(Actor* pActor = registry->getActor(actorName))
-    {
-      pActor->enqueueMessage(m);
-    }
-  }
+
 };
 
+
+// send message to an Actor.
+//
+// TODO handle situations where sender is not able to use a pointer
+// to the receiver, as when it is on a different computer on the network.
+// to start we will need a "main" host with the registry.
+// - if receiver is on same host?
+//    then send directly as below.
+// -- else
+//      serialize the message
+//      transmit serialized message to the receiver's host (UDP)
+inline void sendMessageToActor(Path actorName, Message m)
+{
+  SharedResourcePointer< ActorRegistry > registry;
+  if(Actor* pActor = registry->getActor(actorName))
+  {
+    pActor->enqueueMessage(m);
+  }
+}
 
 inline void registerActor(Path actorName, Actor* actorToRegister)
 {
