@@ -36,7 +36,8 @@ public:
   void pushEvent(GUIEvent g) override;
   
   void doAttached (void* pParent, int flags);
-
+  void doResize(Vec2 newSize);
+  
 private:
   
   Path _controllerName;
@@ -44,7 +45,7 @@ private:
   void _initializeParams();
 
   Vec2 _constrainSize(Vec2 size);
-  void _resizeEditor(Vec2 newSize);
+
   void _sendParameterToWidgets(const Message& m);
 
   GUIEvent detectDoubleClicks(GUIEvent e);

@@ -6,7 +6,7 @@
 // use clipboard code from VST3 SDK
 #include "public.sdk/source/common/systemclipboard.h"
 
-#include "TestAppController.h"
+#include "testAppController.h"
 #include "testAppView.h"
 
 // param definitions for this plugin

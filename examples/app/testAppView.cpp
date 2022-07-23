@@ -88,14 +88,6 @@ _controllerName(controllerName)
     {"trigger_popup", true }
   } );
   
-  _view->_widgets.add_unique< Resizer >("resizer", WithValues{
-    {"fix_ratio", kGridUnitsX/kGridUnitsY},
-    {"z", -2}, // stay on top
-    {"fixed_size", true},
-    {"fixed_bounds", { -16, -16, 16, 16 }},
-    {"anchor", {1, 1}} // for fixed-size widgets, anchor is a point on the view from top left {0, 0} to bottom right {1, 1}.
-  } );
-  
   _initializeParams();
 
   // grid size of entire interface, for background and other drawing
@@ -348,7 +340,6 @@ void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
 
 void TestAppView::doAttached (void* pParent, int flags)
 {
-  
   float w = _defaultSystemSize.x();
   float h = _defaultSystemSize.y();
   
@@ -357,10 +348,8 @@ void TestAppView::doAttached (void* pParent, int flags)
     _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, w, h), this, _platformHandle, flags);
     _parent = pParent;
   }
-
-
   
-  _resizeEditor(_constrainSize(Vec2(w, h)));
+  doResize(_constrainSize(Vec2(w, h)));
 }
 
 
@@ -383,24 +372,16 @@ Vec2 TestAppView::_constrainSize(Vec2 size)
 }
 
 // set new editor size in system coordinates.
-void TestAppView::_resizeEditor(Vec2 newSize)
+void TestAppView::doResize(Vec2 newSize)
 {
   int width = newSize[0];
   int height = newSize[1];
   float scale = _GUICoordinates.displayScale;
-  
   Vec2 newViewSize = Vec2(width, height)*scale;
   
   if(_GUICoordinates.pixelSize != newViewSize)
   {
     _GUICoordinates.pixelSize = newViewSize;
-    
-    // VST API call to resize window, in system coordinates
-   // Steinberg::ViewRect newRect = Steinberg::ViewRect(0, 0, width, height);
-   // CPluginView::setRect(newRect);
-    
-   // if(plugFrame)
-     // plugFrame->resizeView(this, &newRect);
     
     // resize our canvas, in system coordinates
     if(_platformView)
@@ -605,16 +586,17 @@ void TestAppView::handleMessage(Message msg)
       msg.address = tail(msg.address);
       switch(hash(head(msg.address)))
       {
+          /*
         // TODO should simply be set view_size message? overload that simple param set
         case(hash("resize")):
         {
           // sent by resizer component - resize and tell Controller
           auto newSize = msg.value.getMatrixValue();
-          _resizeEditor(_constrainSize(matrixToVec2(newSize)));
+          doResize(_constrainSize(matrixToVec2(newSize)));
           sendMessageToActor(_controllerName, {"set_param/view_size", newSize});
           break;
         }
-          
+          */
           /*
         case(hash("update_collection")):
         {

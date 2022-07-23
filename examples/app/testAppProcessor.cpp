@@ -3,15 +3,13 @@
 // see LICENSE.txt for details
 
 #include "testAppProcessor.h"
-#include "TestAppController.h"
+#include "testAppController.h"
 #include "testAppParameters.h"
-
 
 #include <cmath>
 #include <cstdlib>
 #include <math.h>
 #include <iostream>
-
 
 using namespace ml;
 

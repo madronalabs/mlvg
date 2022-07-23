@@ -1,6 +1,4 @@
 
-/* Sample program:  Draw a Chess Board  by using SDL_CreateSoftwareRenderer API */
-
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -8,44 +6,56 @@
 #include "SDL_syswm.h"
 
 #include "testAppView.h"
-#include "TestAppController.h"
+#include "testAppController.h"
 
 SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Surface *surface;
-int done;
+bool done{false};
 
 std::unique_ptr< TestAppView > _appView;
 std::unique_ptr< TestAppController > _appController;
 
-
 void* _platformHandle{ nullptr };
 Vec2 _defaultSystemSize{1280, 720};
 
-void DrawChessBoard(SDL_Renderer * renderer)
+void doResize()
 {
-  int row = 0,column = 0,x = 0;
-  SDL_Rect rect, darea;
+  SDL_DestroyRenderer(renderer);
+  surface = SDL_GetWindowSurface(window);
+  renderer = SDL_CreateSoftwareRenderer(surface);
   
-  /* Get the Size of drawing surface */
-  SDL_RenderGetViewport(renderer, &darea);
-  
-  for( ; row < 8; row++)
+  // resize mlvg app
+  if(_appView)
   {
-    column = row%2;
-    x = column;
-    for( ; column < 4+(row%2); column++)
+    int w{0};
+    int h{0};
+    SDL_GetWindowSize(window, &w, &h);
+    if((w > 0) && (h > 0))
     {
-      SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
-      
-      rect.w = darea.w/8;
-      rect.h = darea.h/8;
-      rect.x = x * rect.w;
-      rect.y = row * rect.h;
-      x = x + 2;
-      SDL_RenderFillRect(renderer, &rect);
+      _appView->doResize(Vec2{float(w), float(h)});
     }
   }
+  
+//  SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xFF);
+//  SDL_RenderClear(renderer);
+}
+
+int resizingEventWatcher( void* data, SDL_Event* event )
+{
+  SDL_Window* window = static_cast< SDL_Window* >( data );
+  SDL_Event& ev = *event;
+  
+  if( ev.type == SDL_WINDOWEVENT &&
+     ev.window.event == SDL_WINDOWEVENT_RESIZED )
+  {
+    if( SDL_GetWindowFromID( ev.window.windowID ) == window )
+    {
+      std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
+      doResize();
+    }
+  }
+  return 0;
 }
 
 void loop()
@@ -53,39 +63,31 @@ void loop()
   SDL_Event e;
   while (SDL_PollEvent(&e))
   {
-    /* Re-create when window has been resized */
-    if ((e.type == SDL_WINDOWEVENT) && (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)) {
-      
-      SDL_DestroyRenderer(renderer);
-      
-      surface = SDL_GetWindowSurface(window);
-      renderer = SDL_CreateSoftwareRenderer(surface);
-      /* Clear the rendering surface with the specified color */
-      SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-      SDL_RenderClear(renderer);
+    // Re-create when window has been resized
+    if ((e.type == SDL_WINDOWEVENT) && (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED))
+    {
+      doResize();
     }
     
-    if (e.type == SDL_QUIT) {
+    if (e.type == SDL_QUIT)
+    {
       done = 1;
       return;
     }
     
-    if ((e.type == SDL_KEYDOWN) && (e.key.keysym.sym == SDLK_ESCAPE)) {
+    if ((e.type == SDL_KEYDOWN) && (e.key.keysym.sym == SDLK_ESCAPE))
+    {
       done = 1;
       return;
     }
   }
   
-  DrawChessBoard(renderer);
-  
-  /* Got everything on rendering surface,
-   now Update the drawing image on window screen */
+  // Got everything on rendering surface, now update the drawing image on window screen
   SDL_UpdateWindowSurface(window);
 }
 
 int main(int argc, char *argv[])
 {
-  
   float w = _defaultSystemSize.x();
   float h = _defaultSystemSize.y();
   
@@ -93,7 +95,7 @@ int main(int argc, char *argv[])
   SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
   
   /* Initialize SDL */
-  if(SDL_Init(SDL_INIT_VIDEO) != 0)
+  if(SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO) != 0)
   {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init fail : %s\n", SDL_GetError());
     return 1;
@@ -113,6 +115,8 @@ int main(int argc, char *argv[])
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Render creation for surface fail : %s\n",SDL_GetError());
     return 1;
   }
+  
+  SDL_AddEventWatch( resizingEventWatcher, window );
   
   // Clear the rendering surface with the specified color
   SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -160,25 +164,16 @@ int main(int argc, char *argv[])
     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Couldn't get window information: %s", SDL_GetError());
   }
     
-  NSWindow* pParent = info.info.cocoa.window;
-  
-//  void* pParent = static_cast< NSView* > ();
-  
-
   _appController = make_unique< TestAppController >();
-  
-  ml::Rect boundsRect(0, 0, w, h);
   
   TestAppView* viewPtr = _appController->createTestAppView();
   _appView = std::unique_ptr< TestAppView >(viewPtr);
   
-  
+  NSWindow* pParent = info.info.cocoa.window;
   int flags = PlatformView::kParentIsNSWindow;
   _appView->doAttached(static_cast< void* >(pParent), flags);
   
-  /* Draw the Image on rendering surface */
-  done = 0;
-  
+  doResize();
   while (!done)
   {
     loop();
