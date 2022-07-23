@@ -88,57 +88,11 @@ void DialBasic::setupParams()
   Widget::setupParams();
 }
 
-void DialBasic::sendPopupRequestDetails(MessageList& r, GUIEvent e)
-{
-  constexpr float kClickAndHoldMs{1000};
-  
-  Path pname{getTextProperty("param")};
-  
-  // tell controller which param to use for midi learn
-  r.push_back(Message("controller/set_prop/learn_param", pathToText(pname)));
-  
-  // first, tell editor which modal widget we want
-  r.push_back(Message("editor/do/set_popup_widget", "popup"));
-
-  // tell editor which param we want to control with the modal widget
-  r.push_back(Message("editor/set_popup_prop/modal_param", pathToText(pname)));
-  
-  // set target bounds, used by the view to calculate popup position
-  r.push_back(Message("editor/set_popup_prop/target_bounds", rectToMatrix(getBounds(*this))));
-  
-  // send click center to editor for UI use
-  r.push_back(Message("editor/set_popup_prop/target_click_position", vec2ToMatrix(e.position)));
-
-  // set color for pre-open animation
-  auto indicatorColor = getColorPropertyWithDefault("indicator", rgba(0.8, 0.8, 0.8, 1.0));
-  r.push_back(Message("editor/set_popup_prop/indicator_color", colorToMatrix(indicatorColor)));
-  
-  // send the click and hold interval to the popup so it can animate correctly
-  r.push_back(Message("editor/set_popup_prop/click_and_hold_time", kClickAndHoldMs));
-}
-
-void DialBasic::startDelayedPopupOpen(MessageList& r, GUIEvent e)
-{
-  sendPopupRequestDetails(r, e);
-  r.push_back(Message("editor/do/request_popup", false));
-}
-
-void DialBasic::cancelDelayedPopupOpen(MessageList& r)
-{
-  r.push_back(Message("editor/do/cancel_popup"));
-}
-
-void DialBasic::doImmediatePopupOpen(MessageList& r, GUIEvent e)
-{
-  sendPopupRequestDetails(r, e);
-  r.push_back(Message("editor/do/request_popup", true));
-}
-
 MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 {
   constexpr float kComponentDragScale{-0.005f};
   constexpr float kScrollScale{-0.04f};
-  constexpr float kFineDragScale{0.1f}; // TODO different fine drag behavior based on parameter values
+  constexpr float kFineDragScale{0.1f};
 
   Path pname{getTextProperty("param")};
   Path paramRequestPath = Path("editor/set_param", pname);
@@ -168,31 +122,10 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       float trackVal = _trackPositionToNormalValue(centeredPos);
       if(within(trackVal, 0.0f, 1.f))
       {
-        //_rawNormValue = trackVal;
-        //float cookedNormValue = hasDetents ? _quantizeNormalizedValue(_rawNormValue) : _rawNormValue;
         float cookedNormValue = hasDetents ? _quantizeNormalizedValue(trackVal) : trackVal;
         setParamValue(pname, cookedNormValue);
         _rawNormValue = cookedNormValue;
         valueToSend = cookedNormValue;
-      }
-      
-      // trigger editor popup sequence
-      
-      // TODO add a way to share functional packages of messages in any Widget.
-      // if we have the trigger_popup package, we call several different functions based on
-      // incoming UI messages.
-      
-      if(getBoolProperty("trigger_popup"))
-      {
-        if (!(e.keyFlags & controlModifier))
-        {
-          // open popup after a delay
-          // see animate() for countdown timer code
-          startDelayedPopupOpen(r, e);
-          
-          // store click position in order to cancel on a large move during pre-open
-          _clickAndHoldStartPosition = componentPosition;
-        }
       }
     }
     
@@ -217,10 +150,6 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     float dragY0 = componentPosition.y();
     float delta = dragY0 - _dragY1;
     _dragY1 = dragY0;
-    
-  
-    // TEMP
-    // std::cout << "DialBasic drag pos: " << dragY0 << "  delta: " << delta << "\n";
 
     if(delta != 0.f)
     {
@@ -237,19 +166,6 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       {
         setParamValue(pname, cookedNormValue);
         r.push_back(Message{paramRequestPath, cookedNormValue});
-      }
-    }
-    
-    if(getBoolProperty("trigger_popup"))
-    {
-      // cancel popup on sufficiently large drag
-      Vec2 dragVec = componentPosition - _clickAndHoldStartPosition;
-      float dv = magnitude(dragVec);
-      
-      constexpr float kPopupCancelDistance{5.0f};
-      if(dv > kPopupCancelDistance)
-      {
-        cancelDelayedPopupOpen(r);
       }
     }
   }
@@ -270,18 +186,6 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     {
       r.push_back(Message{paramRequestPath, valueToSend, kMsgSequenceEnd});
       engaged = false;
-    }
-        
-    if(getBoolProperty("trigger_popup"))
-    {
-      if (e.keyFlags & controlModifier)
-      {
-        doImmediatePopupOpen(r, e);
-      }
-      else
-      {
-        cancelDelayedPopupOpen(r);
-      }
     }
   }
   else if(type == "scroll")
@@ -324,22 +228,6 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   return r;
 }
 
-void DialBasic::processSignal(DSPVector sig, size_t channel)
-{
-  constexpr float eps{0.0001f};
-  
-  // this dial does not draw a full waveform, just one modulated value
-
-  Path paramName{getTextProperty("param")};
-  float newValue = _params.projections[paramName].plainToNormalized(sig[0]);
-  
-  if(fabs(_indicatorNormalizedValue - newValue) > eps)
-  {
-    _indicatorNormalizedValue = newValue;
-    _dirty = true;
-  }
-}
-
 MessageList DialBasic::animate(int elapsedTimeInMs, ml::DrawContext dc)
 {
   MessageList r;
@@ -360,43 +248,30 @@ MessageList DialBasic::animate(int elapsedTimeInMs, ml::DrawContext dc)
 
 void DialBasic::draw(ml::DrawContext dc)
 {
+  // get parameter value
   Path paramName{getTextProperty("param")};
   auto currentNormalizedValue = getNormalizedValue(_params, paramName);
   auto currentPlainValue = getPlainValue(_params, paramName);
   
-  if(isNaN( currentPlainValue))
-  {
-    std::cout << "nan\v";
-  }
-  
+  // get context and dimensions
   NativeDrawContext* nvg = getNativeContext(dc);
   int gridSize = dc.coords.gridSize;
   Rect bounds = getLocalBounds(dc, *this);
   
-  //auto& resources = getResources(dc);
-  const float kMinAngle = 0.01f;
-
   // properties
-  float opacity = getFloatPropertyWithDefault("opacity", 1.0f);
-
-  bool opaqueBg = getBoolPropertyWithDefault("opaque_bg", false);
-  
+  bool opaqueBg = getBoolPropertyWithDefault("opaque_bg", false);  
   bool bipolar = getBoolPropertyWithDefault("bipolar", false);
   bool enabled = getBoolPropertyWithDefault("enabled", true);
-  if(!enabled) opacity *= 0.25f;
-  bool hasSignal = hasProperty("signal_name");
-  bool outline = getBoolPropertyWithDefault("outline", true);
   float dialSize = getFloatPropertyWithDefault("size", 1.0f);
-  float featureScale = getFloatPropertyWithDefault("feature_scale", 1.0f);
-  
-  float textScale = getFloatPropertyWithDefault("text_size", getFloat(dc, "dial_text_size"));
+  float textScale = getFloatPropertyWithDefault("text_size",0.5);
+  float normalizedValue = enabled ? currentNormalizedValue : 0.f;
+  float opacity = enabled ? 1.0f : 0.25f;
 
   // colors
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
 
-  
-  float normalizedValue = enabled ? currentNormalizedValue : 0.f;
-  
+  // angles
+  const float kMinAngle = 0.01f;
   float a0, a1, a2, a3, a4; // angles for track start, track end, fill start, fill end, indicator
   if(bipolar)
   {
@@ -406,13 +281,13 @@ void DialBasic::draw(ml::DrawContext dc)
     {
       a2 = lerp(a0, a1, 0.5f);
       a3 = lerp(a0, a1, normalizedValue);
-      a4 = hasSignal ? lerp(a0, a1, _indicatorNormalizedValue) : a3;
+      a4 = a3;
     }
     else
     {
       a2 = lerp(a0, a1, normalizedValue);
       a3 = lerp(a0, a1, 0.5f);
-      a4 = hasSignal ? lerp(a0, a1, _indicatorNormalizedValue) : a2;
+      a4 = a2;
     }
   }
   else
@@ -421,32 +296,23 @@ void DialBasic::draw(ml::DrawContext dc)
     a1 = getFloatPropertyWithDefault("a1", kTwoPi);
     a2 = a0;
     a3 = lerp(a0, a1, normalizedValue);
-    a4 = hasSignal ? lerp(a0, a1, _indicatorNormalizedValue) : a3;
+    a4 = a3;
   }
-  
-  //auto& testMatrix = *resources["test"];
-  //  std::cout << "test: " <<  testMatrix << "\n";
 
-//  float strokeWidth = outline ? gridSize/48.f*featureScale : 0;
-  float strokeWidth = gridSize/64.f*featureScale;
-  float tickWidth = gridSize/256.f*featureScale;
-  float textSize = gridSize*dialSize*textScale;
-  
-  // indicator does not scale with dial size, just grid.
-  // like a typographical stroke.
-  // Aaltoverb: const float kIndicatorWidth = gridSize/12.f;
-  const float kIndicatorWidth = strokeWidth*1.5f;//gridSize/48.f*featureScale;
-  float shadowDepth = gridSize/48.f*featureScale;
-
+  // radii
   float r0 = gridSize*dialSize; // master size / radius
   float r1 = r0*0.85f; // outline radius
   float r4 = r0*1.00f; // ticks start
   float r5 = r0*1.06f; // ticks end
+
+  // other sizes
+  float strokeWidth = gridSize/32.f;
+  float tickWidth = gridSize/128.f;
+  float textSize = gridSize*dialSize*textScale;
   
-  //float r6 = r0*0.125f; // inner shadow line thickness
-  
-  float numWidth = textSize*0.45f; // approximate width of a number
-  float numHeight = textSize; // approximate height of a number
+  // indicator does not scale with dial size, just grid.
+  // like a typographical stroke.
+  const float kIndicatorWidth = strokeWidth;
 
   {
     // translate to center for easy drawing calcs
@@ -454,15 +320,9 @@ void DialBasic::draw(ml::DrawContext dc)
     nvgTranslate(nvg, getCenter(bounds).getIntPart());
     
     auto indicatorColor = markColor;
-    //auto trackColor = multiplyAlpha(markColor, opacity);
     auto fillColor = multiplyAlpha(markColor, 0.25f);
     
-
-    // draw background fill. (fill color paints over this)
-    bool wholeCircle = fabs(fmod(a0, kTwoPi) - fmod(a1, kTwoPi)) < kMinAngle;
-
-          
-    // fill color
+    // fill
     if(enabled && (a3 - a2 > kMinAngle))
     {
       nvgBeginPath(nvg);
@@ -475,7 +335,6 @@ void DialBasic::draw(ml::DrawContext dc)
     }
     
     // indicator
-    if(enabled)
     {
       nvgSave(nvg);
       float ixy = kIndicatorWidth/2.f;
@@ -483,7 +342,7 @@ void DialBasic::draw(ml::DrawContext dc)
       float ch = r1*sinf(kPi/4) + cw;
       if(a4 < a0 + kPi/4)
       {
-        // allow everything after angle a0
+        // set scissor region to everything after angle a0
         nvgRotate(nvg, a0);
         nvgIntersectScissor(nvg, 0, 0, cw, ch);
         // rotate to indicator angle
@@ -491,7 +350,7 @@ void DialBasic::draw(ml::DrawContext dc)
       }
       else if(a4 > a1 - kPi/4)
       {
-        // allow everything before angle a1
+        // set scissor region to everything before angle a1
         nvgRotate(nvg, a1);
         nvgIntersectScissor(nvg, 0, -ch, cw, ch);
         // rotate to indicator angle
@@ -511,26 +370,16 @@ void DialBasic::draw(ml::DrawContext dc)
       nvgStrokeWidth(nvg, 0);
       nvgFillColor(nvg, indicatorColor);
       nvgFill(nvg);
-      // show indicator scissor rect
-      if(0)
-      {
-       nvgBeginPath(nvg);
-       nvgRect(nvg, -10000, -10000, 20000, 20000);
-       nvgFillColor(nvg, nvgRGBA(255, 64, 64, 64));
-       nvgFill(nvg);
-      }
       nvgRestore(nvg);
     }
  
     // outline arc
-    if(outline)
     {
       nvgStrokeColor(nvg, markColor);
       nvgStrokeWidth(nvg, strokeWidth);
       nvgBeginPath(nvg);
       nvgArc(nvg, 0, 0, r1 + strokeWidth*0.5f, a0, a1, NVG_CW);
       nvgStroke(nvg);
-
     }
 
     // ticks
@@ -571,56 +420,25 @@ void DialBasic::draw(ml::DrawContext dc)
     // number
     if(enabled && getBoolPropertyWithDefault("draw_number", true))
     {
+      float numWidth = textSize*0.45f; // approximate width of a number
       constexpr float kParamTransformSlop = 0.00001f;
       int digits(2);
       int precision(2);
       bool doSign{false};
       TextFragment numText;
-      
-      bool maxInf = _params.descriptions[paramName]->getProperty("maxinfinity").getBoolValueWithDefault(false);
-      bool atInfinity{false};
-      auto paramName = getTextProperty("param");
-
-      if(maxInf)
-      {
-        auto range = _params.descriptions[paramName]->getProperty("range").getMatrixValue();
-        if(currentPlainValue >= range[1] - kParamTransformSlop)
-        {
-          atInfinity = true;
-        }
-      }
-      
-      if(!atInfinity)
-      {
-        numText = textUtils::formatNumber(currentPlainValue, digits, precision, doSign);
-        nvgFontFaceId(nvg, 0);
-        nvgFontSize(nvg, textSize);
-        nvgTextLetterSpacing(nvg, 1.0f);
-        nvgTextAlign(nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
-        nvgFillColor(nvg, markColor);
-        nvgText(nvg, -numWidth/4.f, r1*0.125f, numText.getText(), nullptr);
-      }
-      else
-      {
-        auto image = getVectorImage(dc, "infinity");
-        if(image)
-        {
-          float imgSrcWidth = image->width;
-          float imageDestWidth = numWidth*3.5;
-          float imgScale = imageDestWidth/imgSrcWidth;
-          nvgTranslate(nvg, -numWidth/4.f, r1*0.1875f  );
-          nvgScale(nvg, imgScale, imgScale);
-          nvgDrawSVG(nvg, image->_pImage);
-        }
-      }
+      numText = textUtils::formatNumber(currentPlainValue, digits, precision, doSign);
+      nvgFontFaceId(nvg, 0);
+      nvgFontSize(nvg, textSize);
+      nvgTextLetterSpacing(nvg, 1.0f);
+      nvgTextAlign(nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+      nvgFillColor(nvg, markColor);
+      nvgText(nvg, -numWidth/4.f, r1*0.125f, numText.getText(), nullptr);
     }
     
     // restore center offset
     nvgRestore(nvg);
   }
 }
-
-
 
 // TODO we can probably get rid of this
 

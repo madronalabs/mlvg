@@ -31,21 +31,14 @@ class DialBasic : public Widget
   
   Vec2 _clickAndHoldStartPosition;
   
-  int _popupCountdown{-1};
-  
-  void sendPopupRequestDetails(MessageList& r, GUIEvent e);
-  void startDelayedPopupOpen(MessageList& r, GUIEvent e);
-  void cancelDelayedPopupOpen(MessageList& r);
-  void doImmediatePopupOpen(MessageList& r, GUIEvent e);
+
 
 public:
   DialBasic(WithValues p) : Widget(p) {}
 
   // Widget implementation
-  
   void setupParams() override;
   MessageList processGUIEvent(const GUICoordinates& gc, GUIEvent e) override;
-  void processSignal(DSPVector sig, size_t channel) override;
 
   MessageList animate(int elapsedTimeInMs, ml::DrawContext dc) override;
   

@@ -60,7 +60,6 @@ _controllerName(controllerName)
     {"color", {0.945, 0.498, 0.125, 1} },
     {"indicator", {1, 0.725, 0.498, 1} },
     {"fill_opacity", 0.7},
-    {"signal_name", "size_meter"},
     {"param", "size" },
     {"trigger_popup", true }
   } );
@@ -73,7 +72,6 @@ _controllerName(controllerName)
     {"color", {0.901, 0.784, 0.145, 1} },
     {"indicator", {0.980, 0.894, 0.454, 1} },
     {"fill_opacity", 0.7},
-    {"signal_name", "decay_meter"},
     {"param", "decay" },
     {"trigger_popup", true }
   } );
@@ -86,7 +84,6 @@ _controllerName(controllerName)
     {"color", {0.627, 0.819, 0.286, 1} },
     {"indicator", {0.815, 0.976, 0.501, 1} },
     {"fill_opacity", 0.7},
-    {"signal_name", "tone_meter"},
     {"param", "tone" },
     {"trigger_popup", true }
   } );
