@@ -111,6 +111,8 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   Vec2 componentPosition = centeredPos*gc.gridSize;
   bool doFineDrag = e.keyFlags & shiftModifier;
   
+  float rawNormValue = getParamValue(pname).getFloatValue();
+  
   if(type == "down")
   {
     float valueToSend{getNormalizedValue(_params, pname)};
@@ -124,7 +126,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       {
         float cookedNormValue = hasDetents ? _quantizeNormalizedValue(trackVal) : trackVal;
         setParamValue(pname, cookedNormValue);
-        _rawNormValue = cookedNormValue;
+        rawNormValue = cookedNormValue;
         valueToSend = cookedNormValue;
       }
     }
@@ -157,9 +159,9 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       if(doFineDrag) delta *= kFineDragScale;
       
       // keep track of raw value before quantize
-      _rawNormValue = clamp(_rawNormValue + delta, 0.f, 1.f);
+      rawNormValue = clamp(rawNormValue + delta, 0.f, 1.f);
       
-      float cookedNormValue = (hasDetents && !doFineDrag) ? _quantizeNormalizedValue(_rawNormValue) : _rawNormValue;
+      float cookedNormValue = (hasDetents && !doFineDrag) ? _quantizeNormalizedValue(rawNormValue) : rawNormValue;
       float currentParamValue = getNormalizedValue(_params, pname);
       
       if(cookedNormValue != currentParamValue)
@@ -177,7 +179,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       // set parameter to default
       float defaultValue = _params.descriptions[pname]->getFloatPropertyWithDefault("default", 0.5f);
       setParamValue(pname, defaultValue);
-      _rawNormValue = defaultValue;
+      rawNormValue = defaultValue;
       valueToSend = defaultValue;
     }
       
@@ -196,8 +198,8 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       if(doFineDrag) scaledDelta *= kFineDragScale;
 
       // keep track of raw value before quantize
-      _rawNormValue = clamp(_rawNormValue + scaledDelta, 0.f, 1.f);
-      float cookedNormValue = (hasDetents && !doFineDrag) ? _quantizeNormalizedValue(_rawNormValue) : _rawNormValue;
+      rawNormValue = clamp(rawNormValue + scaledDelta, 0.f, 1.f);
+      float cookedNormValue = (hasDetents && !doFineDrag) ? _quantizeNormalizedValue(rawNormValue) : rawNormValue;
       float currentParamValue = getNormalizedValue(_params, pname);
       
       if(cookedNormValue != currentParamValue)
@@ -437,38 +439,5 @@ void DialBasic::draw(ml::DrawContext dc)
     
     // restore center offset
     nvgRestore(nvg);
-  }
-}
-
-// TODO we can probably get rid of this
-
-void DialBasic::handleMessage(Message msg, Message*)
-{
-  switch(hash(head(msg.address)))
-  {
-    case(hash("set_param")):
-    {
-      // handle normalized parameter value
-      setParamValue(tail(msg.address), msg.value);
-      _rawNormValue = msg.value.getFloatValue();
-      _dirty = true;
-      break;
-    }
-    case(hash("set_prop")):
-    {
-      setProperty(tail(msg.address), msg.value);
-      _dirty = true;
-      break;
-    }
-    case(hash("do")):
-    {
-      // default widget: nothing to do
-      break;
-    }
-    default:
-    {
-      // default widget: no forwarding
-      break;
-    }
   }
 }

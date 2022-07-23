@@ -16,8 +16,6 @@ class DialBasic : public Widget
 {
   float _dragY1{0.f};
   float _indicatorNormalizedValue{0.f};
-  float _rawNormValue{0.f};
-
   float _trackPositionToNormalValue(Vec2 p);
   float _quantizeNormalizedValue(float v);
 
@@ -30,7 +28,6 @@ class DialBasic : public Widget
   std::vector< float > _normDetents;
   
   Vec2 _clickAndHoldStartPosition;
-  
 
 
 public:
@@ -39,9 +36,6 @@ public:
   // Widget implementation
   void setupParams() override;
   MessageList processGUIEvent(const GUICoordinates& gc, GUIEvent e) override;
-
   MessageList animate(int elapsedTimeInMs, ml::DrawContext dc) override;
-  
   void draw(ml::DrawContext d) override;
-  virtual void handleMessage(Message msg, Message*) override;
 };
