@@ -390,7 +390,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   
   NVGpaint paintPattern;
   Resource* pr = getResource(dc, "background");
-  
+    
   if(pr)
   {
     /// MLTEST TODO better cache image handles
@@ -404,7 +404,8 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   }
   else
   {
-    paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.pixelSize.y() + u, bgColorA, bgColorB);
+    auto bgColor = getColor(dc, "background");
+    paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.pixelSize.y() + u, bgColor, bgColor);
   }
   
   // draw background image or gradient
@@ -422,7 +423,8 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     }
   };
   
-  constexpr bool drawGrid{false};
+  bool drawGrid = dc.pProperties->getBoolPropertyWithDefault("draw_background_grid", false);
+  
   if(drawGrid)
   {
     const int kGridUnitsX = getFloatProperty("grid_units_x");

@@ -317,7 +317,7 @@ void DialBasic::draw(ml::DrawContext dc)
   const float kIndicatorWidth = strokeWidth;
 
   {
-    // translate to center for easy drawing calcs
+    // translate to center of bounding box for easy drawing calcs
     nvgSave(nvg);
     nvgTranslate(nvg, getCenter(bounds).getIntPart());
     
@@ -383,7 +383,7 @@ void DialBasic::draw(ml::DrawContext dc)
       nvgArc(nvg, 0, 0, r1 + strokeWidth*0.5f, a0, a1, NVG_CW);
       nvgStroke(nvg);
     }
-
+    
     // ticks
     if(int nTicks = getIntPropertyWithDefault("ticks", 0))
     {

@@ -369,15 +369,15 @@ void TestAppController::handleMessage(Message m)
         }
 
           /*
-        case(hash("copy_to_clipboard")):
-        {
-          auto patch = getPatchAsBinary();
-          size_t bytes = patch.size();
-          TextFragment t(getPatchHeader(bytes), textUtils::base64Encode(patch));
-          Steinberg::SystemClipboard::copyTextToClipboard(t.getText());
-          
-          break;
-        }
+          case(hash("copy_to_clipboard")):
+          {
+            auto patch = getPatchAsBinary();
+            size_t bytes = patch.size();
+            TextFragment t(getPatchHeader(bytes), textUtils::base64Encode(patch));
+            Steinberg::SystemClipboard::copyTextToClipboard(t.getText());
+            
+            break;
+          }
           */
           
         case(hash("send_current_file_path")):

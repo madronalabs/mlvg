@@ -1,6 +1,9 @@
-// MadronaLib: a C++ framework for DSP applications.
-// Copyright (c) 2019 Madrona Labs LLC. http://www.madronalabs.com
-// Distributed under the MIT license: http://madrona-labs.mit-license.org/
+
+// mlvg: GUI library for madronalib apps and plugins
+// Copyright (C) 2019-2022 Madrona Labs LLC
+// This software is provided 'as-is', without any express or implied warranty.
+// See LICENSE.txt for details.
+
 
 #pragma once
 

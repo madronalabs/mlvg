@@ -18,17 +18,11 @@ class DialBasic : public Widget
   float _indicatorNormalizedValue{0.f};
   float _trackPositionToNormalValue(Vec2 p);
   float _quantizeNormalizedValue(float v);
-
-  bool _bipolar{false};
   
   ml::Timer _scrollTimer;
   bool _doEndScroll{false};
-  
-  float _indicatorSignal[kWaveformPoints];
   std::vector< float > _normDetents;
-  
   Vec2 _clickAndHoldStartPosition;
-
 
 public:
   DialBasic(WithValues p) : Widget(p) {}

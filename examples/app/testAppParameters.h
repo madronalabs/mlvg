@@ -20,7 +20,7 @@ using namespace ml;
 
 constexpr float kGridUnitsX{ 9 };
 constexpr float kGridUnitsY{ 5 };
-constexpr int kDefaultGridSize{ 80 };
+constexpr int kDefaultGridSize{ 120 };
 constexpr int kMinGridSize{ 40 };
 constexpr int kMaxGridSize{ 240 };
 

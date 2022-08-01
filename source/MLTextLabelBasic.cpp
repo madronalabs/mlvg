@@ -43,7 +43,7 @@ void TextLabelBasic::draw(ml::DrawContext dc)
   Rect bounds = getLocalBounds(dc, *this);
   int gridSize = dc.coords.gridSize;
   
-  auto fontFace = getTextPropertyWithDefault("font", "madronasans");
+  auto fontFace = getTextPropertyWithDefault("font", "d_din");
   auto text = getTextProperty("text");
   
   NativeFontHandle fontHandle = getImageHandleResource(dc, Path(fontFace));

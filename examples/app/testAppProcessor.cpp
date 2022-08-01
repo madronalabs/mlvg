@@ -50,8 +50,6 @@ testAppProcessor::~testAppProcessor()
 
 }
 
-
-
 // processVector() does all of the audio processing, in DSPVector-sized chunks.
 // It is called every time a new buffer of audio is needed.
 void testAppProcessor::processVector(MainInputs inputs, MainOutputs outputs, void *stateData)

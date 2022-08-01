@@ -12,7 +12,7 @@
 #include "testAppParameters.h"
 
 // constrain window if true
-constexpr bool kFixedRatioSize {true};
+constexpr bool kFixedRatioSize {false};
 
 const ml::Rect kDefaultPopupSize{0, 0, 3.5, 3.5};
 const ml::Rect kDefaultPopupStartRect{0, 0, 1, 1};
@@ -37,6 +37,7 @@ public:
   
   void doAttached (void* pParent, int flags);
   void doResize(Vec2 newSize);
+  void layoutView();
   
 private:
   

@@ -1,6 +1,9 @@
-// mlvg: GUI library for madronalib and VST3
-// (c) 2020, Madrona Labs LLC, all rights reserved
-// see LICENSE.txt for details
+
+// mlvg: GUI library for madronalib apps and plugins
+// Copyright (C) 2019-2022 Madrona Labs LLC
+// This software is provided 'as-is', without any express or implied warranty.
+// See LICENSE.txt for details.
+
 
 #include "nanovg.h"
 #include "nanovg_mtl.h"

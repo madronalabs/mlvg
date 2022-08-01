@@ -132,7 +132,7 @@ void SVGButton::draw(ml::DrawContext dc)
   }
   else
   {
-    NativeFontHandle fontHandle = getImageHandleResource(dc, "madronasans");
+    NativeFontHandle fontHandle = getImageHandleResource(dc, "d_din");
     if(!isValid(fontHandle)) return;
     float textSize = gridSize*0.5f;
     nvgFontFaceId(nvg, fontHandle);

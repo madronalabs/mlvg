@@ -18,11 +18,12 @@
 #include "../build/resources/testapp/resources.c"
 
 constexpr float textSizeFix{0.85f};
+ml::Rect largeDialRect{0, 0, 1.5, 1.5};
+
 
 TestAppView::TestAppView(Rect size, Path controllerName) :
 _controllerName(controllerName)
 {
-  ml::Rect largeDialRect{0, 0, 1.25, 1.25};
   float largeDialSize{0.55f};
 
   // initialize drawing properties before controls are made
@@ -50,10 +51,10 @@ _controllerName(controllerName)
   addControlLabel("decay", 0.75, {3.625, 2.5});
   addControlLabel("tone", 0.5, {5.375, 2.5});
 
-  constexpr float bigDialsCenterY{1.625 + 0.25};
+  constexpr float bigDialsCenterY{2.0f};
   
   _view->_widgets.add_unique< DialBasic >("size", WithValues{
-    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {1.875, bigDialsCenterY})) },
+    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {2.0, bigDialsCenterY})) },
     {"size", largeDialSize },
     {"feature_scale", 2.0 },
     {"ticks", 11 },
@@ -65,7 +66,7 @@ _controllerName(controllerName)
   } );
   
   _view->_widgets.add_unique< DialBasic >("decay", WithValues{
-    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {3.625, bigDialsCenterY})) },
+    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {4.0, bigDialsCenterY})) },
     {"size", largeDialSize },
     {"feature_scale", 2.0 },
     {"ticks", 11 },
@@ -77,7 +78,7 @@ _controllerName(controllerName)
   } );
   
   _view->_widgets.add_unique< DialBasic >("tone", WithValues{
-    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {5.375, bigDialsCenterY})) },
+    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {6.0, bigDialsCenterY})) },
     {"size", largeDialSize },
     {"feature_scale", 2.0 },
     {"ticks", 11 },
@@ -116,11 +117,6 @@ TestAppView::~TestAppView ()
   _ioTimer.stop();
   Actor::stop();
   removeActor(this);
-  
-#if SMTG_OS_MACOS
-  //ReleaseVSTGUIBundleRef ();
-#endif
-  
 }
 
 int TestAppView::getElapsedTime()
@@ -152,7 +148,7 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
     int flags = 0;
     int img1 = nvgCreateImageMem(nvg, flags, (unsigned char *)resources::vignette_jpg, resources::vignette_jpg_size);
     const unsigned char* pImg1 = reinterpret_cast<const unsigned char *>(&img1);
-    _resources["background"] = ml::make_unique< Resource >(pImg1, pImg1 + sizeof(int));
+    //_resources["background"] = ml::make_unique< Resource >(pImg1, pImg1 + sizeof(int));
     
     // SVG images    
     ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
@@ -232,6 +228,9 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
   int nativeHeight = height*displayScale;
   
   int gridSize;
+  int gridUnitsX{int(kGridUnitsX)};
+  int gridUnitsY{int(kGridUnitsY)};
+
   if(kFixedRatioSize)
   {
     // leave a border around the content area so that it is always
@@ -249,13 +248,17 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
   {
     // TODO user-adjustable grid size? only for subviews?
     gridSize = kDefaultGridSize;
-    int gridUnitsX = nativeWidth/gridSize;
-    int gridUnitsY = nativeHeight/gridSize;
+    gridUnitsX = nativeWidth/gridSize;
+    gridUnitsY = nativeHeight/gridSize;
+    _view->setProperty("grid_units_x", gridUnitsX);
+    _view->setProperty("grid_units_y", gridUnitsY);
+
     float contentWidth = gridSize*gridUnitsX;
     float contentHeight = gridSize*gridUnitsY;
-    float borderX = 0;//(nativeWidth - contentWidth)/2;
-    float borderY = 0;//(nativeHeight - contentHeight)/2;
+    float borderX = (nativeWidth - contentWidth)/2;
+    float borderY = (nativeHeight - contentHeight)/2;
     _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
+ //   _borderRect = ml::Rect(0, 0, nativeWidth, nativeHeight);
   }
   
   // set new coordinate transform values for GUI renderer - displayScale remains the same
@@ -266,7 +269,7 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
   
   // set bounds for top-level View in grid coordinates
   {
-    ml::Rect viewBounds {0, 0, kGridUnitsX, kGridUnitsY};
+    ml::Rect viewBounds {0, 0, float(gridUnitsX), float(gridUnitsY)};
     setBoundsRect(*_view, viewBounds);
   }
   
@@ -291,6 +294,16 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
     }
   }
    );
+  layoutView();
+}
+
+void TestAppView::layoutView()
+{
+  int gx = _view->getIntProperty("grid_units_x");
+  int gy = _view->getIntProperty("grid_units_y");
+
+  _view->_widgets["size"]->setRectProperty("bounds", alignCenterToPoint(largeDialRect, {6.0, gy - 1.0f}));
+    
 }
 
 void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
@@ -321,7 +334,9 @@ void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
   {
     nvgBeginPath(nvg);
     nvgRect(nvg, ml::Rect{-10000, -10000, 20000, 20000});
-    nvgFillColor(nvg, rgba(0, 0, 0, 1));
+    auto bgColor = getColor(dc, "background");
+
+    nvgFillColor(nvg, bgColor);
     nvgFill(nvg);
   }
   
@@ -336,7 +351,6 @@ void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
   nvgEndFrame(nvg);
   _view->setDirty(false);
 }
-
 
 void TestAppView::doAttached (void* pParent, int flags)
 {
@@ -542,17 +556,6 @@ void TestAppView::handleMessage(Message msg)
         }
           break;
       }
-      break;
-    }
-      
-    // this special verb for the editor buffers properties on the way to the
-    // popup widget. They are sent to the widget when openPopup() is called.
-    case(hash("set_popup_prop")):
-    {
-      msg.address = tail(msg.address);
-      Symbol p = head(msg.address);
-      Value v = msg.value;
-      _popupPropertiesBuffer[p] = v;
       break;
     }
       
