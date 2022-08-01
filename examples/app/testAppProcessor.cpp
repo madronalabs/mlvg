@@ -1,6 +1,8 @@
-// VST3 example code for madronalib
-// (c) 2020, Madrona Labs LLC, all rights reserved
-// see LICENSE.txt for details
+// mlvg test application
+// Copyright (C) 2019-2022 Madrona Labs LLC
+// This software is provided 'as-is', without any express or implied warranty.
+// See LICENSE.txt for details.
+
 
 #include "testAppProcessor.h"
 #include "testAppController.h"
@@ -16,7 +18,7 @@ using namespace ml;
 // --------------------------------------------------------------------------------
 // testAppProcessor
   
-testAppProcessor::testAppProcessor()
+TestAppProcessor::TestAppProcessor()
   : SignalProcessor(kInputChannels, kOutputChannels)
 {
   // register self
@@ -42,17 +44,16 @@ testAppProcessor::testAppProcessor()
   }
 
   getProcessorStateParams(pdl, _processorStateParams);
-  
 }
 
-testAppProcessor::~testAppProcessor()
+TestAppProcessor::~TestAppProcessor()
 {
 
 }
 
 // processVector() does all of the audio processing, in DSPVector-sized chunks.
 // It is called every time a new buffer of audio is needed.
-void testAppProcessor::processVector(MainInputs inputs, MainOutputs outputs, void *stateData)
+void TestAppProcessor::processVector(MainInputs inputs, MainOutputs outputs, void *stateData)
 {
   
   // TEST
@@ -65,9 +66,9 @@ void testAppProcessor::processVector(MainInputs inputs, MainOutputs outputs, voi
   
 }
 
-void testAppProcessor::handleMessage(Message msg)
+void TestAppProcessor::handleMessage(Message msg)
 {
-  std::cout << "testAppProcessor: " << msg.address << " -> " << msg.value << "\n";
+  std::cout << "TestAppProcessor: " << msg.address << " -> " << msg.value << "\n";
   
   switch(hash(head(msg.address)))
   {
@@ -80,7 +81,7 @@ void testAppProcessor::handleMessage(Message msg)
     // no set_prop, do?
     default:
     {
-      std::cout << " testAppProcessor: uncaught message " << msg << "! \n";
+      std::cout << " TestAppProcessor: uncaught message " << msg << "! \n";
       break;
     }
   }

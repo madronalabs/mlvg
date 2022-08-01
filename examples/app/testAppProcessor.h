@@ -1,6 +1,8 @@
-// VST3 example code for madronalib
-// (c) 2020, Madrona Labs LLC, all rights reserved
-// see LICENSE.txt for details
+// mlvg test application
+// Copyright (C) 2019-2022 Madrona Labs LLC
+// This software is provided 'as-is', without any express or implied warranty.
+// See LICENSE.txt for details.
+
 
 #pragma once
 
@@ -21,13 +23,13 @@ constexpr int kInputChannels = 0;
 constexpr int kOutputChannels = 2;
 
 //-----------------------------------------------------------------------------
-class testAppProcessor :
+class TestAppProcessor :
   public SignalProcessor,
   public Actor
 {
 public:
-  testAppProcessor();
-  ~testAppProcessor();
+  TestAppProcessor();
+  ~TestAppProcessor();
     
   // Actor interface
   void handleMessage(Message m) override;
@@ -40,7 +42,6 @@ private:
   // declare the processVectors function that will run our DSP in vectors of size kFloatsPerDSPVector
   void processVector(MainInputs inputs, MainOutputs outputs, void *stateData) override;
   
-  
   // list of all the params that we save as part of our state
   std::vector< Path > _processorStateParams;
     
@@ -50,6 +51,5 @@ private:
   void sendInstanceNumberToController();
   
   NoiseGen _noise1, _noise0;
-
 
 };

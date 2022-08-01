@@ -265,7 +265,7 @@ void DialBasic::draw(ml::DrawContext dc)
   bool bipolar = getBoolPropertyWithDefault("bipolar", false);
   bool enabled = getBoolPropertyWithDefault("enabled", true);
   float dialSize = getFloatPropertyWithDefault("size", 1.0f);
-  float textScale = getFloatPropertyWithDefault("text_size",0.5);
+  float textScale = getFloatPropertyWithDefault("text_size",0.625);
   float normalizedValue = enabled ? currentNormalizedValue : 0.f;
   float opacity = enabled ? 1.0f : 0.25f;
 

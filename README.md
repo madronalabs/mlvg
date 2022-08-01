@@ -1,26 +1,24 @@
 mlvg
-=========
+====
 
-mlvg is a cross-platform application and plugin framework.
+mlvg is a cross-platform application and plugin framework. It can currently generate applications for 
+MacOS and Windows, VST3 plugins for Mac and Windows, and AU plugins for Mac.
 
 
-to build:
----------
+to build an app:
+----------------
 
 First, build and install madronalib as a static library using the instructions in the madronalib project.
 
-Now use cmake to generate a project as follows:
+Now use cmake to generate a project for a test application as follows:
 - mkdir build
 - cd build
-- cmake -DVST3_SDK_ROOT="~/dev/vst3sdk" -GXcode .. (Mac OS)
-- cmake -DVST3_SDK_ROOT="~/dev/vst3sdk" -G "Visual Studio 14 2015 Win64" .. (Windows)
+- for Mac OS: `cmake -GXcode ..`
+- for Windows: `cmake -G "Visual Studio 14 2015 Win64" ..` (substitute your compiler of choice)
 
 
-
-
-
-to build:
----------
+to build a plugin:
+------------------
 
 Download the VST3 SDK from Steinberg.
 
@@ -33,7 +31,6 @@ To make the VST and AU plugins, first create an XCode project for MacOS using cm
 - cmake -DVST3_SDK_ROOT=(your VST3 SDK location) -DCMAKE_BUILD_TYPE=Debug -GXcode ..
 
 
-
 Cmake will create a project with obvious placeholders (llllCompanyllll, llllPluginNamellll) for the company and plugin names. 
 
 Then, open the project and build all. Links to VST3 plugins will be made in ~/Library/Audio/Plug-Ins/VST3. The au component will be copied to ~/Library/Audio/Plug-Ins/Components.
@@ -43,13 +40,12 @@ Creating Windows projects should be very similar. You will need to install pytho
 note: currently using command line on Windows:
 cmake -DVST3_SDK_ROOT="~/dev/vst3sdk" -DCMAKE_BUILD_TYPE=Debug -G "Visual Studio 14 2015 Win64" ..
 
-
 note: currently using command line on Mac OS:
 cmake -DVST3_SDK_ROOT="~/dev/vst3sdk" -GXcode ..
 
 
-to clone:
----------
+to clone the plugin project:
+----------------------------
 
 The python scripts here in examples/vst make it easy to create a new plugin project. To do this, run
 `./clonePlugin.py destdir PlugName (company) (mfgr) (subtype) (url) (email)`. 
@@ -62,7 +58,6 @@ example:
 Then you can move to the new directory, make a build directory and run cmake as before. 
 
 TODO automatically remove the clonePlugin script and related files from the clone, where they are useless after the search / replace operations. For now do this manually.
-
 
 
 building - MacOS

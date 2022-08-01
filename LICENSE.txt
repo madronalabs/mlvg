@@ -16,6 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, write to the Free Software Foundation, Inc., 
 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
+Licensing options more suitable for commercial use are planned. 
+For more information please contact support@madronalabs.com.
+
 
  portions of VST3 SDK
  (c) 2019, Steinberg Media Technologies GmbH, All Rights Reserved

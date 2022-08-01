@@ -1,6 +1,7 @@
-// mlvg: GUI library for madronalib
-// (c) 2020, Madrona Labs LLC, all rights reserved
-// see LICENSE.txt for details
+// mlvg test application
+// Copyright (C) 2019-2022 Madrona Labs LLC
+// This software is provided 'as-is', without any express or implied warranty.
+// See LICENSE.txt for details.
 
 #include "testAppView.h"
 
@@ -233,6 +234,7 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
 
   if(kFixedRatioSize)
   {
+    // scale both the app and the grid,
     // leave a border around the content area so that it is always
     // an even multiple of the grid size in native pixels.
     int ux = nativeWidth/kGridUnitsX;
@@ -498,36 +500,8 @@ void TestAppView::handleMessage(Message msg)
   {
     case(hash("set_param")):
     {
-      if(msg.address.getSize() > 4)
+      switch(hash(head(tail(msg.address))))
       {
-        std::cout << "huh?\n";
-      }
-      Path a = tail(msg.address);
-      Symbol b = head(a);
-      uint32_t c = hash(b);
-      
-      switch(c)//(hash(head(tail(msg.address))))
-      {
-        case(hash("status")):
-        case(hash("licensor")):
-        {
-          // current_patch can go both ways: sent from Widgets to
-          // Controller, or Controller to widgets.
-          
-          // if the param change message is not from the controller,
-          // forward it to the controller.
-          if(!(msg.flags & kMsgFromController))
-          {
-            sendMessageToActor(_controllerName, msg);
-          }
-          
-          // broadcast param to Widgets. If the message we are handling comes from
-          // a Widget, that Widget is responsible for ignoring echoes
-          // back to itself.
-          _sendParameterToWidgets(msg);
-          break;
-        }
-          
         default:
         {
           // no local parameter was found, set a plugin parameter
@@ -554,93 +528,12 @@ void TestAppView::handleMessage(Message msg)
           _sendParameterToWidgets(msg);
           break;
         }
-          break;
       }
       break;
     }
       
-    // this special verb for the editor receives signals on the way to the view.
-    // a message will be sent for each channel of a multi-channel signal.
-    case(hash("set_signal")):
-    {
-      auto signalName = butLast(tail(msg.address));
-      
-      if(_widgetsBySignal.getNode(signalName))
-      {
-        // get a DSPVector of signal from the message
-        // TODO helpers
-        auto blob = msg.value.getBlobValue();
-        const float* pVectorData = reinterpret_cast<const float*>(blob._data);
-        DSPVector signalVector(pVectorData);
-        auto signalChannel = textUtils::textToNaturalNumber(last(msg.address).getTextFragment());
-
-        for(auto& w : _widgetsBySignal[signalName])
-        {
-          w->processSignal(signalVector, signalChannel);
-        }
-      }
-    }
-      
-  // TODO should editorview have a property tree for default behavior properties?
-      
     case(hash("do")):
     {
-      // do something!
-      msg.address = tail(msg.address);
-      switch(hash(head(msg.address)))
-      {
-          /*
-        // TODO should simply be set view_size message? overload that simple param set
-        case(hash("resize")):
-        {
-          // sent by resizer component - resize and tell Controller
-          auto newSize = msg.value.getMatrixValue();
-          doResize(_constrainSize(matrixToVec2(newSize)));
-          sendMessageToActor(_controllerName, {"set_param/view_size", newSize});
-          break;
-        }
-          */
-          /*
-        case(hash("update_collection")):
-        {
-          // a Widget or the Controller is requesting a collection be updated.
-          Path collName (msg.value.getTextValue());
-          
-          // update collection and get a pointer to it from Controller
-          // TODO we don't want to use the controller reference, this is the only place we need it
-          // do this with messaging instead
-          if(_controller)
-          {
-            FileTree* pTree = _controller->updateCollection(collName);
-            
-            // for each widget that references the collection, send the
-            // collection pointer and parameter info and give the widget a chance
-            // to setup any indexes
-            for(auto pw : _widgetsByCollection[collName])
-            {
-              pw->receiveNamedRawPointer("file_tree", pTree);
-              pw->setupParams();
-            }
-          }
-          break;
-        }*/
-          
-          /*
-        case(hash("display_version")):
-        {
-          TextFragment nameAndVersion (getAppName(), " ", getPluginVersion());
-          TextFragment wrapperAndArch(getPluginWrapperType(), ", ", getPluginArchitecture());
-          TextFragment waa (" (", wrapperAndArch, ")");
-          TextFragment info(nameAndVersion, waa);
-          _popupPropertiesBuffer["message"] = info;
-          break;
-        }*/
-          
-        default:
-        {
-          break;
-        }
-      }
       break;
     }
     default:

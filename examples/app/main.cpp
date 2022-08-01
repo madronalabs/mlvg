@@ -1,3 +1,8 @@
+// mlvg test application
+// Copyright (C) 2019-2022 Madrona Labs LLC
+// This software is provided 'as-is', without any express or implied warranty.
+// See LICENSE.txt for details.
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,8 +17,10 @@ SDL_Window *window;
 
 bool done{false};
 
+std::unique_ptr< TestAppProcessor > _appProcessor;
 std::unique_ptr< TestAppView > _appView;
 std::unique_ptr< TestAppController > _appController;
+
 
 void* _platformHandle{ nullptr };
 Vec2 _defaultSystemSize{1280, 720};
