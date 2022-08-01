@@ -4,7 +4,7 @@
 
 
 // use clipboard code from VST3 SDK
-#include "public.sdk/source/common/systemclipboard.h"
+// #include "public.sdk/source/common/systemclipboard.h"
 
 #include "testAppController.h"
 #include "testAppView.h"

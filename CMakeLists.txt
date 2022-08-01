@@ -23,7 +23,7 @@
     # SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
  ENDIF(APPLE)
  
- project(mlvg-basic)
+ project(mlvg)
  set(PLUGIN_NAME "llllPluginNamellll")
  
  set(llllpluginnamellll_sources
@@ -72,20 +72,6 @@
  #--------------------------------------------------------------------
  
  set (MLVG_SOURCE_DIR "source")
- 
- #--------------------------------------------------------------------
- # set VST library options
- #--------------------------------------------------------------------
- 
- SET(SMTG_ADD_VSTGUI OFF CACHE BOOL "Add VSTGUI support")
- SET(VSTGUI_TOOLS OFF CACHE BOOL "Build VSTGUI Tools")
- 
- if(APPLE)
-      set(SMTG_PLUGIN_TARGET_PATH "/Library/Audio/Plug-Ins/VST3" )
- endif()
- 
- include(examples/plugin/VST3_SDK.cmake)
- 
  
  #--------------------------------------------------------------------
  # compile binary resources
@@ -201,8 +187,8 @@
 # gather mlvg sources
 #--------------------------------------------------------------------
 
-file(GLOB MLVG_SOURCES_COMMON "${MLVG_SOURCE_DIR}/*.cpp")
-file(GLOB MLVG_HEADERS_COMMON "${MLVG_SOURCE_DIR}/*.h")
+file(GLOB MLVG_SOURCES_COMMON "${MLVG_SOURCE_DIR}/common/*.cpp")
+file(GLOB MLVG_HEADERS_COMMON "${MLVG_SOURCE_DIR}/common/*.h")
 file(GLOB MLVG_SOURCES_WIDGETS "${MLVG_SOURCE_DIR}/widgets/*.cpp")
 file(GLOB MLVG_HEADERS_WIDGETS "${MLVG_SOURCE_DIR}/widgets/*.h")
   
@@ -230,104 +216,106 @@ list(APPEND mlvg_sources ${MLVG_HEADERS_WIDGETS} )
 list(APPEND mlvg_sources ${NANOVG_SOURCES} )
 list(APPEND mlvg_sources ${MLVG_SOURCES_NATIVE} )
 
- list(APPEND MLVG_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR})
- list(APPEND MLVG_INCLUDE_DIRS ${NANOVG_INCLUDE_DIRS})
- list(APPEND MLVG_INCLUDE_DIRS ${MADRONALIB_INCLUDE_DIR}/madronalib)
- 
- #--------------------------------------------------------------------
- # make juce-core library
- #--------------------------------------------------------------------
- 
- set(target juce-core)
- 
- add_library(${target} STATIC ${juce_core_sources})
- 
- target_include_directories(${target} PRIVATE ${juce_core_include_dirs})
- 
- # set juce-core configuration for this target
- target_compile_definitions(${target} PRIVATE JUCE_APP_CONFIG_HEADER="external/juce_core/JuceCoreConfig.h")
- target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
- target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
- 
- if(APPLE)
-     # ARC must be off for juce
-     target_compile_options(${target} PRIVATE "-fno-objc-arc")
- 
-     # build only active arch for Debug builds
-     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
- 
-     # set debug info format
-     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
- endif()
- 
- #--------------------------------------------------------------------
- # gather nfd sources
- #--------------------------------------------------------------------
- 
- set(nfd_sources
-   ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.h
-   ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.hpp)
- 
- if(WIN32)
-     set(nfd_sources_native
-         ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_win.cpp
-     )
- elseif(APPLE)
-     set(nfd_sources_native
-         ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_cocoa.m
-     )
- elseif(UNIX AND NOT APPLE)
-     set(nfd_sources_native
-         ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_gtk.cpp
-     )
- endif()
- 
- list(APPEND nfd_sources ${nfd_sources_native} )
- 
- #--------------------------------------------------------------------
- # make nfd library
- #--------------------------------------------------------------------
- 
- set(target nfd)
- 
- # Define the library
- add_library(${target} STATIC ${nfd_sources})
- 
- # Allow includes from include/
- target_include_directories(${target} PUBLIC ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/)
- 
- # find and link libraries 
- if(WIN32)
- 
- elseif(APPLE)
-     find_library(APPKIT_LIBRARY AppKit)
-     target_link_libraries(${target} PRIVATE ${APPKIT_LIBRARY})
- elseif(UNIX AND NOT APPLE)
-     find_package(PkgConfig REQUIRED)
-     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-     message("Using GTK version: ${GTK3_VERSION}")
-     target_include_directories(${target} PRIVATE ${GTK3_INCLUDE_DIRS})
-     target_link_libraries(${target} PRIVATE ${GTK3_LIBRARIES})
- endif()
- 
- # compiler settings
- if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-   string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-   string(REPLACE "/GR" "/GR-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-   set_property(TARGET ${target} APPEND_STRING PROPERTY STATIC_LIBRARY_OPTIONS /NODEFAULTLIB)
- endif()
- 
- if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-   target_compile_options(${target} PRIVATE -nostdlib -fno-exceptions -fno-rtti)
- endif()
- 
- if(APPLE)
-     # build only active arch for Debug builds
-     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
- 
-     # set debug info format
-     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
- endif()
+list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/common")
+list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
+list(APPEND MLVG_INCLUDE_DIRS ${NANOVG_INCLUDE_DIRS})
+list(APPEND MLVG_INCLUDE_DIRS ${MADRONALIB_INCLUDE_DIR}/madronalib)
+
+
+#--------------------------------------------------------------------
+# make juce-core library
+#--------------------------------------------------------------------
+
+set(target juce-core)
+
+add_library(${target} STATIC ${juce_core_sources})
+
+target_include_directories(${target} PRIVATE ${juce_core_include_dirs})
+
+# set juce-core configuration for this target
+target_compile_definitions(${target} PRIVATE JUCE_APP_CONFIG_HEADER="external/juce_core/JuceCoreConfig.h")
+target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
+target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+
+if(APPLE)
+  # ARC must be off for juce
+  target_compile_options(${target} PRIVATE "-fno-objc-arc")
+
+  # build only active arch for Debug builds
+  set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
+
+  # set debug info format
+  set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+endif()
+
+#--------------------------------------------------------------------
+# gather nfd sources
+#--------------------------------------------------------------------
+
+set(nfd_sources
+${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.h
+${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.hpp)
+
+if(WIN32)
+  set(nfd_sources_native
+      ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_win.cpp
+  )
+elseif(APPLE)
+  set(nfd_sources_native
+      ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_cocoa.m
+  )
+elseif(UNIX AND NOT APPLE)
+  set(nfd_sources_native
+      ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_gtk.cpp
+  )
+endif()
+
+list(APPEND nfd_sources ${nfd_sources_native} )
+
+#--------------------------------------------------------------------
+# make nfd library
+#--------------------------------------------------------------------
+
+set(target nfd)
+
+# Define the library
+add_library(${target} STATIC ${nfd_sources})
+
+# Allow includes from include/
+target_include_directories(${target} PUBLIC ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/)
+
+# find and link libraries 
+if(WIN32)
+
+elseif(APPLE)
+  find_library(APPKIT_LIBRARY AppKit)
+  target_link_libraries(${target} PRIVATE ${APPKIT_LIBRARY})
+elseif(UNIX AND NOT APPLE)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+  message("Using GTK version: ${GTK3_VERSION}")
+  target_include_directories(${target} PRIVATE ${GTK3_INCLUDE_DIRS})
+  target_link_libraries(${target} PRIVATE ${GTK3_LIBRARIES})
+endif()
+
+# compiler settings
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+string(REPLACE "/GR" "/GR-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+set_property(TARGET ${target} APPEND_STRING PROPERTY STATIC_LIBRARY_OPTIONS /NODEFAULTLIB)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+target_compile_options(${target} PRIVATE -nostdlib -fno-exceptions -fno-rtti)
+endif()
+
+if(APPLE)
+  # build only active arch for Debug builds
+  set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
+
+  # set debug info format
+  set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+endif()
  
 #--------------------------------------------------------------------
 # make mlvg target 
@@ -342,7 +330,89 @@ add_library(${target} STATIC ${mlvg_sources})
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 
 
+#--------------------------------------------------------------------
+# make SDL2 application target 
+#--------------------------------------------------------------------
 
+create_resources (examples/app/resources build/resources/testapp)
+ 
+set(target testapp)
+
+file(GLOB LOCAL_SOURCES "${CMAKE_SOURCE_DIR}/examples/app/*.cpp")
+file(GLOB LOCAL_INCLUDES "${CMAKE_SOURCE_DIR}/examples/app/*.h")
+
+list(APPEND test_app_sources ${LOCAL_SOURCES} )
+list(APPEND test_app_sources ${LOCAL_INCLUDES} )
+
+add_executable(${target} ${test_app_sources})
+
+find_package(SDL2 REQUIRED COMPONENTS SDL2::SDL2)
+target_link_libraries(${target} PRIVATE SDL2::SDL2 mlvg nfd juce-core)
+
+target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+
+# add madronalib includes
+target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
+
+if(APPLE)
+    # ARC must be off for juce
+    target_compile_options(${target} PRIVATE "-fno-objc-arc")
+    
+    # build only active arch for Debug builds
+    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
+    
+    # set debug info format
+    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+endif()
+ 
+# set compiler options
+if(APPLE)
+    target_compile_options(${target} PRIVATE "-Werror=return-type")
+elseif(WIN32)
+    target_compile_options(${target} PRIVATE "/wd4068") # silence unknown pragma warning
+    target_compile_options(${target} PRIVATE "/EHa") # standard C++ stack unwinding
+endif()
+
+target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
+target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+
+# add UI frameworks- note that these appear under 
+# "other linker flags" in XCode and not in its file browser
+if(APPLE)
+    target_link_libraries(${target} PRIVATE "-framework Cocoa")
+    target_link_libraries(${target} PRIVATE "-framework Metal")
+    target_link_libraries(${target} PRIVATE "-framework MetalKit")
+     target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")   
+elseif(WIN32)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
+    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
+endif()
+
+if(APPLE)
+    # build only active arch for Debug builds
+    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
+
+    # set debug info format
+    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+endif() 
+
+message("SDL2 include dirs: " ${SDL2_INCLUDE_DIRS} )
+
+ 
+ #--------------------------------------------------------------------
+ # set VST library options
+ #--------------------------------------------------------------------
+# 
+# SET(SMTG_ADD_VSTGUI OFF CACHE BOOL "Add VSTGUI support")
+# SET(VSTGUI_TOOLS OFF CACHE BOOL "Build VSTGUI Tools")
+# 
+# if(APPLE)
+#      set(SMTG_PLUGIN_TARGET_PATH "/Library/Audio/Plug-Ins/VST3" )
+# endif()
+# 
+# include(examples/plugin/VST3_SDK.cmake)
+# 
 #--------------------------------------------------------------------
 # make VST plugin base target 
 # contains our plugin code and the vst sdk and base libraries
@@ -672,84 +742,4 @@ source_group(mlvg-native REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/vg/native.*")
 source_group(nanovg REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/external/nanovg/src.*|${MLVG_SOURCE_DIR}/external/MetalNanoVG/src.*")
 source_group(nanosvg REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/external/nanosvg/src.*")
 
-
-#--------------------------------------------------------------------
-# make SDL2 application target 
-#--------------------------------------------------------------------
-
-
-create_resources (examples/app/resources build/resources/testapp)
- 
- 
-set(target testapp)
-
-
-file(GLOB LOCAL_SOURCES "${CMAKE_SOURCE_DIR}/examples/app/*.cpp")
-file(GLOB LOCAL_INCLUDES "${CMAKE_SOURCE_DIR}/examples/app/*.h")
-
- 
-list(APPEND test_app_sources ${LOCAL_SOURCES} )
-list(APPEND test_app_sources ${LOCAL_INCLUDES} )
-
-
-
-add_executable(${target} ${test_app_sources})
-
-find_package(SDL2 REQUIRED COMPONENTS SDL2::SDL2)
-target_link_libraries(${target} PRIVATE SDL2::SDL2 mlvg nfd juce-core)
-
-target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
-
-# add madronalib includes
-target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
-
-
-if(APPLE)
-    # ARC must be off for juce
-    target_compile_options(${target} PRIVATE "-fno-objc-arc")
-    
-    # build only active arch for Debug builds
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
-    
-    # set debug info format
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
-endif()
- 
- 
-# set compiler options
-if(APPLE)
-    target_compile_options(${target} PRIVATE "-Werror=return-type")
-elseif(WIN32)
-    target_compile_options(${target} PRIVATE "/wd4068") # silence unknown pragma warning
-    target_compile_options(${target} PRIVATE "/EHa") # standard C++ stack unwinding
-endif()
-
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
-
-# add UI frameworks- note that these appear under 
-# "other linker flags" in XCode and not in its file browser
-if(APPLE)
-    target_link_libraries(${target} PRIVATE "-framework Cocoa")
-    target_link_libraries(${target} PRIVATE "-framework Metal")
-    target_link_libraries(${target} PRIVATE "-framework MetalKit")
-     target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")   
-elseif(WIN32)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
-    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
-endif()
-
-if(APPLE)
-    # build only active arch for Debug builds
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
-
-    # set debug info format
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
-endif() 
-
- 
- 
- 
-message("SDL2 include dirs: " ${SDL2_INCLUDE_DIRS} )
 
