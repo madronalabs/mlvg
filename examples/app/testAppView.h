@@ -24,7 +24,7 @@ public:
   virtual ~TestAppView ();
 
   // Actor interface
-  void handleMessage(Message m) override;
+  void onMessage(Message m) override;
 
   // from ml::AppView
   void initializeResources(NativeDrawContext* nvg) override;

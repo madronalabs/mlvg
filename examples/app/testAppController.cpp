@@ -128,7 +128,6 @@ void TestAppController::sendAllParamsToProcessor()
   }
 }
 
-
 void TestAppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
   
@@ -139,7 +138,7 @@ void TestAppController::sendMessageToProcessor(Message msg)
   
 }
 
-void TestAppController::handleFullQueue()
+void TestAppController::onFullQueue()
 {
   std::cout << "Controller: full queue! \n";
 }
@@ -155,11 +154,11 @@ FileTree* TestAppController::updateCollection(Path which)
   return pTree;
 }
 
-void TestAppController::handleMessage(Message m)
+void TestAppController::onMessage(Message m)
 {
   if(!m.address) return;
   
-  std::cout << "TestAppController::handleMessage:" << m.address << " " << m.value << " \n ";
+  std::cout << "TestAppController::onMessage:" << m.address << " " << m.value << " \n ";
   
   Path addr = m.address;
   switch(hash(head(addr)))
@@ -174,7 +173,7 @@ void TestAppController::handleMessage(Message m)
           
         case(hash("view_size")):
         {
-          std::cout << "TestAppController::handleMessage: view_size = " << m.value << " \n ";
+          std::cout << "TestAppController::onMessage: view_size = " << m.value << " \n ";
           _params["view_size"] = m.value;
           break;
         }

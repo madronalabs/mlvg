@@ -30,6 +30,7 @@ _controllerName(controllerName)
   // initialize drawing properties before controls are made
   _drawingProperties.setProperty("mark", colorToMatrix({0.01, 0.01, 0.01, 1.0}));
   _drawingProperties.setProperty("background", colorToMatrix({0.8, 0.8, 0.8, 1.0}));
+  _drawingProperties.setProperty("draw_background_grid", true);
   _defaultSystemSize = Vec2(size.width(), size.height());
     
   // add labels to background
@@ -42,7 +43,6 @@ _controllerName(controllerName)
       { "v_align", "middle" },
       { "text", t },
       { "font", "madronasansoblique" },
-      // sumu      { "text_size", 0.165 },
       { "text_size", 0.30*textSizeFix },
       { "text_spacing", 0.0f }
     } );
@@ -305,13 +305,10 @@ void TestAppView::layoutView()
   int gy = _view->getIntProperty("grid_units_y");
 
   _view->_widgets["size"]->setRectProperty("bounds", alignCenterToPoint(largeDialRect, {6.0, gy - 1.0f}));
-    
 }
 
 void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
 {
-  //nvgReset(nvg);
-  
   if(!backingLayer) return;
   int w = backingLayer->width;
   int h = backingLayer->height;
@@ -342,7 +339,7 @@ void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
     nvgFill(nvg);
   }
   
-  ml::Rect topViewBounds = dc.coords.gridToNative(getBounds(*_view));//.getIntPart();
+  ml::Rect topViewBounds = dc.coords.gridToNative(getBounds(*_view));
   nvgIntersectScissor(nvg, topViewBounds);
   auto topLeft = getTopLeft(topViewBounds);
   nvgTranslate(nvg, topLeft);
@@ -368,12 +365,10 @@ void TestAppView::doAttached (void* pParent, int flags)
   doResize(_constrainSize(Vec2(w, h)));
 }
 
-
 void TestAppView::pushEvent(GUIEvent g)
 {
   _inputQueue.push(g);
 }
-
 
 // given a pointer to a size in system UI coordinates, tweak the size to be a valid window size.
 Vec2 TestAppView::_constrainSize(Vec2 size)
@@ -486,9 +481,9 @@ void TestAppView::debug()
 
 // Actor implementation
 
-void TestAppView::handleMessage(Message msg)
+void TestAppView::onMessage(Message msg)
 {
-  // std::cout << "TestAppView: handleMessage: " << msg.address << " : " << msg.value << "\n";
+  // std::cout << "TestAppView: onMessage: " << msg.address << " : " << msg.value << "\n";
   
   if(head(msg.address) == "editor")
   {
@@ -557,8 +552,4 @@ void TestAppView::handleMessage(Message msg)
     }
   }
 }
-
-
-
-
 

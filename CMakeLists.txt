@@ -24,21 +24,7 @@
  ENDIF(APPLE)
  
  project(mlvg)
- set(PLUGIN_NAME "llllPluginNamellll")
- 
- set(llllpluginnamellll_sources
-     source/factoryDefinition.cpp
-     source/pluginController.cpp
-     source/pluginController.h
-     source/llllpluginnamellll.cpp
-     source/llllpluginnamellll.h
-     source/pluginProcessor.cpp
-     source/pluginProcessor.h
-     source/signalProcessor.h
-     source/processorParameters.h
-     source/version.h
-     source/wrapper.h
- )
+
  
  #--------------------------------------------------------------------
  # Compiler flags
@@ -195,7 +181,7 @@ file(GLOB MLVG_HEADERS_WIDGETS "${MLVG_SOURCE_DIR}/widgets/*.h")
 set(MLVG_INCLUDE_DIRS 
    source
    ${MLVG_SOURCE_DIR}
-   ${MLVG_SOURCE_DIR}/external/glad/src
+   ${MLVG_SOURCE_DIR}/external
 )
  
  if(APPLE)
@@ -220,6 +206,19 @@ list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/common")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
 list(APPEND MLVG_INCLUDE_DIRS ${NANOVG_INCLUDE_DIRS})
 list(APPEND MLVG_INCLUDE_DIRS ${MADRONALIB_INCLUDE_DIR}/madronalib)
+
+
+#--------------------------------------------------------------------
+# make mlvg target 
+# contains all our graphics / UI source
+#--------------------------------------------------------------------
+  
+set(target mlvg)
+
+# Define the library
+add_library(${target} STATIC ${mlvg_sources})
+
+target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 
 
 #--------------------------------------------------------------------
@@ -318,19 +317,6 @@ if(APPLE)
 endif()
  
 #--------------------------------------------------------------------
-# make mlvg target 
-# contains all our graphics / UI source
-#--------------------------------------------------------------------
-  
-set(target mlvg)
-
-# Define the library
-add_library(${target} STATIC ${mlvg_sources})
-
-target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
-
-
-#--------------------------------------------------------------------
 # make SDL2 application target 
 #--------------------------------------------------------------------
 
@@ -347,6 +333,7 @@ list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 add_executable(${target} ${test_app_sources})
 
 find_package(SDL2 REQUIRED COMPONENTS SDL2::SDL2)
+
 target_link_libraries(${target} PRIVATE SDL2::SDL2 mlvg nfd juce-core)
 
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
@@ -382,7 +369,8 @@ if(APPLE)
     target_link_libraries(${target} PRIVATE "-framework Cocoa")
     target_link_libraries(${target} PRIVATE "-framework Metal")
     target_link_libraries(${target} PRIVATE "-framework MetalKit")
-     target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")   
+    target_link_libraries(${target} PRIVATE "-framework CoreAudio")
+    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")   
 elseif(WIN32)
     find_package(OpenGL REQUIRED)
     target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
@@ -397,9 +385,28 @@ if(APPLE)
     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
 endif() 
 
+
 message("SDL2 include dirs: " ${SDL2_INCLUDE_DIRS} )
 
- 
+
+ #--------------------------------------------------------------------
+ # gather llllPluginNamellll sources
+ #--------------------------------------------------------------------
+# 
+# set(PLUGIN_NAME "llllPluginNamellll")
+#  
+#  set(llllpluginnamellll_sources
+#      source/factoryDefinition.cpp
+#      source/pluginController.cpp
+#      source/pluginController.h
+#      source/llllpluginnamellll.cpp
+#      source/llllpluginnamellll.h
+#      source/pluginProcessor.cpp
+#      source/pluginProcessor.h
+#      source/processorParameters.h
+#      source/version.h
+#      source/wrapper.h
+#  )
  #--------------------------------------------------------------------
  # set VST library options
  #--------------------------------------------------------------------

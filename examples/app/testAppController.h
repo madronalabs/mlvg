@@ -39,8 +39,8 @@ public:
   void sendAllParamsToProcessor();
 
   // Actor interface
-  void handleMessage(Message m) override;
-  void handleFullQueue() override;
+  void onMessage(Message m) override;
+  void onFullQueue() override;
   
   // send a ml::Message directly to the Processor.
   void sendMessageToProcessor(Message m);
