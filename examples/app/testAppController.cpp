@@ -33,7 +33,7 @@ using namespace ml;
 //-----------------------------------------------------------------------------
 // TestAppController implementation
 
-TestAppController::TestAppController()
+TestAppController::TestAppController(const ParameterDescriptionList& pdl)
 {
 #ifdef DEBUG
 #ifdef ML_WINDOWS
@@ -43,11 +43,8 @@ TestAppController::TestAppController()
 #endif
 #endif
   
-  // make parameters and projections
-  ParameterDescriptionList pdl;
-  readParameterDescriptions(pdl);
+  // make parameter descriptions and projections
   buildParameterTree(pdl, _params);
-  setDefaults(_params);
   
   // store IDs by name and param names by ID
   for(size_t i=0; i < pdl.size(); ++i)
@@ -68,6 +65,11 @@ TestAppController::TestAppController()
   _instanceNum = _controllerRegistry->getUniqueID();
   _instanceName = TextFragment(getAppName(), "controller", ml::textUtils::naturalNumberToText(_instanceNum));
   registerActor(_instanceName, this);
+  std::cout << "controller Actor: " << _instanceName << "\n";
+  
+  _processorName = TextFragment(getAppName(), "processor", ml::textUtils::naturalNumberToText(_instanceNum));
+  _viewName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(_instanceNum));
+
   Actor::start();
 }
 
@@ -77,29 +79,16 @@ TestAppController::~TestAppController()
 
 #pragma mark mlvg
 
-TestAppView* TestAppController::createTestAppView ()
+void TestAppController::setAllParamsToDefaults()
 {
-  auto defaultSize = _params["view_size"].getMatrixValue();
-  float w = defaultSize[0];
-  float h = defaultSize[1];
+  //setDefaults(_params);
   
-  Rect size{0, 0, w, h};
-  
-  auto newView = new TestAppView(size, _instanceName);
-  
-  _viewName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(_instanceNum));
-  registerActor(_viewName, newView);
-  
-  // send all collections to view
-  for(auto it = _fileTreeIndex.begin(); it != _fileTreeIndex.end(); ++it)
-  {
-    const Path p = it.getCurrentNodePath();
-    sendMessageToActor(_viewName, {"editor/do/update_collection", pathToText(p)});
-  }
-  
-  sendAllParamsToView();
-  
-  return newView;
+
+}
+
+void TestAppController::dumpParams()
+{
+  _params.dump();
 }
 
 void TestAppController::sendMessageToView(Message msg)
@@ -109,7 +98,7 @@ void TestAppController::sendMessageToView(Message msg)
 
 void TestAppController::sendParamToView(Path pname)
 {
-  sendMessageToActor(_viewName, {Path("set_param", pname), _params[pname], kMsgFromController});
+  sendMessageToActor(_viewName, {Path("set_param", pname), getNormalizedValue(_params, pname), kMsgFromController});
 }
 
 void TestAppController::sendAllParamsToView()
@@ -117,6 +106,15 @@ void TestAppController::sendAllParamsToView()
   for(auto& pname : _paramNamesByID)
   {
     sendParamToView(pname);
+  }
+}
+
+void TestAppController::sendAllCollectionsToView()
+{
+  for(auto it = _fileTreeIndex.begin(); it != _fileTreeIndex.end(); ++it)
+  {
+    const Path p = it.getCurrentNodePath();
+    sendMessageToActor(_viewName, {"editor/do/update_collection", pathToText(p)});
   }
 }
 
@@ -130,9 +128,12 @@ void TestAppController::sendAllParamsToProcessor()
 
 void TestAppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
+  auto pval = getNormalizedValue(_params, pname);
   
-  Value pval = _params.getNormalizedValue(pname);
-  sendMessageToActor(_processorName, {Path("set_param", pname), pval});
+  std::cout << "sendParamToProcessor: " << pname << " -> " << pval << "\n";
+  
+  //Value pval = _params.getNormalizedValue(pname);
+  sendMessageToActor(_processorName, {Path("set_param", pname), pval, flags});
 }
 
 void TestAppController::sendMessageToProcessor(Message msg)

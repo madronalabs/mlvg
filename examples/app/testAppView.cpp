@@ -22,8 +22,7 @@ constexpr float textSizeFix{0.85f};
 ml::Rect largeDialRect{0, 0, 1.5, 1.5};
 
 
-TestAppView::TestAppView(Rect size, Path controllerName) :
-_controllerName(controllerName)
+TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescriptionList& pdl)
 {
   float largeDialSize{0.55f};
 
@@ -72,7 +71,7 @@ _controllerName(controllerName)
     {"param", "gain" }
   } );
   
-  _initializeParams();
+  _initializeParams(pdl);
 
   // grid size of entire interface, for background and other drawing
   _view->setProperty("grid_units_x", kGridUnitsX);
@@ -88,6 +87,12 @@ _controllerName(controllerName)
   
   _previousFrameTime = system_clock::now();
   
+
+  _controllerName = TextFragment(getAppName(), "controller", ml::textUtils::naturalNumberToText(instanceNum));
+  auto myName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(instanceNum));
+  registerActor(myName, this);
+  std::cout << "view Actor: " << myName << "\n";
+
   _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
   
   Actor::start();
@@ -148,13 +153,8 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
   }
 }
 
-void TestAppView::_initializeParams()
+void TestAppView::_initializeParams(const ParameterDescriptionList& pdl)
 {
-  // read parameter descriptions from processorParameters.h
-  ParameterDescriptionList pdl;
-  readParameterDescriptions(pdl);
-  
-  // TODO can we share the Controller's parameter tree?
   buildParameterTree(pdl, _params);
   
   // build index of widgets by parameter.
@@ -205,6 +205,15 @@ void TestAppView::_initializeParams()
   for(auto& w : _view->_widgets)
   {
     w->setupParams();
+  }
+  
+  // now that widgets are set up, send default param values to widgets.
+  for(auto& paramDesc : _params.descriptions)
+  {
+    Path pname = paramDesc->getTextProperty("name");
+    auto pval = _params.getNormalizedValue(pname);
+    Message msg(Path("set_param", pname), pval);
+    _sendParameterToWidgets(msg);
   }
 }
 
@@ -487,11 +496,6 @@ void TestAppView::onMessage(Message msg)
           
           // store param value in local tree.
           Path paramName = tail(msg.address);
-          if(!paramName)
-          {
-            std::cout << "setting null param! \n";
-          }
-          
           _params.setParamFromNormalizedValue(paramName, msg.value);
           
           // if the parameter change message is not from the controller,

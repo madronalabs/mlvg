@@ -18,41 +18,76 @@ SDL_Window *window;
 
 bool done{false};
 
-std::unique_ptr< TestAppView > _appView;
-std::unique_ptr< TestAppController > _appController;
-
 void* _platformHandle{ nullptr };
 
 constexpr int kSampleRate = 48000;
 
 
-void testAppResize()
+constexpr float kOutputGain = 0.1f;
+constexpr float kFreqLo = 40, kFreqHi = 4000;
+
+
+void readParameterDescriptions(ParameterDescriptionList& params)
 {
-  // resize mlvg app
-  if(_appView)
+  // Processor parameters
+  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+    { "name", "freq1" },
+    { "range", { kFreqLo, kFreqHi } },
+    { "log", true },
+    { "units", "Hz" },
+    { "default", 0.75 }
+  } ) );
+  
+  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+    { "name", "freq2" },
+    { "range", { kFreqLo, kFreqHi } },
+    { "log", true },
+    { "units", "Hz" }
+  } ) );
+  
+  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+    { "name", "gain" },
+    { "range", {0, kOutputGain} }
+  } ) );
+  
+  // Controller parameters
+  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+    { "name", "view_size" },
+    { "save_in_controller", true },
+    { "vst_compatible", false },
+    { "default", { kGridUnitsX*kDefaultGridSize, kGridUnitsY*kDefaultGridSize } }
+  } ) );
+}
+
+void testAppResize(TestAppView& view)
+{
+  int w{0};
+  int h{0};
+  SDL_GetWindowSize(window, &w, &h);
+  if((w > 0) && (h > 0))
   {
-    int w{0};
-    int h{0};
-    SDL_GetWindowSize(window, &w, &h);
-    if((w > 0) && (h > 0))
-    {
-      _appView->doResize(Vec2{float(w), float(h)});
-    }
+    view.doResize(Vec2{float(w), float(h)});
   }
 }
 
+struct ResizingEventWatcherData
+{
+  SDL_Window* window;
+  TestAppView* view;
+};
+
 int resizingEventWatcher( void* data, SDL_Event* event )
 {
-  SDL_Window* window = static_cast< SDL_Window* >( data );
+  ResizingEventWatcherData* watcherData = static_cast< ResizingEventWatcherData* >( data );
   SDL_Event& ev = *event;
   
   if( ev.type == SDL_WINDOWEVENT &&
      ev.window.event == SDL_WINDOWEVENT_RESIZED )
   {
-    if( SDL_GetWindowFromID( ev.window.windowID ) == window )
+    if( SDL_GetWindowFromID( ev.window.windowID ) == watcherData->window )
     {
       //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
-      testAppResize();
+      testAppResize(*watcherData->view);
     }
   }
   return 0;
@@ -100,7 +135,6 @@ struct ParentWindowInfo
   void* windowPtr{nullptr};
   unsigned int flags{0};
 };
-
 
 ParentWindowInfo getParentWindowInfo()
 {
@@ -161,10 +195,11 @@ public RtAudioProcessor
   SineGen s1, s2;
   
 public:
-  TestAppProcessor(size_t nInputs, size_t nOutputs, int sampleRate) :
-    RtAudioProcessor(nInputs, nOutputs, sampleRate) {}
-  
-  // SignalProcessor implementation
+  TestAppProcessor(size_t nInputs, size_t nOutputs, int sampleRate, const ParameterDescriptionList& pdl) :
+    RtAudioProcessor(nInputs, nOutputs, sampleRate)
+  {
+    buildParameterTree(pdl, _params);
+  }
   
   // declare the processVector function that will run our DSP in vectors of size kFloatsPerDSPVector
   // with the nullptr constructor argument above, RtAudioProcessor
@@ -173,17 +208,15 @@ public:
     // get params from the SignalProcessor.
     float f1 = getParam("freq1");
     float f2 = getParam("freq2");
-    
-    //std::cout << "f1: " << f1 << " f2: " << f2 << "\n";
-    
+    float gain = getParam("gain");
+
     // Running the sine generators makes DSPVectors as output.
     // The input parameter is omega: the frequency in Hz divided by the sample rate.
     // The output sines are multiplied by the gain.
-    outputs[0] = s1(f1/kSampleRate)*kOutputGain;
-    outputs[1] = s2(f2/kSampleRate)*kOutputGain;
+    outputs[0] = s1(f1/kSampleRate)*gain;
+    outputs[1] = s2(f2/kSampleRate)*gain;
   }
 };
-
 
 int main(int argc, char *argv[])
 {
@@ -207,43 +240,41 @@ int main(int argc, char *argv[])
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Window creation fail : %s\n",SDL_GetError());
     return 1;
   }
-  
-  // watch for window resize events during drag
-  SDL_AddEventWatch( resizingEventWatcher, window );
-  
+   
   // set min and max sizes
   // constraining aspect ratio TODO (may be hard in SDL2)
   SDL_SetWindowMinimumSize(window, kGridUnitsX*kMinGridSize, kGridUnitsY*kMinGridSize);
   SDL_SetWindowMaximumSize(window, kGridUnitsX*kMaxGridSize, kGridUnitsY*kMaxGridSize);
   
-  // make controller
-  _appController = make_unique< TestAppController >();
-  
-  // make view and assign to unique_ptr
-  TestAppView* viewPtr = _appController->createTestAppView();
-  _appView = std::unique_ptr< TestAppView >(viewPtr);
-  
-  // attach view to window and resize
-  ParentWindowInfo windowInfo = getParentWindowInfo();
-  _appView->doAttached(windowInfo.windowPtr, windowInfo.flags);
-  testAppResize();
-  
-  // setup RtAudio
-  TestAppProcessor sineProcessor(kInputChannels, kOutputChannels, kSampleRate);
- 
   // read parameter descriptions into a list
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
   
-  // build the stored parameter tree, creating projections
-  sineProcessor.buildParams(pdl);
+  // make controller and get instance number
+  TestAppController appController(pdl);
+  auto instanceNum = appController.getInstanceNum();
+  
+  // make Processor and register Actor
+  TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
+  TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(instanceNum));
+  registerActor(Path(processorName), &appProcessor);
+  appProcessor.start();
 
-  // set some parameters of the processor.
-  sineProcessor.setParam("freq1", 0.5);
-  sineProcessor.setParam("freq2", 0.6);
+  // make view
+  Rect size{0, 0, w, h};
+  TestAppView appView(size, instanceNum, pdl);
+  
+  // watch for window resize events during drag
+  ResizingEventWatcherData watcherData{window, &appView};
+  SDL_AddEventWatch( resizingEventWatcher, &watcherData );
+    
+  // attach view to window and resize
+  ParentWindowInfo windowInfo = getParentWindowInfo();
+  appView.doAttached(windowInfo.windowPtr, windowInfo.flags);
+  testAppResize(appView);
 
   // start audio processing
-  sineProcessor.startAudio();
+  appProcessor.startAudio();
   
   // just vibe
   while(!done)
@@ -252,7 +283,7 @@ int main(int argc, char *argv[])
   }
   
   // stop audio and quit
-  sineProcessor.stopAudio();
+  appProcessor.stopAudio();
   SDL_Quit();
   return 0;
 }

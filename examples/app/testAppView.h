@@ -12,6 +12,7 @@
 #include "MLView.h"
 
 #include "testAppParameters.h"
+#include "version.h"
 
 constexpr bool kFixedRatioSize {false};
 
@@ -19,7 +20,7 @@ class TestAppView :
   public ml::AppView
 {
 public:
-  TestAppView(Rect size, Path controllerName);
+  TestAppView(Rect size, size_t instanceNum, const ParameterDescriptionList& pdl );
   
   virtual ~TestAppView ();
 
@@ -35,12 +36,16 @@ public:
   void doAttached (void* pParent, int flags);
   void doResize(Vec2 newSize);
   void layoutView();
+
   
 private:
   
+  // param tree
+  ParameterTreeNormalized _params;
+  
   Path _controllerName;
 
-  void _initializeParams();
+  void _initializeParams(const ParameterDescriptionList& pdl);
 
   Vec2 _constrainSize(Vec2 size);
 
@@ -70,8 +75,6 @@ private:
   Queue< GUIEvent > _inputQueue{ 1024 };
 
 
-  // param tree
-  ParameterTreeNormalized _params;
 
   Tree< std::vector< Widget* > > _widgetsByParameter;
   Tree< std::vector< Widget* > > _modalWidgetsByParameter;

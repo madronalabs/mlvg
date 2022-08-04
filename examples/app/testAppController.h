@@ -25,14 +25,15 @@ class TestAppController :
 {
 public:
   
-  TestAppController();
+  TestAppController(const ParameterDescriptionList& pdl);
 	~TestAppController();
-
   
   // TestAppController interface
-  TestAppView* createTestAppView();
+  void setAllParamsToDefaults();
+  void dumpParams();
   void sendMessageToView(Message);
   void sendParamToView(Path pname);
+  void sendAllCollectionsToView();
   void sendAllParamsToView();
   void sendParamToProcessor(Path pname, uint32_t flags);
   void sendAllParamsToProcessor();
@@ -47,11 +48,14 @@ public:
   // update the named collection of files and return a pointer to it.
   FileTree* updateCollection(Path which);
   
+  size_t getInstanceNum() { return _instanceNum; }
+
 private:
-  // Parameters, which can be exposed with Processor and host app through the VST interface.
-  // in the Processor the parameter tree is in plain units. Everywhere else it is normalized.
+
+  // parameters of our plugin or application.
+  // in the SignalProcessor the parameter tree is in plain units. Everywhere else it is normalized.
   ParameterTreeNormalized _params;
-  
+
   // the state to which we can revert, stored as normalized values.
   Tree< Value > _revertState;
   bool _changedFromRevertValues{true};
@@ -106,6 +110,5 @@ private:
 
   std::vector< uint8_t > getPatchAsBinary();
   void setPatchFromBinary(const std::vector< uint8_t > & p);
-
 
 };

@@ -3,6 +3,7 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
+#pragma once
 
 #include "copyright.h"
 #include "appName.h"
