@@ -131,11 +131,13 @@ void TestAppController::sendAllParamsToProcessor()
 void TestAppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
   
+  Value pval = _params.getNormalizedValue(pname);
+  sendMessageToActor(_processorName, {Path("set_param", pname), pval});
 }
 
 void TestAppController::sendMessageToProcessor(Message msg)
 {
-  
+  sendMessageToActor(_processorName, msg);
 }
 
 void TestAppController::onFullQueue()

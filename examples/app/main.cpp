@@ -174,7 +174,7 @@ public:
     float f1 = getParam("freq1");
     float f2 = getParam("freq2");
     
-    std::cout << "f1: " << f1 << " f2: " << f2 << "\n";
+    //std::cout << "f1: " << f1 << " f2: " << f2 << "\n";
     
     // Running the sine generators makes DSPVectors as output.
     // The input parameter is omega: the frequency in Hz divided by the sample rate.
@@ -231,10 +231,8 @@ int main(int argc, char *argv[])
   // setup RtAudio
   TestAppProcessor sineProcessor(kInputChannels, kOutputChannels, kSampleRate);
  
-  // the processor can use a temporary ParameterDescriptionList here.
+  // read parameter descriptions into a list
   ParameterDescriptionList pdl;
-
-  // read parameter descriptions into list
   readParameterDescriptions(pdl);
   
   // build the stored parameter tree, creating projections

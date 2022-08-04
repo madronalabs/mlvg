@@ -54,40 +54,22 @@ _controllerName(controllerName)
 
   constexpr float bigDialsCenterY{2.0f};
   
-  _view->_widgets.add_unique< DialBasic >("size", WithValues{
+  _view->_widgets.add_unique< DialBasic >("freq1", WithValues{
     {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {2.0, bigDialsCenterY})) },
     {"size", largeDialSize },
-    {"feature_scale", 2.0 },
-    {"ticks", 11 },
-    {"color", {0.945, 0.498, 0.125, 1} },
-    {"indicator", {1, 0.725, 0.498, 1} },
-    {"fill_opacity", 0.7},
-    {"param", "size" },
-    {"trigger_popup", true }
+    {"param", "freq1" }
   } );
   
-  _view->_widgets.add_unique< DialBasic >("decay", WithValues{
+  _view->_widgets.add_unique< DialBasic >("freq2", WithValues{
     {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {4.0, bigDialsCenterY})) },
     {"size", largeDialSize },
-    {"feature_scale", 2.0 },
-    {"ticks", 11 },
-    {"color", {0.901, 0.784, 0.145, 1} },
-    {"indicator", {0.980, 0.894, 0.454, 1} },
-    {"fill_opacity", 0.7},
-    {"param", "decay" },
-    {"trigger_popup", true }
+    {"param", "freq2" }
   } );
   
-  _view->_widgets.add_unique< DialBasic >("tone", WithValues{
+  _view->_widgets.add_unique< DialBasic >("gain", WithValues{
     {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {6.0, bigDialsCenterY})) },
     {"size", largeDialSize },
-    {"feature_scale", 2.0 },
-    {"ticks", 11 },
-    {"color", {0.627, 0.819, 0.286, 1} },
-    {"indicator", {0.815, 0.976, 0.501, 1} },
-    {"fill_opacity", 0.7},
-    {"param", "tone" },
-    {"trigger_popup", true }
+    {"param", "gain" }
   } );
   
   _initializeParams();
@@ -112,6 +94,16 @@ _controllerName(controllerName)
   
   _debugTimer.start([=]() { debug(); }, milliseconds(1000));
 }
+
+
+void TestAppView::layoutView()
+{
+  int gx = _view->getIntProperty("grid_units_x");
+  int gy = _view->getIntProperty("grid_units_y");
+  
+  //_view->_widgets["size"]->setRectProperty("bounds", alignCenterToPoint(largeDialRect, {6.0, gy - 1.0f}));
+}
+
 
 TestAppView::~TestAppView ()
 {
@@ -299,14 +291,6 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
   layoutView();
 }
 
-void TestAppView::layoutView()
-{
-  int gx = _view->getIntProperty("grid_units_x");
-  int gy = _view->getIntProperty("grid_units_y");
-
-  _view->_widgets["size"]->setRectProperty("bounds", alignCenterToPoint(largeDialRect, {6.0, gy - 1.0f}));
-}
-
 void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
 {
   if(!backingLayer) return;
@@ -483,7 +467,7 @@ void TestAppView::debug()
 
 void TestAppView::onMessage(Message msg)
 {
-  // std::cout << "TestAppView: onMessage: " << msg.address << " : " << msg.value << "\n";
+  std::cout << "TestAppView: onMessage: " << msg.address << " : " << msg.value << "\n";
   
   if(head(msg.address) == "editor")
   {

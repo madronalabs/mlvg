@@ -11,7 +11,6 @@
 #include "MLActor.h"
 
 #include "testAppParameters.h"
-#include "testAppProcessor.h"
 #include "testAppView.h"
 
 #include "version.h"
