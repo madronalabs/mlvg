@@ -116,7 +116,7 @@ public:
   // is done to make sure all parameters we are interested in have
   // projections and descriptions.
   //
-  // Widgets can also overload this to do any setup based on param
+  // Widgets can also override this to do any setup based on param
   // descriptions. This base class method should also be called afterwards!
   //
   virtual void setupParams()
@@ -183,9 +183,11 @@ public:
   // property helpers
   ml::Rect getRectProperty(Path p) const { return matrixToRect(getMatrixProperty(p)); }
   ml::Rect getRectPropertyWithDefault(Path p, ml::Rect r) const { return matrixToRect(getMatrixPropertyWithDefault(p, rectToMatrix(r))); }
-  // should be overloaded setProperty?
-  void setRectProperty(Path p, ml::Rect r) { setProperty(p, rectToMatrix(r)); }
+  ml::Rect getBounds() const { return getRectProperty("bounds"); }
 
+  void setRectProperty(Path p, ml::Rect r) { setProperty(p, rectToMatrix(r)); }
+  void setBounds(ml::Rect r) { setProperty("bounds", rectToMatrix(r)); }
+  
   ml::Vec2 getPointProperty(Path p) const { return matrixToVec2(getMatrixProperty(p)); }
   ml::Vec2 getPointPropertyWithDefault(Path p, ml::Vec2 r) const { return matrixToVec2(getMatrixPropertyWithDefault(p, vec2ToMatrix(r))); }
   void setPointProperty(Path p, ml::Vec2 r) { setProperty(p, vec2ToMatrix(r)); }
@@ -198,12 +200,14 @@ public:
 // utilities
 
 // get bounds within parent in Rect format
+/*
 inline ml::Rect getBounds(const Widget& w)
 {
   return matrixToRect(w.getProperty("bounds").getMatrixValueWithDefault({0, 0, 0, 0}));
 }
+*/
 
-inline void setBoundsRect(Widget& w, ml::Rect b)
+inline void setBounds(Widget& w, ml::Rect b)
 {
   w.setProperty("bounds", rectToMatrix(b));
 }
@@ -212,12 +216,12 @@ inline void setBoundsRect(Widget& w, ml::Rect b)
 // is drawn, with the origin at the top left of its bounding box.
 inline ml::Rect getLocalBounds(const ml::DrawContext& dc, const Widget& w)
 {
-  return roundToInt(alignTopLeftToOrigin(dc.coords.gridToNative(getBounds(w))));
+  return roundToInt(alignTopLeftToOrigin(dc.coords.gridToNative(w.getBounds())));
 }
 
 inline ml::Rect getPixelBounds(const ml::DrawContext& dc, const Widget& w)
 {
-  return roundToInt(dc.coords.gridToNative(getBounds(w)));// + ml::Rect{0.5, 0.5, 0., 0.};
+  return roundToInt(dc.coords.gridToNative(w.getBounds()));
 }
 
 } // namespace ml

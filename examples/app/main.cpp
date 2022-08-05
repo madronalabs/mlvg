@@ -20,12 +20,17 @@ bool done{false};
 
 void* _platformHandle{ nullptr };
 
-constexpr int kSampleRate = 48000;
 
+
+
+constexpr int kInputChannels = 0;
+constexpr int kOutputChannels = 2;
+
+
+constexpr int kSampleRate = 48000;
 
 constexpr float kOutputGain = 0.1f;
 constexpr float kFreqLo = 40, kFreqHi = 4000;
-
 
 void readParameterDescriptions(ParameterDescriptionList& params)
 {

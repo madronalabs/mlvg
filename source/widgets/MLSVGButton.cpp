@@ -15,7 +15,7 @@ MessageList SVGButton::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     Path actionRequestPath = Path("do", Path(getTextProperty("action")));
 
     auto type = e.type;
-    auto bounds = getBounds(*this);
+    auto bounds = getBounds();
     bool hit = within(e.position, bounds);
 
     bool wasDown = _down;
@@ -46,7 +46,7 @@ MessageList SVGButton::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
           r.push_back(Message("editor/set_popup_prop/target_click_position", vec2ToMatrix(e.position)));
           
           Vec2 targetOffset = getPointPropertyWithDefault("target_offset", {0, 0});
-          r.push_back(Message("editor/set_popup_prop/target_bounds", rectToMatrix(getBounds(*this) + targetOffset)));
+          r.push_back(Message("editor/set_popup_prop/target_bounds", rectToMatrix(getBounds() + targetOffset)));
 
           // trigger message popup sequence
           

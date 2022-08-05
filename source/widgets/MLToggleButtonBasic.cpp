@@ -25,7 +25,7 @@ MessageList ToggleButtonBasic::processGUIEvent(const GUICoordinates& gc, GUIEven
     Path paramPath{getTextProperty("param")};
     
     auto type = e.type;
-    auto bounds = getBounds(*this);
+    auto bounds = getBounds();
     
     bool wasDown = _down;
 

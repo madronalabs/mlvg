@@ -105,7 +105,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   auto type = e.type;
 
   // use coords centered on our bounding box for events
-  Rect bounds = getBounds(*this);
+  Rect bounds = getBounds();
   Vec2 centeredPos = e.position - getCenter(bounds);
 
   Vec2 componentPosition = centeredPos*gc.gridSize;
@@ -429,12 +429,18 @@ void DialBasic::draw(ml::DrawContext dc)
       bool doSign{false};
       TextFragment numText;
       numText = textUtils::formatNumber(currentPlainValue, digits, precision, doSign);
-      nvgFontFaceId(nvg, 0);
-      nvgFontSize(nvg, textSize);
-      nvgTextLetterSpacing(nvg, 1.0f);
-      nvgTextAlign(nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
-      nvgFillColor(nvg, markColor);
-      nvgText(nvg, -numWidth/4.f, r1*0.125f, numText.getText(), nullptr);
+      
+      auto fontFace = getTextPropertyWithDefault("font", "d_din");
+      NativeFontHandle fontHandle = getImageHandleResource(dc, Path(fontFace));
+      if(isValid(fontHandle))
+      {
+        nvgFontFaceId(nvg, fontHandle);
+        nvgFontSize(nvg, textSize);
+        nvgTextLetterSpacing(nvg, 1.0f);
+        nvgTextAlign(nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);
+        nvgFillColor(nvg, markColor);
+        nvgText(nvg, -numWidth/4.f, r1*0.125f, numText.getText(), nullptr);
+      }
     }
     
     // restore center offset

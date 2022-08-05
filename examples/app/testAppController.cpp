@@ -9,9 +9,6 @@
 #include "testAppController.h"
 #include "testAppView.h"
 
-// param definitions for this plugin
-#include "testAppParameters.h"
-
 #include <cmath>
 #include <iostream>
 #include <chrono>
@@ -29,6 +26,45 @@
 #include "external/juce_core/juce_core.h"
 
 using namespace ml;
+
+
+// get list of persistent params stored in Processor
+inline void getProcessorStateParams(const ParameterDescriptionList& pdl, std::vector< Path >& _paramList)
+{
+  for(size_t i=0; i < pdl.size(); ++i)
+  {
+    ParameterDescription& pd = *pdl[i];
+    Path paramName = pd.getTextProperty("name");
+    bool isPrivate = pd.getBoolPropertyWithDefault("private", false);
+    bool controllerParam = pd.getBoolPropertyWithDefault("save_in_controller", false);
+    bool isPersistent = pd.getBoolPropertyWithDefault("persistent", true);
+    
+    if((!isPrivate) && (!controllerParam) && (isPersistent))
+    {
+      _paramList.push_back(paramName);
+    }
+  }
+}
+
+
+// get list of persistent params stored in Controller
+inline void getControllerStateParams(const ParameterDescriptionList& pdl, std::vector< Path >& _paramList)
+{
+  for(size_t i=0; i < pdl.size(); ++i)
+  {
+    ParameterDescription& pd = *pdl[i];
+    Path paramName = pd.getTextProperty("name");
+    bool controllerParam = pd.getBoolPropertyWithDefault("save_in_controller", false);
+    bool isPersistent = pd.getBoolPropertyWithDefault("persistent", true);
+    
+    if((controllerParam) && (isPersistent))
+    {
+      _paramList.push_back(paramName);
+    }
+  }
+}
+
+
 
 //-----------------------------------------------------------------------------
 // TestAppController implementation

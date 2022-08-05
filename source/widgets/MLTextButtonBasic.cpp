@@ -16,7 +16,7 @@ MessageList TextButtonBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent 
     Path actionRequestPath = Path("do", Path(getTextProperty("action")));
     
     auto type = e.type;
-    auto bounds = getBounds(*this);
+    auto bounds = getBounds();
     
     bool wasDown = _down;
     

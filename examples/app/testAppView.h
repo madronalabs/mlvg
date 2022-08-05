@@ -11,8 +11,15 @@
 #include "MLWidget.h"
 #include "MLView.h"
 
-#include "testAppParameters.h"
 #include "version.h"
+
+
+constexpr float kGridUnitsX{ 9 };
+constexpr float kGridUnitsY{ 5 };
+constexpr int kMinGridSize{ 40 };
+constexpr int kDefaultGridSize{ 120 };
+constexpr int kMaxGridSize{ 240 };
+
 
 constexpr bool kFixedRatioSize {false};
 

@@ -20,7 +20,7 @@
 
 constexpr float textSizeFix{0.85f};
 ml::Rect largeDialRect{0, 0, 1.5, 1.5};
-
+ml::Rect labelRect(0, 0, 2, 0.125);
 
 TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescriptionList& pdl)
 {
@@ -32,24 +32,24 @@ TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescripti
   _drawingProperties.setProperty("draw_background_grid", true);
   _defaultSystemSize = Vec2(size.width(), size.height());
     
+  
   // add labels to background
-  textUtils::NameMaker WidgetNamer;
-  auto addControlLabel = [&](TextFragment t, float width, Vec2 center)
+  auto addControlLabel = [&](Path name, TextFragment t)
   {
-    _view->_backgroundWidgets.add_unique< TextLabelBasic >(WidgetNamer.nextName(), WithValues{
-      { "bounds", rectToMatrix( alignCenterToPoint(ml::Rect{0, 0, width, 0.25}, center + Vec2{0., 0.01}))},
+    _view->_backgroundWidgets.add_unique< TextLabelBasic >(name, WithValues{
+      { "bounds", rectToMatrix(labelRect) },
       { "h_align", "center" },
       { "v_align", "middle" },
       { "text", t },
-      { "font", "madronasansoblique" },
-      { "text_size", 0.30*textSizeFix },
+      { "font", "d_din_italic" },
+      { "text_size", 0.30 },
       { "text_spacing", 0.0f }
     } );
   };
-  
-  addControlLabel("size", 0.5, {1.875, 2.5});
-  addControlLabel("decay", 0.75, {3.625, 2.5});
-  addControlLabel("tone", 0.5, {5.375, 2.5});
+  addControlLabel("freq1_label", "frequency L");
+  addControlLabel("freq2_label", "frequency R");
+  addControlLabel("gain_label", "gain");
+
 
   constexpr float bigDialsCenterY{2.0f};
   
@@ -86,7 +86,6 @@ TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescripti
   _view->setDirty(true);
   
   _previousFrameTime = system_clock::now();
-  
 
   _controllerName = TextFragment(getAppName(), "controller", ml::textUtils::naturalNumberToText(instanceNum));
   auto myName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(instanceNum));
@@ -100,15 +99,34 @@ TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescripti
   _debugTimer.start([=]() { debug(); }, milliseconds(1000));
 }
 
-
 void TestAppView::layoutView()
 {
   int gx = _view->getIntProperty("grid_units_x");
   int gy = _view->getIntProperty("grid_units_y");
+  Rect viewBounds(0, 0, gx, gy);
+  
+  // layout dials
+  _view->_widgets["freq1"]->setBounds(alignCenterToPoint(largeDialRect, {1, 1}));
+  _view->_widgets["freq2"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, 1}));
+  _view->_widgets["gain"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, gy - 1.f}));
+  
+  // layout labels
+  ml::Rect labelRect(0, 0, 2, 0.5);
+  auto positionLabelUnderDial = [&](Path dialName)
+  {
+    Path labelName (TextFragment(pathToText(dialName), "_label"));
+    ml::Rect dialRect = _view->_widgets[dialName]->getRectProperty("bounds");
+    _view->_backgroundWidgets[labelName]->setRectProperty
+    ("bounds", alignCenterToPoint(labelRect, dialRect.bottomCenter()));
+  };
+  for(auto dialName : {"freq1", "freq2", "gain"})
+  {
+    positionLabelUnderDial(dialName);
+  }
+  
   
   //_view->_widgets["size"]->setRectProperty("bounds", alignCenterToPoint(largeDialRect, {6.0, gy - 1.0f}));
 }
-
 
 TestAppView::~TestAppView ()
 {
@@ -136,11 +154,11 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
     // fonts
     int font1 = nvgCreateFontMem(nvg, "MLVG_sans", (unsigned char*)resources::D_DIN_otf, resources::D_DIN_otf_size, 0);
     const unsigned char* pFont1 = reinterpret_cast<const unsigned char *>(&font1);
-    _resources["madronasans"] = ml::make_unique< Resource >(pFont1, pFont1 + sizeof(int));
+    _resources["d_din"] = ml::make_unique< Resource >(pFont1, pFont1 + sizeof(int));
 
     int font2 = nvgCreateFontMem(nvg, "MLVG_italic", (unsigned char *)resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
     const unsigned char* pFont2 = reinterpret_cast<const unsigned char *>(&font2);
-    _resources["madronasansoblique"] = ml::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
+    _resources["d_din_italic"] = ml::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
     
     // raster images
     int flags = 0;
@@ -217,7 +235,6 @@ void TestAppView::_initializeParams(const ParameterDescriptionList& pdl)
   }
 }
 
-
 // called when native view size changes.
 // width and height are the size of the view in system coordinates.
 void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
@@ -273,7 +290,7 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
   // set bounds for top-level View in grid coordinates
   {
     ml::Rect viewBounds {0, 0, float(gridUnitsX), float(gridUnitsY)};
-    setBoundsRect(*_view, viewBounds);
+    setBounds(*_view, viewBounds);
   }
   
   // fixed size widgets are measured in pixels, so they need their grid-based sizes recalculated
@@ -332,7 +349,7 @@ void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
     nvgFill(nvg);
   }
   
-  ml::Rect topViewBounds = dc.coords.gridToNative(getBounds(*_view));
+  ml::Rect topViewBounds = dc.coords.gridToNative(_view->getBounds());
   nvgIntersectScissor(nvg, topViewBounds);
   auto topLeft = getTopLeft(topViewBounds);
   nvgTranslate(nvg, topLeft);

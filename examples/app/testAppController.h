@@ -10,7 +10,6 @@
 #include "MLPropertyTree.h"
 #include "MLActor.h"
 
-#include "testAppParameters.h"
 #include "testAppView.h"
 
 #include "version.h"

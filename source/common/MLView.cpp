@@ -197,7 +197,7 @@ std::vector< Widget* > View::findWidgetsForEvent(const GUIEvent& e)
         //std::cout << "find: " << e.position << " in " << p << " at " <<
         //getBounds(w) << " z=" << w.getFloatProperty("z") << " (" << within(e.position, getBounds(w)) << ")\n";
         
-        if(within(e.position, getBounds(w)))
+        if(within(e.position, w.getBounds()))
         {
           widgetsForEvent.push_back(&w);
         }
@@ -314,7 +314,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
     Widget* w1 = *it;
     if(w1->isDirty())
     {
-      ml::Rect widget1Bounds = getBounds(*w1);
+      ml::Rect widget1Bounds = w1->getBounds();
       if(w1->getProperty("previous_bounds"))
       {
         ml::Rect widget1PreviousBounds = matrixToRect(w1->getProperty("previous_bounds").getMatrixValue());
@@ -327,7 +327,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
         {
           if(!w2->isDirty())
           {
-            if(intersectRects(widget1Bounds, getBounds(*w2)))
+            if(intersectRects(widget1Bounds, w2->getBounds()))
             {
               w2->setDirty(true);
             }
@@ -348,7 +348,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
       {
         dirtyRects.push_back(matrixToRect(w->getProperty("previous_bounds").getMatrixValue()));
       }
-      dirtyRects.push_back(getBounds(*w));
+      dirtyRects.push_back(w->getBounds());
     }
   }
   
@@ -417,7 +417,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   // draw background Widgets intersecting rect
   for(const auto& w : _backgroundWidgets)
   {
-    if(intersectRects(dc.coords.gridToNative(getBounds(*w)), nativeRect))
+    if(intersectRects(dc.coords.gridToNative(w->getBounds()), nativeRect))
     {
       drawWidget(dc, w.get());
     }
