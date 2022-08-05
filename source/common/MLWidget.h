@@ -16,16 +16,20 @@
 #include "MLDSPOps.h"
 #include "MLDSPBuffer.h"
 #include "MLPropertyTree.h"
-// 
 #include "MLMessage.h"
 #include "MLParameters.h"
 
 namespace ml{
 
 // A Widget is a drawable UI element stored in a View.
-// It may control one or more parameters in the app or plugin.
-// Any other variables that change the appearance of a Widget are
-// stored in its PropertyTree.
+// its appearance in the view depends on two kinds of values:
+// Parameters annd Properties.
+//
+// Parameters are quantities in the app or plugin Processor that
+// the Widget may control.
+//
+// Properties are variables that change the appearance of
+// the Widget. To store them, Widget inherits from PropertyTree.
 //
 class Widget : public PropertyTree, public MessageReceiver
 {
@@ -98,7 +102,7 @@ public:
   
   // We might like to send a Widget a pointer to some resource it
   // can use, if that resource is guaranteed to outlive the Widget.
-  // (and to be on the same computer!)
+  // (and to be in the same address space!)
   // Most Widgets shouldn't need this.
   virtual void receiveNamedRawPointer(Path name, void* ptr){}
  
@@ -181,36 +185,23 @@ public:
   virtual void draw(DrawContext d) {}
     
   // property helpers
-  ml::Rect getRectProperty(Path p) const { return matrixToRect(getMatrixProperty(p)); }
-  ml::Rect getRectPropertyWithDefault(Path p, ml::Rect r) const { return matrixToRect(getMatrixPropertyWithDefault(p, rectToMatrix(r))); }
-  ml::Rect getBounds() const { return getRectProperty("bounds"); }
+  inline ml::Rect getRectProperty(Path p) const { return matrixToRect(getMatrixProperty(p)); }
+  inline ml::Rect getRectPropertyWithDefault(Path p, ml::Rect r) const { return matrixToRect(getMatrixPropertyWithDefault(p, rectToMatrix(r))); }
+  inline void setRectProperty(Path p, ml::Rect r) { setProperty(p, rectToMatrix(r)); }
 
-  void setRectProperty(Path p, ml::Rect r) { setProperty(p, rectToMatrix(r)); }
-  void setBounds(ml::Rect r) { setProperty("bounds", rectToMatrix(r)); }
+  inline ml::Rect getBounds() const { return getRectProperty("bounds"); }
+  inline void setBounds(ml::Rect r) { setProperty("bounds", rectToMatrix(r)); }
   
-  ml::Vec2 getPointProperty(Path p) const { return matrixToVec2(getMatrixProperty(p)); }
-  ml::Vec2 getPointPropertyWithDefault(Path p, ml::Vec2 r) const { return matrixToVec2(getMatrixPropertyWithDefault(p, vec2ToMatrix(r))); }
-  void setPointProperty(Path p, ml::Vec2 r) { setProperty(p, vec2ToMatrix(r)); }
+  inline ml::Vec2 getPointProperty(Path p) const { return matrixToVec2(getMatrixProperty(p)); }
+  inline ml::Vec2 getPointPropertyWithDefault(Path p, ml::Vec2 r) const { return matrixToVec2(getMatrixPropertyWithDefault(p, vec2ToMatrix(r))); }
+  inline void setPointProperty(Path p, ml::Vec2 r) { setProperty(p, vec2ToMatrix(r)); }
 
-  NVGcolor getColorProperty(Path p) const { return matrixToColor(getMatrixProperty(p)); }
-  NVGcolor getColorPropertyWithDefault(Path p, NVGcolor r) const { return matrixToColor(getMatrixPropertyWithDefault(p, colorToMatrix(r))); }
-  void setColorProperty(Path p, NVGcolor r) { setProperty(p, colorToMatrix(r)); }
+  inline NVGcolor getColorProperty(Path p) const { return matrixToColor(getMatrixProperty(p)); }
+  inline NVGcolor getColorPropertyWithDefault(Path p, NVGcolor r) const { return matrixToColor(getMatrixPropertyWithDefault(p, colorToMatrix(r))); }
+  inline void setColorProperty(Path p, NVGcolor r) { setProperty(p, colorToMatrix(r)); }
 };
 
 // utilities
-
-// get bounds within parent in Rect format
-/*
-inline ml::Rect getBounds(const Widget& w)
-{
-  return matrixToRect(w.getProperty("bounds").getMatrixValueWithDefault({0, 0, 0, 0}));
-}
-*/
-
-inline void setBounds(Widget& w, ml::Rect b)
-{
-  w.setProperty("bounds", rectToMatrix(b));
-}
 
 // get bounds in the native coordinates that will be current when the widget
 // is drawn, with the origin at the top left of its bounding box.

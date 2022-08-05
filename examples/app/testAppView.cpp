@@ -288,10 +288,7 @@ void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
   _GUICoordinates.origin = getTopLeft(_borderRect);
   
   // set bounds for top-level View in grid coordinates
-  {
-    ml::Rect viewBounds {0, 0, float(gridUnitsX), float(gridUnitsY)};
-    setBounds(*_view, viewBounds);
-  }
+  _view->setBounds({0, 0, float(gridUnitsX), float(gridUnitsY)});
   
   // fixed size widgets are measured in pixels, so they need their grid-based sizes recalculated
   // when the view dims change.
