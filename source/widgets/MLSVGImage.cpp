@@ -13,10 +13,8 @@ using namespace ml;
 void SVGImage::draw(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
-//  Rect bounds = dc.coords.gridToNative(getLocalBounds(*this)).getIntPart();
   Rect bounds = getLocalBounds(dc, *this);
-
-  auto image = getVectorImage(dc, Path(getTextProperty("imageName")));
+  auto image = getVectorImage(dc, Path(getTextProperty("image_name")));
      
   if(image)
   {

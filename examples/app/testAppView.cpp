@@ -24,15 +24,12 @@ ml::Rect labelRect(0, 0, 2, 0.125);
 
 TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescriptionList& pdl)
 {
-  float largeDialSize{0.55f};
-
   // initialize drawing properties before controls are made
   _drawingProperties.setProperty("mark", colorToMatrix({0.01, 0.01, 0.01, 1.0}));
   _drawingProperties.setProperty("background", colorToMatrix({0.8, 0.8, 0.8, 1.0}));
   _drawingProperties.setProperty("draw_background_grid", true);
   _defaultSystemSize = Vec2(size.width(), size.height());
     
-  
   // add labels to background
   auto addControlLabel = [&](Path name, TextFragment t)
   {
@@ -50,26 +47,35 @@ TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescripti
   addControlLabel("freq2_label", "frequency R");
   addControlLabel("gain_label", "gain");
 
-
-  constexpr float bigDialsCenterY{2.0f};
-  
+  // add Dials to view
+  float largeDialSize{0.55f};
   _view->_widgets.add_unique< DialBasic >("freq1", WithValues{
-    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {2.0, bigDialsCenterY})) },
     {"size", largeDialSize },
     {"param", "freq1" }
   } );
   
   _view->_widgets.add_unique< DialBasic >("freq2", WithValues{
-    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {4.0, bigDialsCenterY})) },
     {"size", largeDialSize },
     {"param", "freq2" }
   } );
   
   _view->_widgets.add_unique< DialBasic >("gain", WithValues{
-    {"bounds", rectToMatrix(alignCenterToPoint(largeDialRect, {6.0, bigDialsCenterY})) },
     {"size", largeDialSize },
     {"param", "gain" }
   } );
+
+  _view->_widgets.add_unique< SVGImage >("tess", WithValues{
+    {"image_name", "tesseract" }
+  } );
+
+    
+  // make all the above Widgets visible
+  forEach< Widget >
+  (_view->_widgets, [&](Widget& w)
+   {
+    w.setProperty("visible", true);
+  }
+   );
   
   _initializeParams(pdl);
 
@@ -77,26 +83,19 @@ TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescripti
   _view->setProperty("grid_units_x", kGridUnitsX);
   _view->setProperty("grid_units_y", kGridUnitsY);
   
-  forEach< Widget >
-  (_view->_widgets, [&](Widget& w)
-   {
-    w.setProperty("visible", true);
-  }
-   );
-  _view->setDirty(true);
-  
   _previousFrameTime = system_clock::now();
 
+  // get names of other Actors we might communicate with
   _controllerName = TextFragment(getAppName(), "controller", ml::textUtils::naturalNumberToText(instanceNum));
+  
+  // register ourself
   auto myName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(instanceNum));
   registerActor(myName, this);
-  std::cout << "view Actor: " << myName << "\n";
-
+  
+  // start timers
   _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
-  
-  Actor::start();
-  
   _debugTimer.start([=]() { debug(); }, milliseconds(1000));
+  Actor::start();
 }
 
 void TestAppView::layoutView()
@@ -110,6 +109,9 @@ void TestAppView::layoutView()
   _view->_widgets["freq2"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, 1}));
   _view->_widgets["gain"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, gy - 1.f}));
   
+  // layout test image
+  _view->_widgets["tess"]->setBounds(alignCenterToPoint(largeDialRect, {1, gy - 1.f}));
+  
   // layout labels
   ml::Rect labelRect(0, 0, 2, 0.5);
   auto positionLabelUnderDial = [&](Path dialName)
@@ -117,15 +119,12 @@ void TestAppView::layoutView()
     Path labelName (TextFragment(pathToText(dialName), "_label"));
     ml::Rect dialRect = _view->_widgets[dialName]->getRectProperty("bounds");
     _view->_backgroundWidgets[labelName]->setRectProperty
-    ("bounds", alignCenterToPoint(labelRect, dialRect.bottomCenter()));
+    ("bounds", alignCenterToPoint(labelRect, dialRect.bottomCenter() - Vec2(0, 0.125)));
   };
   for(auto dialName : {"freq1", "freq2", "gain"})
   {
     positionLabelUnderDial(dialName);
   }
-  
-  
-  //_view->_widgets["size"]->setRectProperty("bounds", alignCenterToPoint(largeDialRect, {6.0, gy - 1.0f}));
 }
 
 TestAppView::~TestAppView ()
