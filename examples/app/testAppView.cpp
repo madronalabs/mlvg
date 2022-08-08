@@ -22,86 +22,21 @@ constexpr float textSizeFix{0.85f};
 ml::Rect largeDialRect{0, 0, 1.5, 1.5};
 ml::Rect labelRect(0, 0, 2, 0.125);
 
-TestAppView::TestAppView(Rect size, size_t instanceNum, const ParameterDescriptionList& pdl)
+TestAppView::TestAppView(TextFragment appName, size_t instanceNum) :
+  AppView(appName, instanceNum)
 {
-  // initialize drawing properties before controls are made
-  _drawingProperties.setProperty("mark", colorToMatrix({0.01, 0.01, 0.01, 1.0}));
-  _drawingProperties.setProperty("background", colorToMatrix({0.8, 0.8, 0.8, 1.0}));
-  _drawingProperties.setProperty("draw_background_grid", true);
-  _defaultSystemSize = Vec2(size.width(), size.height());
-    
-  // add labels to background
-  auto addControlLabel = [&](Path name, TextFragment t)
-  {
-    _view->_backgroundWidgets.add_unique< TextLabelBasic >(name, WithValues{
-      { "bounds", rectToMatrix(labelRect) },
-      { "h_align", "center" },
-      { "v_align", "middle" },
-      { "text", t },
-      { "font", "d_din_italic" },
-      { "text_size", 0.30 },
-      { "text_spacing", 0.0f }
-    } );
-  };
-  addControlLabel("freq1_label", "frequency L");
-  addControlLabel("freq2_label", "frequency R");
-  addControlLabel("gain_label", "gain");
-
-  // add Dials to view
-  float largeDialSize{0.55f};
-  _view->_widgets.add_unique< DialBasic >("freq1", WithValues{
-    {"size", largeDialSize },
-    {"param", "freq1" }
-  } );
-  
-  _view->_widgets.add_unique< DialBasic >("freq2", WithValues{
-    {"size", largeDialSize },
-    {"param", "freq2" }
-  } );
-  
-  _view->_widgets.add_unique< DialBasic >("gain", WithValues{
-    {"size", largeDialSize },
-    {"param", "gain" }
-  } );
-
-  _view->_widgets.add_unique< SVGImage >("tess", WithValues{
-    {"image_name", "tesseract" }
-  } );
-
-    
-  // make all the above Widgets visible
-  forEach< Widget >
-  (_view->_widgets, [&](Widget& w)
-   {
-    w.setProperty("visible", true);
-  }
-   );
-  
-  _initializeParams(pdl);
-
-  // grid size of entire interface, for background and other drawing
-  _view->setProperty("grid_units_x", kGridUnitsX);
-  _view->setProperty("grid_units_y", kGridUnitsY);
-  
-  _previousFrameTime = system_clock::now();
-
-  // get names of other Actors we might communicate with
-  _controllerName = TextFragment(getAppName(), "controller", ml::textUtils::naturalNumberToText(instanceNum));
-  
-  // register ourself
-  auto myName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(instanceNum));
-  registerActor(myName, this);
-  
-  // start timers
-  _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
-  _debugTimer.start([=]() { debug(); }, milliseconds(1000));
-  Actor::start();
 }
 
 void TestAppView::layoutView()
 {
-  int gx = _view->getIntProperty("grid_units_x");
-  int gy = _view->getIntProperty("grid_units_y");
+  Vec2 gridDims = getSizeInGridUnits();
+  int gx = gridDims.x();
+  int gy = gridDims.y();
+
+  // set grid size of entire view, for background and other drawing
+  _view->setProperty("grid_units_x", gx);
+  _view->setProperty("grid_units_y", gy);
+    
   Rect viewBounds(0, 0, gx, gy);
   
   // layout dials
@@ -129,9 +64,7 @@ void TestAppView::layoutView()
 
 TestAppView::~TestAppView ()
 {
-  _ioTimer.stop();
-  Actor::stop();
-  removeActor(this);
+
 }
 
 int TestAppView::getElapsedTime()
@@ -143,174 +76,82 @@ int TestAppView::getElapsedTime()
   return elapsedTime;
 }
 
-
 #pragma mark from ml::AppView
 
 void TestAppView::initializeResources(NativeDrawContext* nvg)
 {
-  if (nvg)
-  {
-    // fonts
-    int font1 = nvgCreateFontMem(nvg, "MLVG_sans", (unsigned char*)resources::D_DIN_otf, resources::D_DIN_otf_size, 0);
-    const unsigned char* pFont1 = reinterpret_cast<const unsigned char *>(&font1);
-    _resources["d_din"] = ml::make_unique< Resource >(pFont1, pFont1 + sizeof(int));
+  // initialize drawing properties before controls are made
+  _drawingProperties.setProperty("mark", colorToMatrix({0.01, 0.01, 0.01, 1.0}));
+  _drawingProperties.setProperty("background", colorToMatrix({0.8, 0.8, 0.8, 1.0}));
+  _drawingProperties.setProperty("draw_background_grid", true);
 
-    int font2 = nvgCreateFontMem(nvg, "MLVG_italic", (unsigned char *)resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
-    const unsigned char* pFont2 = reinterpret_cast<const unsigned char *>(&font2);
-    _resources["d_din_italic"] = ml::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
-    
-    // raster images
-    int flags = 0;
-    int img1 = nvgCreateImageMem(nvg, flags, (unsigned char *)resources::vignette_jpg, resources::vignette_jpg_size);
-    const unsigned char* pImg1 = reinterpret_cast<const unsigned char *>(&img1);
-    //_resources["background"] = ml::make_unique< Resource >(pImg1, pImg1 + sizeof(int));
-    
-    // SVG images    
-    ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
-  }
+  // fonts
+  int font1 = nvgCreateFontMem(nvg, "MLVG_sans", (unsigned char*)resources::D_DIN_otf, resources::D_DIN_otf_size, 0);
+  const unsigned char* pFont1 = reinterpret_cast<const unsigned char *>(&font1);
+  _resources["d_din"] = ml::make_unique< Resource >(pFont1, pFont1 + sizeof(int));
+
+  int font2 = nvgCreateFontMem(nvg, "MLVG_italic", (unsigned char *)resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
+  const unsigned char* pFont2 = reinterpret_cast<const unsigned char *>(&font2);
+  _resources["d_din_italic"] = ml::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
+  
+  // raster images
+  int flags = 0;
+  int img1 = nvgCreateImageMem(nvg, flags, (unsigned char *)resources::vignette_jpg, resources::vignette_jpg_size);
+  const unsigned char* pImg1 = reinterpret_cast<const unsigned char *>(&img1);
+  //_resources["background"] = ml::make_unique< Resource >(pImg1, pImg1 + sizeof(int));
+  
+  // SVG images
+  ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
 }
 
-void TestAppView::_initializeParams(const ParameterDescriptionList& pdl)
+void TestAppView::makeWidgets()
 {
-  buildParameterTree(pdl, _params);
-  
-  // build index of widgets by parameter.
-  // for each parameter, collect Widgets responding to it
-  // and add the parameter to the Widget's param tree.
-  for(auto& paramDesc : pdl)
+  // add labels to background
+  auto addControlLabel = [&](Path name, TextFragment t)
   {
-    Path paramName = paramDesc->getTextProperty("name");
-    
-    forEach< Widget >
-    (_view->_widgets, [&](Widget& w)
-     {
-      if(w.knowsParam(paramName))
-      {
-        _widgetsByParameter[paramName].push_back(&w);
-        w.setParameterDescription(paramName, *paramDesc);
-      }
-    }
-     );
-  }
+    _view->_backgroundWidgets.add_unique< TextLabelBasic >(name, WithValues{
+      { "bounds", rectToMatrix(labelRect) },
+      { "h_align", "center" },
+      { "v_align", "middle" },
+      { "text", t },
+      { "font", "d_din_italic" },
+      { "text_size", 0.30 },
+      { "text_spacing", 0.0f }
+    } );
+  };
+  addControlLabel("freq1_label", "frequency L");
+  addControlLabel("freq2_label", "frequency R");
+  addControlLabel("gain_label", "gain");
   
-  // build index of any widgets that refer to collections.
+  // add Dials to view
+  float largeDialSize{0.55f};
+  _view->_widgets.add_unique< DialBasic >("freq1", WithValues{
+    {"size", largeDialSize },
+    {"param", "freq1" }
+  } );
+  
+  _view->_widgets.add_unique< DialBasic >("freq2", WithValues{
+    {"size", largeDialSize },
+    {"param", "freq2" }
+  } );
+  
+  _view->_widgets.add_unique< DialBasic >("gain", WithValues{
+    {"size", largeDialSize },
+    {"param", "gain" }
+  } );
+  
+  _view->_widgets.add_unique< SVGImage >("tess", WithValues{
+    {"image_name", "tesseract" }
+  } );
+  
+  
+  // make all the above Widgets visible
   forEach< Widget >
   (_view->_widgets, [&](Widget& w)
    {
-    if(w.hasProperty("collection"))
-    {
-      const Path collName(w.getTextProperty("collection"));
-      _widgetsByCollection[collName].push_back(&w);
-    }
-  });
-  
-  // build index of any widgets that need signals, and subscribe to those signals.
-  for(auto& w : _view->_widgets)
-  {
-    if(w->hasProperty("signal_name"))
-    {
-      const Path sigName(w->getTextProperty("signal_name"));
-      _widgetsBySignal[sigName].push_back(w.get());
-
-      // message the controller to subscribe to the signal.
-      sendMessageToActor(_controllerName, Message{"do/subscribe_to_signal", pathToText(sigName)});
-    }
-  }
-  
-  // give each Widget a chance to do setup now: after it has its
-  // parameter description(s) and before it is animated or drawn.
-  for(auto& w : _view->_widgets)
-  {
-    w->setupParams();
-  }
-  
-  // now that widgets are set up, send default param values to widgets.
-  for(auto& paramDesc : _params.descriptions)
-  {
-    Path pname = paramDesc->getTextProperty("name");
-    auto pval = _params.getNormalizedValue(pname);
-    Message msg(Path("set_param", pname), pval);
-    _sendParameterToWidgets(msg);
-  }
-}
-
-// called when native view size changes.
-// width and height are the size of the view in system coordinates.
-void TestAppView::viewResized(NativeDrawContext* nvg, int width, int height)
-{
-  _view->setDirty(true);
-  
-  // get dims in UI coordinates (pixels)
-  float displayScale = _GUICoordinates.displayScale;
-  int nativeWidth = width*displayScale;
-  int nativeHeight = height*displayScale;
-  
-  int gridSize;
-  int gridUnitsX{int(kGridUnitsX)};
-  int gridUnitsY{int(kGridUnitsY)};
-
-  if(kFixedRatioSize)
-  {
-    // scale both the app and the grid,
-    // leave a border around the content area so that it is always
-    // an even multiple of the grid size in native pixels.
-    int ux = nativeWidth/kGridUnitsX;
-    int uy = nativeHeight/kGridUnitsY;
-    gridSize = std::min(ux, uy);
-    float contentWidth = gridSize*kGridUnitsX;
-    float contentHeight = gridSize*kGridUnitsY;
-    float borderX = (nativeWidth - contentWidth)/2;
-    float borderY = (nativeHeight - contentHeight)/2;
-    _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
-  }
-  else
-  {
-    // TODO user-adjustable grid size? only for subviews?
-    gridSize = kDefaultGridSize;
-    gridUnitsX = nativeWidth/gridSize;
-    gridUnitsY = nativeHeight/gridSize;
-    _view->setProperty("grid_units_x", gridUnitsX);
-    _view->setProperty("grid_units_y", gridUnitsY);
-
-    float contentWidth = gridSize*gridUnitsX;
-    float contentHeight = gridSize*gridUnitsY;
-    float borderX = (nativeWidth - contentWidth)/2;
-    float borderY = (nativeHeight - contentHeight)/2;
-    _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
- //   _borderRect = ml::Rect(0, 0, nativeWidth, nativeHeight);
-  }
-  
-  // set new coordinate transform values for GUI renderer - displayScale remains the same
-  // width and height are in pixel coordinates
-  // MLTEST _GUICoordinates.pixelSize = Vec2(nativeWidth, nativeHeight);
-  _GUICoordinates.gridSize = gridSize;
-  _GUICoordinates.origin = getTopLeft(_borderRect);
-  
-  // set bounds for top-level View in grid coordinates
-  _view->setBounds({0, 0, float(gridUnitsX), float(gridUnitsY)});
-  
-  // fixed size widgets are measured in pixels, so they need their grid-based sizes recalculated
-  // when the view dims change.
-  forEach< Widget >
-  (_view->_widgets, [&](Widget& w)
-   {
-    if(w.getProperty("fixed_size"))
-    {
-      // get anchor point for widget in system coords from anchor param on (0, 1)
-      Vec2 systemAnchor = matrixToVec2(w.getProperty("anchor").getMatrixValue());
-      systemAnchor = systemAnchor * Vec2(width, height);
-      
-      // fixed widget bounds are in system coords (for same apparent size)
-      Vec4 systemBounds = w.getRectProperty("fixed_bounds");
-      
-      //Vec4 viewBounds = _GUICoordinates.systemToNative(systemBounds);
-      systemBounds = translate(systemBounds, systemAnchor);
-      ml::Rect gridBounds = _GUICoordinates.systemToGrid(systemBounds);
-      w.setProperty("bounds", rectToMatrix(gridBounds));
-    }
+    w.setProperty("visible", true);
   }
    );
-  layoutView();
 }
 
 void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
@@ -359,16 +200,15 @@ void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
 
 void TestAppView::doAttached (void* pParent, int flags)
 {
-  float w = _defaultSystemSize.x();
-  float h = _defaultSystemSize.y();
-  
+  Vec2 dims = getDefaultDims();
+  Vec2 cDims = _constrainSize(dims);
   if(pParent != _parent)
   {
-    _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, w, h), this, _platformHandle, flags);
+    _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
     _parent = pParent;
   }
   
-  doResize(_constrainSize(Vec2(w, h)));
+  doResize(cDims);
 }
 
 void TestAppView::pushEvent(GUIEvent g)
@@ -376,17 +216,6 @@ void TestAppView::pushEvent(GUIEvent g)
   _inputQueue.push(g);
 }
 
-// given a pointer to a size in system UI coordinates, tweak the size to be a valid window size.
-Vec2 TestAppView::_constrainSize(Vec2 size)
-{
-  Vec2 newSize = size;
-  if(kFixedRatioSize)
-  {
-    newSize = vmax(newSize, Vec2{kMinGridSize*kGridUnitsX, kMinGridSize*kGridUnitsY});
-    newSize = vmin(newSize, Vec2{kMaxGridSize*kGridUnitsX, kMaxGridSize*kGridUnitsY});
-  }
-  return newSize;
-}
 
 // set new editor size in system coordinates.
 void TestAppView::doResize(Vec2 newSize)
@@ -394,6 +223,8 @@ void TestAppView::doResize(Vec2 newSize)
   int width = newSize[0];
   int height = newSize[1];
   float scale = _GUICoordinates.displayScale;
+    
+  // std::cout << "do resize: " << width << " x " << height << " (" << scale << ")\n";
   Vec2 newViewSize = Vec2(width, height)*scale;
   
   if(_GUICoordinates.pixelSize != newViewSize)
@@ -405,85 +236,6 @@ void TestAppView::doResize(Vec2 newSize)
       _platformView->resizeView(width, height);
   }
 }
-
-// maintain states for click-and-hold timer
-// param: event in native coordinates
-GUIEvent TestAppView::detectDoubleClicks(GUIEvent e)
-{
-  constexpr int kDoubleClickRadius = 8;
-  constexpr int kDoubleClickMs = 500;
-  
-  Vec2 systemPosition = _GUICoordinates.nativeToSystem(e.position);
-  GUIEvent r = e;
-  
-  if(e.type == "up")
-  {
-    if(_doubleClickTimer.isActive())
-    {
-      if(magnitude(Vec2(systemPosition - _doubleClickStartPosition)) < kDoubleClickRadius)
-      {
-        r.keyFlags |= commandModifier;
-        _doubleClickTimer.stop();
-      }
-    }
-    else
-    {
-      _doubleClickStartPosition = systemPosition;
-      
-      // timer doesn't need to execute anything, just expire.
-      _doubleClickTimer.callOnce( [](){}, milliseconds(kDoubleClickMs) );
-    }
-  }
-  return r;
-}
-
-// Handle the queue of GUIEvents from the View by routing events to Widgets
-// and handling any returned Messages.
-void TestAppView::_handleGUIEvents()
-{
-  while (_inputQueue.elementsAvailable())
-  {
-    auto e = _inputQueue.pop();
-    GUIEvent nativeEvent = detectDoubleClicks(e);
-    GUIEvent gridEvent(nativeEvent);
-    gridEvent.position = _GUICoordinates.nativeToGrid(gridEvent.position);
-
-    
-    // std::cout << "_dismissPopupOnClick: " << (dismissed ? "TRUE" : "FALSE") << "\n";
-    
-    // The top-level processGUIEvent call.
-    // Send input events to all Widgets in our View and handle any resulting messages.
-    enqueueMessageList(_view->processGUIEvent(_GUICoordinates, gridEvent));
-    handleMessagesInQueue();
-  }
-}
-
-void TestAppView::_sendParameterToWidgets(const Message& msg)
-{
-  if(msg.value)
-  {
-    // get param name
-    Path pname = tail(msg.address);
-    
-    // send to Widgets that care about it
-    for(auto pw : _widgetsByParameter[pname])
-    {
-      // if Widget is not engaged, send it the new value.
-      if(!pw->engaged)
-      {
-        sendMessage(*pw, msg);
-      }
-    }
-  }
-}
-
-void TestAppView::debug()
-{
-  //std::cout << "TestAppView: " << getMessagesAvailable() << " messages in queue. max: "
-  //  << _maxQueueSize << " handled: " << _msgCounter << " \n";
-  //_msgCounter = 0;
-}
-
 
 // Actor implementation
 

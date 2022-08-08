@@ -28,8 +28,6 @@ public:
 	~TestAppController();
   
   // TestAppController interface
-  void setAllParamsToDefaults();
-  void dumpParams();
   void sendMessageToView(Message);
   void sendParamToView(Path pname);
   void sendAllCollectionsToView();
@@ -40,9 +38,6 @@ public:
   // Actor interface
   void onMessage(Message m) override;
   void onFullQueue() override;
-  
-  // send a ml::Message directly to the Processor.
-  void sendMessageToProcessor(Message m);
   
   // update the named collection of files and return a pointer to it.
   FileTree* updateCollection(Path which);
@@ -55,9 +50,6 @@ private:
   // in the SignalProcessor the parameter tree is in plain units. Everywhere else it is normalized.
   ParameterTreeNormalized _params;
 
-  // the state to which we can revert, stored as normalized values.
-  Tree< Value > _revertState;
-  bool _changedFromRevertValues{true};
   
   std::vector< ml::Path > _paramNamesByID;
   Tree< size_t > _paramIDsByName;
