@@ -27,7 +27,6 @@
 
 using namespace ml;
 
-
 // get list of persistent params stored in Processor
 inline void getProcessorStateParams(const ParameterDescriptionList& pdl, std::vector< Path >& _paramList)
 {
@@ -46,7 +45,6 @@ inline void getProcessorStateParams(const ParameterDescriptionList& pdl, std::ve
   }
 }
 
-
 // get list of persistent params stored in Controller
 inline void getControllerStateParams(const ParameterDescriptionList& pdl, std::vector< Path >& _paramList)
 {
@@ -63,8 +61,6 @@ inline void getControllerStateParams(const ParameterDescriptionList& pdl, std::v
     }
   }
 }
-
-
 
 //-----------------------------------------------------------------------------
 // TestAppController implementation
@@ -94,18 +90,17 @@ TestAppController::TestAppController(const ParameterDescriptionList& pdl)
   getProcessorStateParams(pdl, _processorStateParams);
   getControllerStateParams(pdl, _controllerStateParams);
   
-  // start timers in main thread.
-  _timers->start(true);
-  
   // register and start Actor
   _instanceNum = _controllerRegistry->getUniqueID();
   _instanceName = TextFragment(getAppName(), "controller", ml::textUtils::naturalNumberToText(_instanceNum));
   registerActor(_instanceName, this);
-  std::cout << "controller Actor: " << _instanceName << "\n";
-  
+
+  // get other Actor names
   _processorName = TextFragment(getAppName(), "processor", ml::textUtils::naturalNumberToText(_instanceNum));
   _viewName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(_instanceNum));
 
+  // start timers in main thread.
+  _timers->start(true);
   Actor::start();
 }
 
@@ -114,23 +109,6 @@ TestAppController::~TestAppController()
 }
 
 #pragma mark mlvg
-
-void TestAppController::setAllParamsToDefaults()
-{
-  //setDefaults(_params);
-  
-
-}
-
-void TestAppController::dumpParams()
-{
-  _params.dump();
-}
-
-void TestAppController::sendMessageToView(Message msg)
-{
-  sendMessageToActor(_viewName, msg);
-}
 
 void TestAppController::sendParamToView(Path pname)
 {
@@ -165,16 +143,7 @@ void TestAppController::sendAllParamsToProcessor()
 void TestAppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
   auto pval = getNormalizedValue(_params, pname);
-  
-  std::cout << "sendParamToProcessor: " << pname << " -> " << pval << "\n";
-  
-  //Value pval = _params.getNormalizedValue(pname);
   sendMessageToActor(_processorName, {Path("set_param", pname), pval, flags});
-}
-
-void TestAppController::sendMessageToProcessor(Message msg)
-{
-  sendMessageToActor(_processorName, msg);
 }
 
 void TestAppController::onFullQueue()

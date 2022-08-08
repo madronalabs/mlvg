@@ -20,12 +20,8 @@ bool done{false};
 
 void* _platformHandle{ nullptr };
 
-
-
-
 constexpr int kInputChannels = 0;
 constexpr int kOutputChannels = 2;
-
 
 constexpr int kSampleRate = 48000;
 
@@ -59,8 +55,7 @@ void readParameterDescriptions(ParameterDescriptionList& params)
   params.push_back( ml::make_unique< ParameterDescription >(WithValues{
     { "name", "view_size" },
     { "save_in_controller", true },
-    { "vst_compatible", false },
-    { "default", { kGridUnitsX*kDefaultGridSize, kGridUnitsY*kDefaultGridSize } }
+    { "vst_compatible", false }
   } ) );
 }
 
@@ -225,13 +220,31 @@ public:
 
 int main(int argc, char *argv[])
 {
-  float w = kGridUnitsX*kDefaultGridSize;
-  float h = kGridUnitsY*kDefaultGridSize;
+  // read parameter descriptions into a list
+  ParameterDescriptionList pdl;
+  readParameterDescriptions(pdl);
+
+  // make controller and get instance number
+  TestAppController appController(pdl);
+  auto instanceNum = appController.getInstanceNum();
+
+  // make view
+  TestAppView appView(getAppName(), instanceNum);
+  
+  // set initial size. This test app does not have a fixed aspect ratio.
+  appView.setSizeInGridUnits({16, 9});
+
+  // make widgets and setup parameters
+  appView.startup(pdl);
+
+  // could set fixed grid size for view here
+  Vec2 defaultDims = appView.getDefaultDims();
+
   
   // Enable standard application logging
   SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
   
-  // Initialize SDL 
+  // Initialize SDL
   if(SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO) != 0)
   {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init fail : %s\n", SDL_GetError());
@@ -239,25 +252,20 @@ int main(int argc, char *argv[])
   }
   
   // Create window
-  window = SDL_CreateWindow("mlvg test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_RESIZABLE | SDL_WINDOW_METAL);
+  window = SDL_CreateWindow("mlvg test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                            defaultDims.x(), defaultDims.y(), SDL_WINDOW_RESIZABLE | SDL_WINDOW_METAL);
   if(!window)
   {
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Window creation fail : %s\n",SDL_GetError());
     return 1;
   }
-   
-  // set min and max sizes
-  // constraining aspect ratio TODO (may be hard in SDL2)
-  SDL_SetWindowMinimumSize(window, kGridUnitsX*kMinGridSize, kGridUnitsY*kMinGridSize);
-  SDL_SetWindowMaximumSize(window, kGridUnitsX*kMaxGridSize, kGridUnitsY*kMaxGridSize);
   
-  // read parameter descriptions into a list
-  ParameterDescriptionList pdl;
-  readParameterDescriptions(pdl);
+  // set min and max sizes for window
+  Vec2 minDims = appView.getMinDims();
+  Vec2 maxDims = appView.getMaxDims();
+  SDL_SetWindowMinimumSize(window, minDims.x(), minDims.y());
+  SDL_SetWindowMaximumSize(window, maxDims.x(), maxDims.y());
   
-  // make controller and get instance number
-  TestAppController appController(pdl);
-  auto instanceNum = appController.getInstanceNum();
   
   // make Processor and register Actor
   TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
@@ -265,15 +273,12 @@ int main(int argc, char *argv[])
   registerActor(Path(processorName), &appProcessor);
   appProcessor.start();
 
-  // make view
-  Rect size{0, 0, w, h};
-  TestAppView appView(size, instanceNum, pdl);
   
   // watch for window resize events during drag
   ResizingEventWatcherData watcherData{window, &appView};
   SDL_AddEventWatch( resizingEventWatcher, &watcherData );
     
-  // attach view to window and resize
+  // attach app view to window and resize
   ParentWindowInfo windowInfo = getParentWindowInfo();
   appView.doAttached(windowInfo.windowPtr, windowInfo.flags);
   testAppResize(appView);

@@ -427,24 +427,24 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   
   if(drawGrid)
   {
-    const int kGridUnitsX = getFloatProperty("grid_units_x");
-    const int kGridUnitsY = getFloatProperty("grid_units_y");
+    const int gx = getFloatProperty("grid_units_x");
+    const int gy = getFloatProperty("grid_units_y");
     
     nvgStrokeColor(nvg, rgba(1, 1, 1, 0.25));
     nvgStrokeWidth(nvg, 1.0f*dc.coords.displayScale);
     
     nvgBeginPath(nvg);
-    for(int i=0; i <= kGridUnitsX; ++i)
+    for(int i=0; i <= gx; ++i)
     {
       Vec2 a = dc.coords.gridToNative(Vec2(i, 0));
-      Vec2 b = dc.coords.gridToNative(Vec2(i, kGridUnitsY));
+      Vec2 b = dc.coords.gridToNative(Vec2(i, gy));
       nvgMoveTo(nvg, a.x(), a.y());
       nvgLineTo(nvg, b.x(), b.y());
     }
-    for(int j=0; j <= kGridUnitsY; ++j)
+    for(int j=0; j <= gy; ++j)
     {
       Vec2 a = dc.coords.gridToNative(Vec2(0, j));
-      Vec2 b = dc.coords.gridToNative(Vec2(kGridUnitsX, j));
+      Vec2 b = dc.coords.gridToNative(Vec2(gx, j));
       nvgMoveTo(nvg, a.x(), a.y());
       nvgLineTo(nvg, b.x(), b.y());
     }
