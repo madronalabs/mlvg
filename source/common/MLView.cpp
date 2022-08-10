@@ -156,7 +156,7 @@ void View::draw(ml::DrawContext dc)
   
   if(hasProperty("position"))
   {
-    nvgTranslate(nvg, dc.coords.gridToNative(matrixToVec2(getMatrixProperty("position"))));
+    nvgTranslate(nvg, dc.coords.gridToPixel(matrixToVec2(getMatrixProperty("position"))));
   }
   
   // if the View itself is dirty, all the Widgets in it must be redrawn.
@@ -360,7 +360,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
     for(auto rect : dirtyRects)
     {
       nvgSave(nvg);
-      auto nativeRect = dc.coords.gridToNative(rect);
+      auto nativeRect = dc.coords.gridToPixel(rect);
       nativeRect = grow(nativeRect, 2); // MLTEST workaround for slop
       nvgIntersectScissor(nvg, nativeRect);
       
@@ -386,7 +386,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   //auto white = nvgRGBAf(1, 1, 1, 0.25);
   auto bgColorA = nvgRGBA(131, 162, 199, 255);
   auto bgColorB = nvgRGBA(115, 149, 185, 255);
-  int u = dc.coords.gridSize;
+  int u = dc.coords.gridSizeInPixels;
   
   NVGpaint paintPattern;
   Resource* pr = getResource(dc, "background");
@@ -400,12 +400,12 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     
     //  int imgw, imgh;
     //  nvgImageSize(nvg, backgroundHandle, &imgw, &imgh);
-    paintPattern = nvgImagePattern(nvg, -u, -u, dc.coords.pixelSize.x() + u, dc.coords.pixelSize.y() + u, 0, backgroundHandle, 1.0f);
+    paintPattern = nvgImagePattern(nvg, -u, -u, dc.coords.viewSizeInPixels.x() + u, dc.coords.viewSizeInPixels.y() + u, 0, backgroundHandle, 1.0f);
   }
   else
   {
     auto bgColor = getColor(dc, "background");
-    paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.pixelSize.y() + u, bgColor, bgColor);
+    paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.viewSizeInPixels.y() + u, bgColor, bgColor);
   }
   
   // draw background image or gradient
@@ -417,7 +417,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   // draw background Widgets intersecting rect
   for(const auto& w : _backgroundWidgets)
   {
-    if(intersectRects(dc.coords.gridToNative(w->getBounds()), nativeRect))
+    if(intersectRects(dc.coords.gridToPixel(w->getBounds()), nativeRect))
     {
       drawWidget(dc, w.get());
     }
@@ -436,15 +436,15 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     nvgBeginPath(nvg);
     for(int i=0; i <= gx; ++i)
     {
-      Vec2 a = dc.coords.gridToNative(Vec2(i, 0));
-      Vec2 b = dc.coords.gridToNative(Vec2(i, gy));
+      Vec2 a = dc.coords.gridToPixel(Vec2(i, 0));
+      Vec2 b = dc.coords.gridToPixel(Vec2(i, gy));
       nvgMoveTo(nvg, a.x(), a.y());
       nvgLineTo(nvg, b.x(), b.y());
     }
     for(int j=0; j <= gy; ++j)
     {
-      Vec2 a = dc.coords.gridToNative(Vec2(0, j));
-      Vec2 b = dc.coords.gridToNative(Vec2(gx, j));
+      Vec2 a = dc.coords.gridToPixel(Vec2(0, j));
+      Vec2 b = dc.coords.gridToPixel(Vec2(gx, j));
       nvgMoveTo(nvg, a.x(), a.y());
       nvgLineTo(nvg, b.x(), b.y());
     }

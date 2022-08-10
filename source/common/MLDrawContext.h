@@ -257,11 +257,11 @@ constexpr float kLabelScale { 0.4375f };
 const Vec2 kDefaultLabelPos{0, 1.125f};
 
 // draw label at bottom of bounds rect
-inline void drawLabel(NativeDrawContext* nvg, TextFragment t, int gridSize, Rect nativeBounds, int fontID = 1, Vec2 offset = {0, 0})
+inline void drawLabel(NativeDrawContext* nvg, TextFragment t, int gridSizeInPixels, Rect nativeBounds, int fontID = 1, Vec2 offset = {0, 0})
 {
   if(t)
   {
-    float labelSize  = gridSize*kLabelScale;
+    float labelSize  = gridSizeInPixels*kLabelScale;
     
     nvgFontFaceId(nvg, fontID);
     nvgFontSize(nvg, labelSize);
@@ -503,18 +503,18 @@ inline void drawRoundRectShadow(NativeDrawContext* nvg, ml::Rect r, int width, i
 
 // draw a centered grid over the given Rect, with the current stroke width and color.
 
-inline void drawGrid(NativeDrawContext* nvg, float gridSize, Rect bounds)
+inline void drawGrid(NativeDrawContext* nvg, float gridSizeInPixels, Rect bounds)
 {
-  const int xIters = bounds.width() / gridSize;
-  const int yIters = bounds.height() / gridSize;
+  const int xIters = bounds.width() / gridSizeInPixels;
+  const int yIters = bounds.height() / gridSizeInPixels;
 
-  float xStart = -xIters/2*gridSize;
-  float yStart = -yIters/2*gridSize;
+  float xStart = -xIters/2*gridSizeInPixels;
+  float yStart = -yIters/2*gridSizeInPixels;
 
   for(int i=0; i<xIters; ++i)
   {
     nvgBeginPath(nvg);
-    float x = xStart + gridSize*i;
+    float x = xStart + gridSizeInPixels*i;
     nvgMoveTo(nvg, Vec2(x, bounds.top()));
     nvgLineTo(nvg, Vec2(x, bounds.bottom()));
     nvgStroke(nvg);
@@ -522,7 +522,7 @@ inline void drawGrid(NativeDrawContext* nvg, float gridSize, Rect bounds)
   for(int i=0; i<yIters; ++i)
   {
     nvgBeginPath(nvg);
-    float y = yStart + gridSize*i;
+    float y = yStart + gridSizeInPixels*i;
     nvgMoveTo(nvg, Vec2(bounds.left(), y));
     nvgLineTo(nvg, Vec2(bounds.right(), y));
     nvgStroke(nvg);
@@ -585,15 +585,24 @@ inline float getFloat(DrawContext t, Path p) { return t.pProperties->getFloatPro
 
 inline NVGcolor getColor(DrawContext t, Path p) { return matrixToColor(t.pProperties->getMatrixProperty(p)); }
 
-//inline NVGcolor getColorWithDefault(DrawContext t, Path p, NVGcolor r) { return matrixToColor(t.pProperties->getMatrixPropertyWithDefault(p, colorToMatrix(r))); }
+inline NVGcolor getColorWithDefault(DrawContext t, Path p, NVGcolor r) { return matrixToColor(t.pProperties->getMatrixPropertyWithDefault(p, colorToMatrix(r))); }
 
 inline NVGcolor lerp(NVGcolor a, NVGcolor b, float mix) { return nvgLerpRGBA(a, b, mix); }
-
 
 // void setColorProperty(Path p, NVGcolor r) { setProperty(p, colorToMatrix(r)); }
  
 
+// some colors.
 
+namespace colors
+{
+  constexpr NVGcolor black{0, 0, 0, 1};
+  constexpr NVGcolor white{1, 1, 1, 1};
+
+  constexpr NVGcolor red{1, 0, 0, 1};
+  constexpr NVGcolor green{0, 1, 0, 1};
+  constexpr NVGcolor blue{0, 0, 1, 1};
+}
 
 
 } // namespace ml

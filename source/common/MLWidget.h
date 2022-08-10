@@ -207,12 +207,12 @@ public:
 // is drawn, with the origin at the top left of its bounding box.
 inline ml::Rect getLocalBounds(const ml::DrawContext& dc, const Widget& w)
 {
-  return roundToInt(alignTopLeftToOrigin(dc.coords.gridToNative(w.getBounds())));
+  return roundToInt(alignTopLeftToOrigin(dc.coords.gridToPixel(w.getBounds())));
 }
 
 inline ml::Rect getPixelBounds(const ml::DrawContext& dc, const Widget& w)
 {
-  return roundToInt(dc.coords.gridToNative(w.getBounds()));
+  return roundToInt(dc.coords.gridToPixel(w.getBounds()));
 }
 
 } // namespace ml

@@ -9,6 +9,8 @@
 //==============================================================================
 // juce_core flags:
 
+#define JUCE_DISABLE_JUCE_VERSION_PRINTING 1
+
 #ifndef    JUCE_FORCE_DEBUG
  //#define JUCE_FORCE_DEBUG
 #endif

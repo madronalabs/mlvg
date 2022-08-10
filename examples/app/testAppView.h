@@ -3,14 +3,19 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-
 #pragma once
 
+#include "madronalib.h"
 #include "MLAppView.h"
-#include "MLPlatformView.h"
 #include "MLWidget.h"
 #include "MLView.h"
-
+#include "MLDialBasic.h"
+#include "MLResizer.h"
+#include "MLTextLabelBasic.h"
+#include "MLSVGImage.h"
+#include "MLSVGButton.h"
+#include "MLParameters.h"
+#include "MLSerialization.h"
 
 class TestAppView final:
   public ml::AppView
@@ -19,40 +24,13 @@ public:
   TestAppView(TextFragment appName, size_t instanceNum);
   ~TestAppView() override;
 
-  // Actor interface
-  void onMessage(Message m) override;
-
-  // from ml::AppView
+  // AppView interface
   void initializeResources(NativeDrawContext* nvg) override;
   void makeWidgets() override;
-  void renderView(NativeDrawContext* nvg, Layer* backingLayer) override;
-  void pushEvent(GUIEvent g) override;
   void layoutView() override;
-  
-  void doAttached (void* pParent, int flags);
-  void doResize(Vec2 newSize);
+  void onGUIEvent(const GUIEvent& event) override {};
+  void onResize(Vec2 newSize) override {};
 
-  
-private:
-
-
-
-
-
-  int getElapsedTime();
-  
-  
-  
-  std::unique_ptr< PlatformView > _platformView;
-  
-  int _animCounter{0};
-  NVGcolor _popupIndicatorColor;
-
-  
-  NativeDrawContext* _drawContext{};
-
-
-  void* _parent{nullptr};
-
-
+  // Actor interface
+  void onMessage(Message m) override;
 };

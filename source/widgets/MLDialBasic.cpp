@@ -108,7 +108,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   Rect bounds = getBounds();
   Vec2 centeredPos = e.position - getCenter(bounds);
 
-  Vec2 componentPosition = centeredPos*gc.gridSize;
+  Vec2 componentPosition = centeredPos*gc.gridSizeInPixels;
   bool doFineDrag = e.keyFlags & shiftModifier;
   
   float rawNormValue = getParamValue(pname).getFloatValue();
@@ -257,7 +257,7 @@ void DialBasic::draw(ml::DrawContext dc)
   
   // get context and dimensions
   NativeDrawContext* nvg = getNativeContext(dc);
-  int gridSize = dc.coords.gridSize;
+  int gridSizeInPixels = dc.coords.gridSizeInPixels;
   Rect bounds = getLocalBounds(dc, *this);
   
   // properties
@@ -302,15 +302,15 @@ void DialBasic::draw(ml::DrawContext dc)
   }
 
   // radii
-  float r0 = gridSize*dialSize; // master size / radius
+  float r0 = gridSizeInPixels*dialSize; // master size / radius
   float r1 = r0*0.85f; // outline radius
   float r4 = r0*1.00f; // ticks start
   float r5 = r0*1.06f; // ticks end
 
   // other sizes
-  float strokeWidth = gridSize/32.f;
-  float tickWidth = gridSize/128.f;
-  float textSize = gridSize*dialSize*textScale;
+  float strokeWidth = gridSizeInPixels/32.f;
+  float tickWidth = gridSizeInPixels/128.f;
+  float textSize = gridSizeInPixels*dialSize*textScale;
   
   // indicator does not scale with dial size, just grid.
   // like a typographical stroke.

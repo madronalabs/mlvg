@@ -41,7 +41,7 @@ void TextLabelBasic::draw(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   Rect bounds = getLocalBounds(dc, *this);
-  int gridSize = dc.coords.gridSize;
+  int gridSizeInPixels = dc.coords.gridSizeInPixels;
   
   auto fontFace = getTextPropertyWithDefault("font", "d_din");
   auto text = getTextProperty("text");
@@ -49,7 +49,7 @@ void TextLabelBasic::draw(ml::DrawContext dc)
   NativeFontHandle fontHandle = getImageHandleResource(dc, Path(fontFace));
   if(!isValid(fontHandle)) return;
   
-  float textSize = gridSize*getFloatPropertyWithDefault("text_size", 0.25f);
+  float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.25f);
   float spacing = getFloatPropertyWithDefault("text_spacing", 0.f);
   bool multiLine = getBoolProperty("multi_line");
 

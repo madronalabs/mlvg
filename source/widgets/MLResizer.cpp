@@ -17,7 +17,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 
   if(type == "down")
   {
-    _sizeStart = gc.nativeToSystem(gc.pixelSize);
+    _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
     _dragStart = viewPos;
     _dragDelta = Vec2(0, 0);
     
@@ -70,7 +70,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       }
       
       // send new size in system coordinates to the editor
-      reqList.push_back(Message("do/resize", vec2ToMatrix(newSize)));
+      reqList.push_back(Message("set_param/view_size", vec2ToMatrix(newSize)));
       _dragDelta = newDragDelta;
     }
   }
@@ -82,16 +82,8 @@ void Resizer::draw(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   Rect bounds = getLocalBounds(dc, *this);
-
-  // TODO get colors from resources
-  // auto& resources = getResources(dc);
-  // Aaltoverb:
-//  auto bgColorA = nvgRGBA(131, 162, 199, 255);
- // auto bgColorB = nvgRGBA(115, 149, 185, 255);
   
   auto bgColorA = getColor(dc, "mark");
-  auto bgColorB = getColor(dc, "mark");
-  auto gradient = nvgLinearGradient(nvg, bounds.center().x(), bounds.center().y(), bounds.right(), bounds.top(), bgColorA, bgColorB);
 
   //  paint triangle
   nvgBeginPath(nvg);
@@ -99,7 +91,7 @@ void Resizer::draw(ml::DrawContext dc)
   nvgLineTo(nvg, bounds.right(), bounds.bottom());
   nvgLineTo(nvg, bounds.left(), bounds.bottom());
   nvgClosePath(nvg);
-  nvgFillPaint(nvg, gradient);
+  nvgFillColor(nvg, bgColorA);
   nvgFill(nvg);
 }
 

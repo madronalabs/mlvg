@@ -59,21 +59,21 @@ void TextButtonBasic::draw(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   Rect bounds = getLocalBounds(dc, *this);
-  int gridSize = dc.coords.gridSize;
+  int gridSizeInPixels = dc.coords.gridSizeInPixels;
   
   NativeFontHandle fontHandle = getImageHandleResource(dc, "d_din");
   if(!isValid(fontHandle)) return;
   
-  float buttonDownShift = _down ? gridSize/32.f : 0.f;
+  float buttonDownShift = _down ? gridSizeInPixels/32.f : 0.f;
   nvgTranslate(nvg, Vec2(0, buttonDownShift));
   
   float opacity = getFloatPropertyWithDefault("opacity", 1.0f);
   opacity *= getBoolPropertyWithDefault("enabled", true) ? 1.f : 0.25f;
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
   
-  float strokeWidth = gridSize/64.f;
-  float margin = gridSize/16.f;
-  float textSize = gridSize*getFloatPropertyWithDefault("text_size", 0.5f);
+  float strokeWidth = gridSizeInPixels/64.f;
+  float margin = gridSizeInPixels/16.f;
+  float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.5f);
   
   auto hAlign = NVG_ALIGN_CENTER;
   auto vAlign = NVG_ALIGN_MIDDLE;

@@ -6,8 +6,7 @@
 // use clipboard code from VST3 SDK
 // #include "public.sdk/source/common/systemclipboard.h"
 
-#include "testAppController.h"
-#include "testAppView.h"
+#include "MLAppController.h"
 
 #include <cmath>
 #include <iostream>
@@ -63,9 +62,9 @@ inline void getControllerStateParams(const ParameterDescriptionList& pdl, std::v
 }
 
 //-----------------------------------------------------------------------------
-// TestAppController implementation
+// AppController implementation
 
-TestAppController::TestAppController(const ParameterDescriptionList& pdl)
+AppController::AppController(TextFragment appName, const ParameterDescriptionList& pdl)
 {
 #ifdef DEBUG
 #ifdef ML_WINDOWS
@@ -92,30 +91,30 @@ TestAppController::TestAppController(const ParameterDescriptionList& pdl)
   
   // register and start Actor
   _instanceNum = _controllerRegistry->getUniqueID();
-  _instanceName = TextFragment(getAppName(), "controller", ml::textUtils::naturalNumberToText(_instanceNum));
+  _instanceName = TextFragment(appName, "controller", ml::textUtils::naturalNumberToText(_instanceNum));
   registerActor(_instanceName, this);
 
   // get other Actor names
-  _processorName = TextFragment(getAppName(), "processor", ml::textUtils::naturalNumberToText(_instanceNum));
-  _viewName = TextFragment(getAppName(), "view", ml::textUtils::naturalNumberToText(_instanceNum));
+  _processorName = TextFragment(appName, "processor", ml::textUtils::naturalNumberToText(_instanceNum));
+  _viewName = TextFragment(appName, "view", ml::textUtils::naturalNumberToText(_instanceNum));
 
   // start timers in main thread.
   _timers->start(true);
   Actor::start();
 }
 
-TestAppController::~TestAppController()
+AppController::~AppController()
 {
 }
 
 #pragma mark mlvg
 
-void TestAppController::sendParamToView(Path pname)
+void AppController::sendParamToView(Path pname)
 {
   sendMessageToActor(_viewName, {Path("set_param", pname), getNormalizedValue(_params, pname), kMsgFromController});
 }
 
-void TestAppController::sendAllParamsToView()
+void AppController::sendAllParamsToView()
 {
   for(auto& pname : _paramNamesByID)
   {
@@ -123,7 +122,7 @@ void TestAppController::sendAllParamsToView()
   }
 }
 
-void TestAppController::sendAllCollectionsToView()
+void AppController::sendAllCollectionsToView()
 {
   for(auto it = _fileTreeIndex.begin(); it != _fileTreeIndex.end(); ++it)
   {
@@ -132,7 +131,7 @@ void TestAppController::sendAllCollectionsToView()
   }
 }
 
-void TestAppController::sendAllParamsToProcessor()
+void AppController::sendAllParamsToProcessor()
 {
   for(auto& pname : _paramNamesByID)
   {
@@ -140,18 +139,18 @@ void TestAppController::sendAllParamsToProcessor()
   }
 }
 
-void TestAppController::sendParamToProcessor(Path pname, uint32_t flags)
+void AppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
   auto pval = getNormalizedValue(_params, pname);
   sendMessageToActor(_processorName, {Path("set_param", pname), pval, flags});
 }
 
-void TestAppController::onFullQueue()
+void AppController::onFullQueue()
 {
   std::cout << "Controller: full queue! \n";
 }
 
-FileTree* TestAppController::updateCollection(Path which)
+FileTree* AppController::updateCollection(Path which)
 {
   FileTree* pTree {_fileTreeIndex[which].get()};
   if(pTree)
@@ -162,11 +161,11 @@ FileTree* TestAppController::updateCollection(Path which)
   return pTree;
 }
 
-void TestAppController::onMessage(Message m)
+void AppController::onMessage(Message m)
 {
   if(!m.address) return;
   
-  std::cout << "TestAppController::onMessage:" << m.address << " " << m.value << " \n ";
+  //std::cout << "AppController::onMessage:" << m.address << " " << m.value << " \n ";
   
   Path addr = m.address;
   switch(hash(head(addr)))
@@ -181,7 +180,7 @@ void TestAppController::onMessage(Message m)
           
         case(hash("view_size")):
         {
-          std::cout << "TestAppController::onMessage: view_size = " << m.value << " \n ";
+          //std::cout << "AppController::onMessage: view_size = " << m.value << " \n ";
           _params["view_size"] = m.value;
           break;
         }
@@ -233,7 +232,7 @@ void TestAppController::onMessage(Message m)
       
     default:
     {
-      std::cout << "TestAppController: unhandled message: " << m << " \n ";
+      std::cout << "AppController: unhandled message: " << m << " \n ";
       break;
     }
   }

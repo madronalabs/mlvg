@@ -4,39 +4,32 @@
 // See LICENSE.txt for details.
 
 #include "testAppView.h"
-
-#include "madronalib.h"
-
-#include "MLDialBasic.h"
-#include "MLResizer.h"
-#include "MLTextLabelBasic.h"
-#include "MLSVGImage.h"
-#include "MLSVGButton.h"
-
-#include "MLParameters.h"
-#include "MLSerialization.h"
-
 #include "../build/resources/testapp/resources.c"
-
-constexpr float textSizeFix{0.85f};
-ml::Rect largeDialRect{0, 0, 1.5, 1.5};
-ml::Rect labelRect(0, 0, 2, 0.125);
 
 TestAppView::TestAppView(TextFragment appName, size_t instanceNum) :
   AppView(appName, instanceNum)
 {
 }
 
+TestAppView::~TestAppView ()
+{
+}
+
+#pragma mark AppView
+
 void TestAppView::layoutView()
 {
+  ml::Rect largeDialRect{0, 0, 1.5, 1.5};
+  ml::Rect labelRect(0, 0, 2, 0.5);
+  
   Vec2 gridDims = getSizeInGridUnits();
   int gx = gridDims.x();
   int gy = gridDims.y();
-
+  
   // set grid size of entire view, for background and other drawing
   _view->setProperty("grid_units_x", gx);
   _view->setProperty("grid_units_y", gy);
-    
+  
   Rect viewBounds(0, 0, gx, gy);
   
   // layout dials
@@ -48,7 +41,6 @@ void TestAppView::layoutView()
   _view->_widgets["tess"]->setBounds(alignCenterToPoint(largeDialRect, {1, gy - 1.f}));
   
   // layout labels
-  ml::Rect labelRect(0, 0, 2, 0.5);
   auto positionLabelUnderDial = [&](Path dialName)
   {
     Path labelName (TextFragment(pathToText(dialName), "_label"));
@@ -61,22 +53,6 @@ void TestAppView::layoutView()
     positionLabelUnderDial(dialName);
   }
 }
-
-TestAppView::~TestAppView ()
-{
-
-}
-
-int TestAppView::getElapsedTime()
-{
-  // return time elapsed since last render
-  time_point<system_clock> now = system_clock::now();
-  auto elapsedTime = duration_cast<milliseconds>(now - _previousFrameTime).count();
-  _previousFrameTime = now;
-  return elapsedTime;
-}
-
-#pragma mark from ml::AppView
 
 void TestAppView::initializeResources(NativeDrawContext* nvg)
 {
@@ -110,7 +86,6 @@ void TestAppView::makeWidgets()
   auto addControlLabel = [&](Path name, TextFragment t)
   {
     _view->_backgroundWidgets.add_unique< TextLabelBasic >(name, WithValues{
-      { "bounds", rectToMatrix(labelRect) },
       { "h_align", "center" },
       { "v_align", "middle" },
       { "text", t },
@@ -144,7 +119,6 @@ void TestAppView::makeWidgets()
     {"image_name", "tesseract" }
   } );
   
-  
   // make all the above Widgets visible
   forEach< Widget >
   (_view->_widgets, [&](Widget& w)
@@ -154,94 +128,11 @@ void TestAppView::makeWidgets()
    );
 }
 
-void TestAppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
-{
-  if(!backingLayer) return;
-  int w = backingLayer->width;
-  int h = backingLayer->height;
-  
-  // TODO move resource types into Renderer, DrawContext points to Renderer
-  DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
-  
-  // first, allow Widgets to draw any needed animations outside of main nvgBeginFrame().
-  // Do animations and handle any resulting messages immediately.
-  MessageList ml = _view->animate(getElapsedTime(), dc);
-  enqueueMessageList(ml);
-  handleMessagesInQueue();
-  
-  // begin the frame on the backing layer
-  drawToLayer(backingLayer);
-  nvgBeginFrame(nvg, w, h, 1.0f);
-  
-  // TODO lower level clear?
-  
-  // if top level view is dirty, clear entire window
-  if(_view->isDirty())
-  {
-    nvgBeginPath(nvg);
-    nvgRect(nvg, ml::Rect{-10000, -10000, 20000, 20000});
-    auto bgColor = getColor(dc, "background");
-
-    nvgFillColor(nvg, bgColor);
-    nvgFill(nvg);
-  }
-  
-  ml::Rect topViewBounds = dc.coords.gridToNative(_view->getBounds());
-  nvgIntersectScissor(nvg, topViewBounds);
-  auto topLeft = getTopLeft(topViewBounds);
-  nvgTranslate(nvg, topLeft);
-  
-  _view->draw(translate(dc, -topLeft));
-  
-  // end the frame.
-  nvgEndFrame(nvg);
-  _view->setDirty(false);
-}
-
-void TestAppView::doAttached (void* pParent, int flags)
-{
-  Vec2 dims = getDefaultDims();
-  Vec2 cDims = _constrainSize(dims);
-  if(pParent != _parent)
-  {
-    _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
-    _parent = pParent;
-  }
-  
-  doResize(cDims);
-}
-
-void TestAppView::pushEvent(GUIEvent g)
-{
-  _inputQueue.push(g);
-}
-
-
-// set new editor size in system coordinates.
-void TestAppView::doResize(Vec2 newSize)
-{
-  int width = newSize[0];
-  int height = newSize[1];
-  float scale = _GUICoordinates.displayScale;
-    
-  // std::cout << "do resize: " << width << " x " << height << " (" << scale << ")\n";
-  Vec2 newViewSize = Vec2(width, height)*scale;
-  
-  if(_GUICoordinates.pixelSize != newViewSize)
-  {
-    _GUICoordinates.pixelSize = newViewSize;
-    
-    // resize our canvas, in system coordinates
-    if(_platformView)
-      _platformView->resizeView(width, height);
-  }
-}
-
 // Actor implementation
 
 void TestAppView::onMessage(Message msg)
 {
-  std::cout << "TestAppView: onMessage: " << msg.address << " : " << msg.value << "\n";
+  // std::cout << "TestAppView: onMessage: " << msg.address << " : " << msg.value << "\n";
   
   if(head(msg.address) == "editor")
   {

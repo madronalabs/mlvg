@@ -9,25 +9,22 @@
 #include "MLFiles.h"
 #include "MLPropertyTree.h"
 #include "MLActor.h"
-
-#include "testAppView.h"
-
-#include "version.h"
+#include "MLParameters.h"
 
 using namespace ml;
 
 constexpr int kChangeQueueSize{128};
 
 //-----------------------------------------------------------------------------
-class TestAppController :
+class AppController :
   public Actor
 {
 public:
   
-  TestAppController(const ParameterDescriptionList& pdl);
-	~TestAppController();
+  AppController(TextFragment appName, const ParameterDescriptionList& pdl);
+	~AppController();
   
-  // TestAppController interface
+  // AppController interface
   void sendMessageToView(Message);
   void sendParamToView(Path pname);
   void sendAllCollectionsToView();
@@ -49,7 +46,6 @@ private:
   // parameters of our plugin or application.
   // in the SignalProcessor the parameter tree is in plain units. Everywhere else it is normalized.
   ParameterTreeNormalized _params;
-
   
   std::vector< ml::Path > _paramNamesByID;
   Tree< size_t > _paramIDsByName;

@@ -92,10 +92,10 @@ MessageList SVGButton::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 void SVGButton::draw(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
-  const int gridSize = dc.coords.gridSize;
+  const int gridSizeInPixels = dc.coords.gridSizeInPixels;
   Rect bounds = getLocalBounds(dc, *this);
 
-  float buttonDownShiftAmount = gridSize/32.f;
+  float buttonDownShiftAmount = gridSizeInPixels/32.f;
   float buttonDownShift = _down ? buttonDownShiftAmount : 0.f;
   
   nvgTranslate(nvg, Vec2(0, buttonDownShift));
@@ -134,7 +134,7 @@ void SVGButton::draw(ml::DrawContext dc)
   {
     NativeFontHandle fontHandle = getImageHandleResource(dc, "d_din");
     if(!isValid(fontHandle)) return;
-    float textSize = gridSize*0.5f;
+    float textSize = gridSizeInPixels*0.5f;
     nvgFontFaceId(nvg, fontHandle);
     nvgFontSize(nvg, textSize);
     nvgFillColor(nvg, getColor(dc, "mark"));

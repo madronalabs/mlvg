@@ -12,19 +12,17 @@
 namespace ml
 {
 // GUICoordinates objects manage the three coordinate systems we need:
-// 1. system coordinates, what the OS uses for making windows and sending events,
-// 2. pixel (native) coordinates, the actual pixels on the screen
+// 1. system coordinates, what the OS uses for making windows and sending events
+// 2. pixel coordinates, the actual pixels on the screen
 // 3. grid coordinates, the positioning system for Widgets
-
-// TODO consistent naming!!! 
 
 struct GUICoordinates
 {
   // number of pixels per single grid unit.
-  int gridSize{};
+  int gridSizeInPixels{};
 
   // width and height of entire view in pixels.
-  Vec2 pixelSize{};
+  Vec2 viewSizeInPixels{};
 
   // origin of grid system, relative to view top left,
   // in pixel coordinate system.
@@ -34,34 +32,34 @@ struct GUICoordinates
   float displayScale{1.f};
   
   template< class T > // TODO for what, why not all the below
-  T systemToNative(T vc) const
+  T systemToPixel(T vc) const
   {
     return vc*displayScale;
   }
 
-  Vec4 nativeToSystem(Vec4 vc) const
+  Vec4 pixelToSystem(Vec4 vc) const
   {
     return vc/displayScale;
   }
 
-  Vec4 nativeToGrid(Vec4 vc) const
+  Vec4 pixelToGrid(Vec4 vc) const
   {
-    return (vc - origin)/gridSize;
+    return (vc - origin)/gridSizeInPixels;
   }
 
-  Vec4 gridToNative(Vec4 gc) const
+  Vec4 gridToPixel(Vec4 gc) const
   {
-    return ((gc*gridSize) + origin);
+    return ((gc*gridSizeInPixels) + origin);
   }
 
   Vec4 systemToGrid(Vec4 vc) const
   {
-    return nativeToGrid(systemToNative(vc));
+    return pixelToGrid(systemToPixel(vc));
   }
 
   Vec4 gridToSystem(Vec4 gc) const
   {
-    return nativeToSystem(gridToNative(gc));
+    return pixelToSystem(gridToPixel(gc));
   }
 };
 

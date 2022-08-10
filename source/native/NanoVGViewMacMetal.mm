@@ -366,13 +366,14 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if(!_nvg) return;
   
   float displayScale = _appView->getDisplayScale();
-  Vec2 newSize(width*displayScale, height*displayScale);
-  
-  if((newSize != _nativeSize) || (!_backingLayer.get()))
+  Vec2 systemSize(width, height);
+  Vec2 viewSizeInPixels = systemSize*displayScale;
+
+  if((viewSizeInPixels != _nativeSize) || (!_backingLayer.get()))
   {
-    _backingLayer = ml::make_unique<Layer>(_nvg, width*displayScale, height*displayScale);
-    _appView->viewResized(_nvg, width, height);
-    _nativeSize = newSize;
+    _backingLayer = ml::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
+    _appView->viewResized(_nvg, systemSize);
+    _nativeSize = viewSizeInPixels;
   }
 }
 
@@ -412,8 +413,13 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
   NSRect parentFrame = [parentView frame];
   float displayScale = boundsRectBacking.size.width / boundsRectDefault.size.width;
+  
+  /*
   ml::Rect pixelBounds = bounds*displayScale;
   CGRect boundsRect = NSMakeRect(parentFrame.origin.x, parentFrame.origin.y, pixelBounds.width(), pixelBounds.height());
+  MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
+*/
+  CGRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
   
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
 
@@ -432,7 +438,10 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   view.layer.opaque = true;
 
   // create a new renderer for our view.
-  [view setFrameSize:CGSizeMake(pixelBounds.width(), pixelBounds.height())];
+  //[view setFrameSize:CGSizeMake(pixelBounds.width(), pixelBounds.height())];
+  [view setFrameSize:CGSizeMake(bounds.width(), bounds.height())];
+  
+  
   [view setAppView: pView];
   MetalNanoVGRenderer* renderer = [[MetalNanoVGRenderer alloc] initWithMetalKitView:view withBounds:boundsRect withScale:displayScale];
   if(!renderer)
@@ -446,12 +455,13 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
 
   // set origin here and not after resizing. important to get correct positioning in some hosts
   [view setFrameOrigin:CGPointMake(0, 0)];
+
+  // set AppView scale
   pView->setDisplayScale(displayScale);
   
   // We should set this to a frame rate that we think our renderer can consistently maintain.
   view.preferredFramesPerSecond = 60;
-  
-  // add the view to our parent view supplied by the host.
+
   [parentView addSubview: view];
 
   _pImpl = ml::make_unique< Impl >();

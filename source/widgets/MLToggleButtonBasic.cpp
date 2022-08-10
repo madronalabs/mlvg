@@ -74,7 +74,7 @@ void ToggleButtonBasic::draw(ml::DrawContext dc)
   bool currentValue = currentNormalizedValue > 0.5f;
 
   NativeDrawContext* nvg = getNativeContext(dc);
-  const int gridSize = dc.coords.gridSize;
+  const int gridSizeInPixels = dc.coords.gridSizeInPixels;
   Rect bounds = getLocalBounds(dc, *this);
 
   bool enabled = getBoolPropertyWithDefault("enabled", true);
@@ -89,14 +89,14 @@ void ToggleButtonBasic::draw(ml::DrawContext dc)
   auto fillColor2 = multiplyAlpha(getColorPropertyWithDefault("color2", nvgLerpRGBA(fillColor, indicatorColor, 0.75f)), opacity);
 
   // dimensions
-  float strokeWidth = gridSize/64.f;
-  float localSize = gridSize*buttonSize;
+  float strokeWidth = gridSizeInPixels/64.f;
+  float localSize = gridSizeInPixels*buttonSize;
   Rect sizeRect {0, 0, localSize, localSize};
   Rect buttonRect = alignCenterToRect(sizeRect, bounds);
 
   {
     // nudge upwards from center for alignment
-    nvgTranslate(nvg, {0, -gridSize/32.f});
+    nvgTranslate(nvg, {0, -gridSizeInPixels/32.f});
 
     // fill
     nvgBeginPath(nvg);
