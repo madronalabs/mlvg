@@ -26,7 +26,6 @@ public:
   V4 val;
   
   static const V4 kZeroValue;
-  // removing NullValue - MLTEST static const V4 kNullValue;
   
   MLVec() : val(kZeroValue) {}
   MLVec(V4 v) : val(v) {}

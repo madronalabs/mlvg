@@ -323,7 +323,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // draw callback, called by the MTKView to draw itself
 - (void)drawInMTKView:(nonnull MTKView*)view
 {
-  if(_appView && _nvg)
+  if(_appView && _nvg && _backingLayer)
   {
     int w = _backingLayer->width;
     int h = _backingLayer->height;
@@ -368,10 +368,22 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   float displayScale = _appView->getDisplayScale();
   Vec2 systemSize(width, height);
   Vec2 viewSizeInPixels = systemSize*displayScale;
+  
+  
+  std::cout << "resize: " << viewSizeInPixels << "\n";
 
   if((viewSizeInPixels != _nativeSize) || (!_backingLayer.get()))
   {
+    
+    
+    
     _backingLayer = ml::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
+    
+    if(!_backingLayer)
+    {
+      std::cout << "no backing yayer!\n";
+    }
+    
     _appView->viewResized(_nvg, systemSize);
     _nativeSize = viewSizeInPixels;
   }
@@ -399,6 +411,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   
   // get parent view, from either NSWindow or NSView according to flag
   NSView* parentView{nullptr};
+  NSView* parentView2{nullptr};
   if(platformFlags & PlatformView::kParentIsNSWindow)
   {
     auto parentWindow = (__bridge NSWindow *)(pParent);
@@ -407,11 +420,16 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   else
   {
     parentView = (__bridge NSView *)(pParent);
+    //parentView2  = [parentWindow contentView];
   }
 
   NSRect boundsRectDefault = NSMakeRect(0, 0, bounds.width(), bounds.height());
   NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
   NSRect parentFrame = [parentView frame];
+  
+  std::cout << "parent frame: " << parentFrame.origin.x << ", " << parentFrame.origin.y <<
+  ", " << parentFrame.size.width << ", " << parentFrame.size.height << "\n";
+  
   float displayScale = boundsRectBacking.size.width / boundsRectDefault.size.width;
   
   /*
@@ -421,6 +439,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
 */
   CGRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
   
+  // make the new view
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
 
   if(!view)
@@ -441,8 +460,8 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   //[view setFrameSize:CGSizeMake(pixelBounds.width(), pixelBounds.height())];
   [view setFrameSize:CGSizeMake(bounds.width(), bounds.height())];
   
-  
   [view setAppView: pView];
+  
   MetalNanoVGRenderer* renderer = [[MetalNanoVGRenderer alloc] initWithMetalKitView:view withBounds:boundsRect withScale:displayScale];
   if(!renderer)
   {
@@ -462,6 +481,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   // We should set this to a frame rate that we think our renderer can consistently maintain.
   view.preferredFramesPerSecond = 60;
 
+  // add the new view to our parent view supplied by the host.
   [parentView addSubview: view];
 
   _pImpl = ml::make_unique< Impl >();

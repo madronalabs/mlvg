@@ -48,22 +48,22 @@ void AppView::startup(const ParameterDescriptionList& pdl)
 // width and height are the size of the view in system coordinates.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
 {
-  // get dims in UI coordinates (pixels)
+  // get dims in system coordinates
   float displayScale = _GUICoordinates.displayScale;
-  int systemWidth = newSize.x();//width;//*displayScale;
-  int systemHeight = newSize.y();//height;//*displayScale;
+  int systemWidth = newSize.x();
+  int systemHeight = newSize.y();
   
   int systemGridSize;
   Vec2 sizeInGridUnits(getSizeInGridUnits());
-  int gridUnitsX(sizeInGridUnits.x());
-  int gridUnitsY(sizeInGridUnits.y());
+  float gridUnitsX(sizeInGridUnits.x());
+  float gridUnitsY(sizeInGridUnits.y());
   
   if(_fixedRatioSize)
   {
     // fixed ratio:
     // scale both the app and the grid,
     // leave a border around the content area so that it is always
-    // an even multiple of the grid size in native pixels.
+    // an even multiple of the grid size in system coordinates.
     int ux = systemWidth/gridUnitsX;
     int uy = systemHeight/gridUnitsY;
     systemGridSize = std::min(ux, uy);
@@ -88,19 +88,13 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     float borderX = (systemWidth - contentWidth)/2;
     float borderY = (systemHeight - contentHeight)/2;
     _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
-    //   _borderRect = ml::Rect(0, 0, nativeWidth, nativeHeight);
   }
   
-  // MLTEST
-  std::cout << "new grid size: " << gridUnitsX << " x " << gridUnitsY << " @ " << systemGridSize << "\n";
-  
+  //std::cout << "new grid size: " << gridUnitsX << " x " << gridUnitsY << " @ " << systemGridSize << "\n";
   _view->setProperty("grid_units_x", gridUnitsX);
   _view->setProperty("grid_units_y", gridUnitsY);
 
-
-  // set new coordinate transform values for GUI renderer - displayScale remains the same
-  // width and height are in pixel coordinates
-  // MLTEST _GUICoordinates.viewSizeInPixels = Vec2(nativeWidth, nativeHeight);
+  // set new coordinate transform values for GUI renderer
   _GUICoordinates.gridSizeInPixels = systemGridSize*displayScale;
   _GUICoordinates.origin = getTopLeft(_borderRect)*displayScale;
   
@@ -125,9 +119,6 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
       systemBounds = translate(systemBounds, systemAnchor);
       ml::Rect gridBounds = _GUICoordinates.systemToGrid(systemBounds);
       w.setBounds(gridBounds);
-      
-      std::cout << "resizer bounds: " << gridBounds << "\n";
-      std::cout << "        system: " << systemBounds << "\n";
     }
   }
    );
@@ -383,14 +374,13 @@ void AppView::doAttached(void* pParent, int flags)
   }
 
   Vec2 cDims = _constrainSize(dims);
-  
+  doResize(cDims);
+
   if(pParent != _parent)
   {
-    _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
     _parent = pParent;
+    _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
   }
-  
-  doResize(cDims);
 }
 
 // set new editor size in system coordinates.
@@ -400,20 +390,15 @@ void AppView::doResize(Vec2 newSize)
   int height = newSize[1];
   float scale = _GUICoordinates.displayScale;
   
-  // MLTEST
-  std::cout << "do resize: " << width << " x " << height << " (" << scale << ")\n";
-  
   Vec2 newPixelSize = Vec2(width, height)*scale;
   
-  if(_GUICoordinates.viewSizeInPixels != newPixelSize)
+//  if(_GUICoordinates.viewSizeInPixels != newPixelSize)
   {
     _GUICoordinates.viewSizeInPixels = newPixelSize;
     onResize(newSize);
     // resize our canvas, in system coordinates
     if(_platformView)
       _platformView->resizeView(width, height);
-    
-
   }
 }
 

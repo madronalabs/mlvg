@@ -393,7 +393,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     
   if(pr)
   {
-    /// MLTEST TODO better cache image handles
+    // TODO better cache image handles
     const int* pImgHandle = reinterpret_cast<const int *>(pr->data());
     int bgh = pImgHandle[0];
     int backgroundHandle = bgh;
@@ -427,8 +427,8 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   
   if(drawGrid)
   {
-    const int gx = getFloatProperty("grid_units_x");
-    const int gy = getFloatProperty("grid_units_y");
+    const int gx = std::ceilf(getFloatProperty("grid_units_x"));
+    const int gy = std::ceilf(getFloatProperty("grid_units_y"));
     
     nvgStrokeColor(nvg, rgba(1, 1, 1, 0.25));
     nvgStrokeWidth(nvg, 1.0f*dc.coords.displayScale);
