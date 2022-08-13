@@ -388,6 +388,9 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   auto bgColorB = nvgRGBA(115, 149, 185, 255);
   int u = dc.coords.gridSizeInPixels;
   
+  // MLTEST
+  // std::cout << "view_size: " << dc.coords.viewSizeInPixels << "\n";
+  
   NVGpaint paintPattern;
   Resource* pr = getResource(dc, "background");
     
@@ -422,6 +425,15 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
       drawWidget(dc, w.get());
     }
   };
+  
+  // MLTEST outline
+  // MLTEST
+  // draw X
+  nvgStrokeColor(nvg, colors::green);
+  nvgStrokeWidth(nvg, 6);
+  nvgBeginPath(nvg);
+  nvgRect(nvg, nativeRect);
+  nvgStroke(nvg);
   
   bool drawGrid = dc.pProperties->getBoolPropertyWithDefault("draw_background_grid", false);
   

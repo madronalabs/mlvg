@@ -34,7 +34,7 @@ namespace ml
     PlatformView(void* parent, ml::Rect boundsRect, AppView* pR, void* platformHandle, int platformFlags);
     ~PlatformView();
 
-    void resizeView(int w, int h);
+    void resizePlatformView(int w, int h);
 
   protected:
     struct Impl;

@@ -23,13 +23,13 @@ struct GUICoordinates
 
   // width and height of entire view in pixels.
   Vec2 viewSizeInPixels{};
+  
+  // number of native pixels per system coordinate unit. often 1. or 2.
+  float displayScale{1.f};
 
   // origin of grid system, relative to view top left,
   // in pixel coordinate system.
   Vec2 origin{};
-  
-  // number of native pixels per system coordinate unit. often 1. or 2.
-  float displayScale{1.f};
   
   template< class T > // TODO for what, why not all the below
   T systemToPixel(T vc) const
@@ -60,6 +60,12 @@ struct GUICoordinates
   Vec4 gridToSystem(Vec4 gc) const
   {
     return pixelToSystem(gridToPixel(gc));
+  }
+  
+  void setSizeAndScale(Vec2 size, float scale)
+  {
+    viewSizeInPixels = size;
+    displayScale = scale;
   }
 };
 

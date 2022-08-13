@@ -47,8 +47,12 @@ public:
   void viewResized(NativeDrawContext* nvg, Vec2 newSize);
 
   void createVectorImage(Path newImageName, const unsigned char* dataStart, size_t dataSize);
+  
+  void setCoords(const GUICoordinates& c) {_GUICoordinates = c;}
+  const GUICoordinates& getCoords() { return _GUICoordinates; }
+  
   void setDisplayScale(float scale) {_GUICoordinates.displayScale = scale;}
-  float getDisplayScale() {return _GUICoordinates.displayScale;}
+//  float getDisplayScale() {return _GUICoordinates.displayScale;}
   
   // for a fixed ratio layout, get (width, height) of window in grid units.
   Vec2 getSizeInGridUnits() const { return _sizeInGridUnits; }
@@ -68,6 +72,7 @@ public:
   void doResize(Vec2 newSize);
   void pushEvent(GUIEvent g);
   
+  
 protected:
   
   // the top level View.
@@ -80,13 +85,14 @@ protected:
   Path _controllerName;
 
   // dimensions
+
   GUICoordinates _GUICoordinates;
   Vec2 _sizeInGridUnits;
   ml::Rect _borderRect;
   bool _fixedRatioSize {false};
   size_t _minGridSize{30};
   size_t _defaultGridSize{60};
-  size_t _maxGridSize{120};
+  size_t _maxGridSize{240};
 
   
   // drawing resources

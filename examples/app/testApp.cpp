@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   appView.setSizeInGridUnits({16, 9});
   appView.setGridSizeDefault(60);
   
-  // appView.setFixedRatioSize(true);
+  //appView.setFixedRatioSize(true);
   
   // make widgets and setup parameters
   appView.startup(pdl);

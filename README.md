@@ -66,3 +66,11 @@ Building the (PlugName) target creates the .vst3 plugin in build/VST3/(Debug / R
 
 Building the (PlugName_au) target creates an intermediate .vst3 named (PluginName_vst_for_au), copies that into the (PluginName_au).component and copies that commponent to the /Library/Audio/Plug-Ins/Components directory. 
 
+
+License
+-----------------------------------------------------------------------------
+mlvg is licensed under the GPL3.
+
+Licensing options more suitable for commercial use are available. 
+For more information please contact support@madronalabs.com.
+

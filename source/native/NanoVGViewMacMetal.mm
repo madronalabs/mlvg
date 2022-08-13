@@ -292,7 +292,10 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     
     _appView = [mtkView getAppView];
     _appView->initializeResources(_nvg);
+    
     _appView->setDisplayScale(scale);
+    
+    [self resize: CGSizeMake(width, height)];
   }
   return self;
 }
@@ -309,12 +312,12 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 
 // MTKViewDelegate protocol
 
-// resize callback, called by the MTKView in native pixel coordinates
+// resize callback, called by the MTKView in pixel coordinates
 - (void) mtkView: (nonnull MTKView*)view drawableSizeWillChange:(CGSize)newSize
 {
   if(_appView)
   {
-    float scale = _appView->getDisplayScale();
+    float scale = _appView->getCoords().displayScale;
     CGSize scaledSize = CGSizeMake(newSize.width/scale, newSize.height/scale);
     [self resize: scaledSize];
   }
@@ -365,27 +368,18 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if(!_appView) return;
   if(!_nvg) return;
   
-  float displayScale = _appView->getDisplayScale();
-  Vec2 systemSize(width, height);
+  float displayScale = _appView->getCoords().displayScale;
+  Vec2 systemSize(width, height);// = viewSizeInPixels;
   Vec2 viewSizeInPixels = systemSize*displayScale;
   
-  
-  std::cout << "resize: " << viewSizeInPixels << "\n";
+  // MLTEST
+  std::cout << "resize pixels: " << viewSizeInPixels << "\n";
 
   if((viewSizeInPixels != _nativeSize) || (!_backingLayer.get()))
   {
-    
-    
-    
-    _backingLayer = ml::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
-    
-    if(!_backingLayer)
-    {
-      std::cout << "no backing yayer!\n";
-    }
-    
-    _appView->viewResized(_nvg, systemSize);
     _nativeSize = viewSizeInPixels;
+    _backingLayer = ml::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
+    _appView->viewResized(_nvg, systemSize);
   }
 }
 
@@ -420,15 +414,13 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   else
   {
     parentView = (__bridge NSView *)(pParent);
-    //parentView2  = [parentWindow contentView];
   }
 
   NSRect boundsRectDefault = NSMakeRect(0, 0, bounds.width(), bounds.height());
   NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
   NSRect parentFrame = [parentView frame];
-  
-  std::cout << "parent frame: " << parentFrame.origin.x << ", " << parentFrame.origin.y <<
-  ", " << parentFrame.size.width << ", " << parentFrame.size.height << "\n";
+  NSRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
+
   
   float displayScale = boundsRectBacking.size.width / boundsRectDefault.size.width;
   
@@ -437,11 +429,15 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   CGRect boundsRect = NSMakeRect(parentFrame.origin.x, parentFrame.origin.y, pixelBounds.width(), pixelBounds.height());
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
 */
-  CGRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
   
   // make the new view
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
 
+  
+  std::cout << "new view: " << boundsRect.origin.x << ", " << boundsRect.origin.y <<
+  ", " << boundsRect.size.width << ", " << boundsRect.size.height << "\n";
+  std::cout << "    scale: " << displayScale << "\n";
+  
   if(!view)
   {
     NSLog(@"Failed to allocate MTK View!");
@@ -475,8 +471,8 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   // set origin here and not after resizing. important to get correct positioning in some hosts
   [view setFrameOrigin:CGPointMake(0, 0)];
 
-  // set AppView scale
-  pView->setDisplayScale(displayScale);
+  // set AppView coordinates // ?
+  // pView->setDisplayScale(displayScale);
   
   // We should set this to a frame rate that we think our renderer can consistently maintain.
   view.preferredFramesPerSecond = 60;
@@ -499,7 +495,8 @@ PlatformView::~PlatformView()
   }
 }
 
-void PlatformView::resizeView(int w, int h)
+// resize view, in pixel coordinates
+void PlatformView::resizePlatformView(int w, int h)
 {
   CGSize newSize = CGSizeMake(w, h);
 
@@ -507,6 +504,7 @@ void PlatformView::resizeView(int w, int h)
   {
     [_pImpl->_mtkView setFrameSize:newSize];
   }
+  
   if(_pImpl->_renderer)
   {
     [_pImpl->_renderer resize:newSize];
