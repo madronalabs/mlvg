@@ -343,7 +343,7 @@ target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronali
 
 if(APPLE)
     # ARC must be off for juce
-    target_compile_options(${target} PRIVATE "-fno-objc-arc")
+    #target_compile_options(${target} PRIVATE "-fno-objc-arc")
     
     # build only active arch for Debug builds
     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")

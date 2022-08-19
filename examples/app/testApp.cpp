@@ -37,6 +37,7 @@ void readParameterDescriptions(ParameterDescriptionList& params)
     { "range", { kFreqLo, kFreqHi } },
     { "log", true },
     { "units", "Hz" }
+    // no default here means the normalized default will be 0.5 (400 Hz)
   } ) );
   
   params.push_back( ml::make_unique< ParameterDescription >(WithValues{
@@ -98,7 +99,7 @@ int main(int argc, char *argv[])
   
   // set initial size.
   appView.setSizeInGridUnits({16, 9});
-  appView.setGridSizeDefault(60);
+  appView.setGridSizeDefault(40);
   
   //appView.setFixedRatioSize(true);
   
@@ -132,7 +133,7 @@ int main(int argc, char *argv[])
       SDLAppLoop(window, &doneFlag);
     }
     
-    // stop audio and quit
+    // stop audio and Actor and quit
     appProcessor.stopAudio();
     appProcessor.stop();
     SDL_Quit();

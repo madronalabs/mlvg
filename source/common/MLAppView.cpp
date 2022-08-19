@@ -21,8 +21,6 @@ AppView::AppView(TextFragment appName, size_t instanceNum)
   // register ourself
   auto myName = TextFragment(appName, "view", ml::textUtils::naturalNumberToText(instanceNum));
   registerActor(myName, this);
-  std::cout << "REGISTER " << myName << "\n";
-
 }
 
 AppView::~AppView()
@@ -60,8 +58,6 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
   float gridUnitsX(sizeInGridUnits.x());
   float gridUnitsY(sizeInGridUnits.y());
   
-  std::cout << "AppView::viewResized: " << systemWidth << " x " << systemHeight << " @scale " << displayScale << "\n";
-  
   if(_fixedRatioSize)
   {
     // fixed ratio:
@@ -94,26 +90,16 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
   }
   
-  //std::cout << "new grid size: " << gridUnitsX << " x " << gridUnitsY << " @ " << systemGridSize << "\n";
   _view->setProperty("grid_units_x", gridUnitsX);
   _view->setProperty("grid_units_y", gridUnitsY);
 
+  // get origin of grid system, relative to view top left,
+  // in pixel coordinate system.
+  Vec2 origin = getTopLeft(_borderRect)*displayScale;
+  
   // set new coordinate transform values for GUI renderer
   _GUICoordinates.gridSizeInPixels = systemGridSize*displayScale;
   _GUICoordinates.origin = getTopLeft(_borderRect)*displayScale;
-  
-  // number of pixels per single grid unit.
- //  int gridSizeInPixels{};
-  
-  // width and height of entire view in pixels.
-  //Vec2 viewSizeInPixels{};
-  
-  // number of native pixels per system coordinate unit. often 1. or 2.
-  //float displayScale{1.f};
-  
-  // origin of grid system, relative to view top left,
-  // in pixel coordinate system.
-  Vec2 origin = getTopLeft(_borderRect)*displayScale;
   
   GUICoordinates newCoords{int(systemGridSize*displayScale), newSize*displayScale, displayScale, origin};
   setCoords(newCoords);
@@ -376,14 +362,6 @@ void AppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
   
-  // MLTEST
-  // draw X
-  nvgStrokeColor(nvg, colors::red);
-  nvgStrokeWidth(nvg, 6);
-  nvgBeginPath(nvg);
-  nvgX(nvg, topViewBounds);
-  nvgStroke(nvg);
-  
   // end the frame.
   nvgEndFrame(nvg);
   _view->setDirty(false);
@@ -427,10 +405,7 @@ void AppView::doResize(Vec2 newSize)
   // MLTEST
   if(_GUICoordinates.viewSizeInPixels != newPixelSize)
   {
-    
-    std::cout << " RESIZE: " << newPixelSize << "\n";
     _GUICoordinates.viewSizeInPixels = newPixelSize;
-    
     onResize(newSize);
     
     // resize our canvas, in system coordinates

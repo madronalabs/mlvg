@@ -50,9 +50,7 @@ public:
   
   void setCoords(const GUICoordinates& c) {_GUICoordinates = c;}
   const GUICoordinates& getCoords() { return _GUICoordinates; }
-  
   void setDisplayScale(float scale) {_GUICoordinates.displayScale = scale;}
-//  float getDisplayScale() {return _GUICoordinates.displayScale;}
   
   // for a fixed ratio layout, get (width, height) of window in grid units.
   Vec2 getSizeInGridUnits() const { return _sizeInGridUnits; }
@@ -71,7 +69,6 @@ public:
   void doAttached (void* pParent, int flags);
   void doResize(Vec2 newSize);
   void pushEvent(GUIEvent g);
-  
   
 protected:
   

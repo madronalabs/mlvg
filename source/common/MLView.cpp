@@ -426,15 +426,6 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     }
   };
   
-  // MLTEST outline
-  // MLTEST
-  // draw X
-  nvgStrokeColor(nvg, colors::green);
-  nvgStrokeWidth(nvg, 6);
-  nvgBeginPath(nvg);
-  nvgRect(nvg, nativeRect);
-  nvgStroke(nvg);
-  
   bool drawGrid = dc.pProperties->getBoolPropertyWithDefault("draw_background_grid", false);
   
   if(drawGrid)

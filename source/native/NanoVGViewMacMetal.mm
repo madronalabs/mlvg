@@ -332,14 +332,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     int h = _backingLayer->height;
 
     // draw the AppView to the backing layer
-    //drawToLayer(_backingLayer.get());
-    //nvgBeginFrame(_nvg, w, h, 1.0f);
-    
     _appView->renderView(_nvg, _backingLayer.get());
-    
-    // end backing layer update
-    //nvgEndFrame(_nvg);
-    //drawToLayer(nullptr);
     
     // blit backing layer to main layer
     drawToLayer(nullptr);
@@ -371,9 +364,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   float displayScale = _appView->getCoords().displayScale;
   Vec2 systemSize(width, height);// = viewSizeInPixels;
   Vec2 viewSizeInPixels = systemSize*displayScale;
-  
-  // MLTEST
-  std::cout << "resize pixels: " << viewSizeInPixels << "\n";
+
 
   if((viewSizeInPixels != _nativeSize) || (!_backingLayer.get()))
   {

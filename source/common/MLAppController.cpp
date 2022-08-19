@@ -178,12 +178,14 @@ void AppController::onMessage(Message m)
       {
         // TODO refactor, set params here and send to proc if needed
           
+          /*
         case(hash("view_size")):
         {
           //std::cout << "AppController::onMessage: view_size = " << m.value << " \n ";
           _params["view_size"] = m.value;
           break;
         }
+          */
           
         default:
         {
