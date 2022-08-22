@@ -411,23 +411,10 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
   NSRect parentFrame = [parentView frame];
   NSRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
-
-  
   float displayScale = boundsRectBacking.size.width / boundsRectDefault.size.width;
-  
-  /*
-  ml::Rect pixelBounds = bounds*displayScale;
-  CGRect boundsRect = NSMakeRect(parentFrame.origin.x, parentFrame.origin.y, pixelBounds.width(), pixelBounds.height());
-  MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
-*/
   
   // make the new view
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
-
-  
-  std::cout << "new view: " << boundsRect.origin.x << ", " << boundsRect.origin.y <<
-  ", " << boundsRect.size.width << ", " << boundsRect.size.height << "\n";
-  std::cout << "    scale: " << displayScale << "\n";
   
   if(!view)
   {
@@ -444,7 +431,6 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   view.layer.opaque = true;
 
   // create a new renderer for our view.
-  //[view setFrameSize:CGSizeMake(pixelBounds.width(), pixelBounds.height())];
   [view setFrameSize:CGSizeMake(bounds.width(), bounds.height())];
   
   [view setAppView: pView];

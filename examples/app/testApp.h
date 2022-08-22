@@ -3,7 +3,6 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-
 #define stringAppName "TestApp"
 #define stringAppNameLC "testApp"
 #define stringMakerName "Madrona Labs"
