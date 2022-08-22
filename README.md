@@ -5,6 +5,12 @@ mlvg is a cross-platform application and plugin framework. It can currently gene
 MacOS and Windows, VST3 plugins for Mac and Windows, and AU plugins for Mac.
 
 
+status (Aug 22 2022)
+----------------
+Theoretically this is cross-platform, and can build VST / AU plugins. But currently only examples/app for Mac has been tested.
+
+
+
 to build an app:
 ----------------
 

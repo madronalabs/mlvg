@@ -8,12 +8,15 @@
 
 #include "SDL.h"
 #include "SDL_syswm.h"
-#include "testAppView.h"
 #include "MLAppController.h"
 #include "mldsp.h"
 #include "MLRtAudioProcessor.h"
+
+
+#include "testApp.h"
+#include "testAppView.h"
+
 #include "MLSDLUtils.h"
-#include "version.h"
 
 constexpr int kInputChannels = 0;
 constexpr int kOutputChannels = 2;
@@ -99,7 +102,7 @@ int main(int argc, char *argv[])
   
   // set initial size.
   appView.setSizeInGridUnits({16, 9});
-  appView.setGridSizeDefault(40);
+  appView.setGridSizeDefault(60);
   
   //appView.setFixedRatioSize(true);
   

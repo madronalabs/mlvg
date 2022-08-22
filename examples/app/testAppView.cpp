@@ -170,7 +170,6 @@ void TestAppView::onMessage(Message msg)
       }
       break;
     }
-      
     case(hash("do")):
     {
       break;

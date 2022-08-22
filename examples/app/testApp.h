@@ -3,11 +3,10 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-#pragma once
 
-#include "copyright.h"
-#include "appName.h"
-
+#define stringAppName "TestApp"
+#define stringAppNameLC "testApp"
+#define stringMakerName "Madrona Labs"
 
 #define MAJOR_VERSION_STR "0"
 #define MAJOR_VERSION_INT 0
@@ -29,14 +28,14 @@
 #define FULL_VERSION_STR "0.1.0"
 
 #if defined(__x86_64__) || defined(_M_X64)
-  #define ML_ARCH "x86_64"
+#define ML_ARCH "x86_64"
 #elif defined(i386) || defined(__i386__) || defined(__i386) || defined(_M_IX86)
-  #define ML_ARCH "x86_32";
+#define ML_ARCH "x86_32";
 #elif defined(__arm__) || defined(__aarch64__)
-  #define ML_ARCH "Arm"
+#define ML_ARCH "Arm"
 #else
-  #define ML_ARCH "unknown"
-  warning ML_ARCH is undefined!
+#define ML_ARCH "unknown"
+warning ML_ARCH is undefined!
 #endif
 
 
