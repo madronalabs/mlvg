@@ -19,8 +19,7 @@
  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE STRING "Minimum OS X deployment version")
  
  IF(APPLE)
-    # uncomment this to build a universal binary for both platforms.
-    # SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+    SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
  ENDIF(APPLE)
  
  project(mlvg)
@@ -332,14 +331,25 @@ list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 
 add_executable(${target} ${test_app_sources})
 
-find_package(SDL2 REQUIRED COMPONENTS SDL2::SDL2)
+# add SDL2
+find_package(SDL2 REQUIRED)
+target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})
+target_link_libraries(${target} PRIVATE ${SDL2_LIBRARIES})
 
-target_link_libraries(${target} PRIVATE SDL2::SDL2 mlvg nfd juce-core)
-
-target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
-
-# add madronalib includes
+# add madronalib
 target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
+if(APPLE)
+    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")   
+elseif(WIN32)
+    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
+endif()
+
+# add mlvg
+target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+target_link_libraries(${target} PRIVATE mlvg)
+
+# add other external libraries
+target_link_libraries(${target} PRIVATE mlvg nfd juce-core)
 
 if(APPLE)
     # ARC must be off for juce
@@ -370,11 +380,9 @@ if(APPLE)
     target_link_libraries(${target} PRIVATE "-framework Metal")
     target_link_libraries(${target} PRIVATE "-framework MetalKit")
     target_link_libraries(${target} PRIVATE "-framework CoreAudio")
-    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")   
 elseif(WIN32)
     find_package(OpenGL REQUIRED)
     target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
-    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
 endif()
 
 if(APPLE)

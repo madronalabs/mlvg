@@ -12,7 +12,6 @@
 #include "mldsp.h"
 #include "MLRtAudioProcessor.h"
 
-
 #include "testApp.h"
 #include "testAppView.h"
 
