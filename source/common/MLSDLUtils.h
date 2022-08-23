@@ -153,11 +153,13 @@ ParentWindowInfo getParentWindowInfo(SDL_Window* window)
       case SDL_SYSWM_DIRECTFB:
         subsystem = "DirectFB";
         break;
+#if defined(SDL_VIDEO_DRIVER_COCOA)
       case SDL_SYSWM_COCOA:
         subsystem = "Apple OS X";
         p.windowPtr = static_cast< void* >(info.info.cocoa.window);
         p.flags = PlatformView::kParentIsNSWindow;
         break;
+#endif
       case SDL_SYSWM_UIKIT:
         subsystem = "UIKit";
         break;
