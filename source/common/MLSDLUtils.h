@@ -3,7 +3,6 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-
 #pragma once
 
 #include "SDL.h"
@@ -15,7 +14,7 @@ namespace ml {
 struct ResizingEventWatcherData
 {
   SDL_Window* window;
-  TestAppView* view;
+  AppView* view;
 };
 
 inline void testAppResize(ResizingEventWatcherData* watcherData)
@@ -46,7 +45,7 @@ inline int resizingEventWatcher(void* data, SDL_Event* event)
   return 0;
 }
 
-uint32_t getPlatformWindowCreateFlags()
+inline uint32_t getPlatformWindowCreateFlags()
 {
 #if ML_WINDOWS
   return SDL_WINDOW_OPENGL;
@@ -123,7 +122,7 @@ struct ParentWindowInfo
   unsigned int flags{0};
 };
 
-ParentWindowInfo getParentWindowInfo(SDL_Window* window)
+inline ParentWindowInfo getParentWindowInfo(SDL_Window* window)
 {
   ParentWindowInfo p{};
   

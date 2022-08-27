@@ -13,8 +13,6 @@
 
 using namespace ml;
 
-constexpr int kChangeQueueSize{128};
-
 //-----------------------------------------------------------------------------
 class AppController :
   public Actor
@@ -50,20 +48,12 @@ private:
   std::vector< ml::Path > _paramNamesByID;
   Tree< size_t > _paramIDsByName;
   
-  // list of all the params that we save as part of the processor state
-  std::vector< Path > _processorStateParams;
-
-  // list of all the params that we save as part of the controller state
-  std::vector< Path > _controllerStateParams;
-  
-  // signals that the View has subscribed to. For now, this just contains true if the
-  // View subscribes to the signal.
-  Tree< size_t > _signalsSubscribedByView;
-
+  // timers for everyone.
   SharedResourcePointer< ml::Timers > _timers ;
   
   // class used for assigning each instance of our Controller a unique ID
   // TODO refactor w/ ProcessorRegistry etc.
+  // until Actors are communicating over the network this is not needed.
   class ControllerRegistry
   {
     std::mutex _IDMutex;
@@ -75,27 +65,18 @@ private:
       return ++_IDCounter;
     }
   };
+  SharedResourcePointer< ControllerRegistry > _controllerRegistry;
   
+  // when AppController is made, we have an ActorRegistry.
+  // without this, we can't register Actors!
   SharedResourcePointer< ActorRegistry > _actorRegistry ;
-  SharedResourcePointer< ControllerRegistry > _controllerRegistry ;
+
   int _instanceNum;
   Path _instanceName;
   Path _viewName;
   Path _processorName;
-  Path _currentLearnParam;
   
   // an index to file trees
   Tree< std::unique_ptr< FileTree > > _fileTreeIndex;
   
-  Timer _debugTimer;
-  void debug();
-  
-  TextFragment getPatchHeader(size_t bytes);
-
-  TextFragment getPatchAsText();
-  void setPatchFromText(TextFragment t);
-
-  std::vector< uint8_t > getPatchAsBinary();
-  void setPatchFromBinary(const std::vector< uint8_t > & p);
-
 };

@@ -26,41 +26,6 @@
 
 using namespace ml;
 
-// get list of persistent params stored in Processor
-inline void getProcessorStateParams(const ParameterDescriptionList& pdl, std::vector< Path >& _paramList)
-{
-  for(size_t i=0; i < pdl.size(); ++i)
-  {
-    ParameterDescription& pd = *pdl[i];
-    Path paramName = pd.getTextProperty("name");
-    bool isPrivate = pd.getBoolPropertyWithDefault("private", false);
-    bool controllerParam = pd.getBoolPropertyWithDefault("save_in_controller", false);
-    bool isPersistent = pd.getBoolPropertyWithDefault("persistent", true);
-    
-    if((!isPrivate) && (!controllerParam) && (isPersistent))
-    {
-      _paramList.push_back(paramName);
-    }
-  }
-}
-
-// get list of persistent params stored in Controller
-inline void getControllerStateParams(const ParameterDescriptionList& pdl, std::vector< Path >& _paramList)
-{
-  for(size_t i=0; i < pdl.size(); ++i)
-  {
-    ParameterDescription& pd = *pdl[i];
-    Path paramName = pd.getTextProperty("name");
-    bool controllerParam = pd.getBoolPropertyWithDefault("save_in_controller", false);
-    bool isPersistent = pd.getBoolPropertyWithDefault("persistent", true);
-    
-    if((controllerParam) && (isPersistent))
-    {
-      _paramList.push_back(paramName);
-    }
-  }
-}
-
 //-----------------------------------------------------------------------------
 // AppController implementation
 
@@ -86,21 +51,17 @@ AppController::AppController(TextFragment appName, const ParameterDescriptionLis
     _paramNamesByID.push_back(paramName);
   }
   
-  getProcessorStateParams(pdl, _processorStateParams);
-  getControllerStateParams(pdl, _controllerStateParams);
-  
   // register and start Actor
   _instanceNum = _controllerRegistry->getUniqueID();
   _instanceName = TextFragment(appName, "controller", ml::textUtils::naturalNumberToText(_instanceNum));
   registerActor(_instanceName, this);
-
+  Actor::start();
+  
   // get other Actor names
   _processorName = TextFragment(appName, "processor", ml::textUtils::naturalNumberToText(_instanceNum));
   _viewName = TextFragment(appName, "view", ml::textUtils::naturalNumberToText(_instanceNum));
 
-  // start timers in main thread.
   _timers->start(true);
-  Actor::start();
 }
 
 AppController::~AppController()
@@ -221,15 +182,7 @@ void AppController::onMessage(Message m)
     case(hash("do")):
     {
       Path whatAction = tail(addr);
-      switch(hash(head(whatAction)))
-      {
-        case(hash("subscribe_to_signal")):
-        {
-          Path sigPath = textToPath(m.value.getTextValue());
-          _signalsSubscribedByView[sigPath] = 1;
-          break;
-        }
-      }
+      break;
     }
       
     default:

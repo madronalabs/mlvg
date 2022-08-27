@@ -57,3 +57,4 @@ inline const char* getAppArchitecture()
 {
   return (ML_ARCH);
 }
+

@@ -16,7 +16,6 @@ AppView::AppView(TextFragment appName, size_t instanceNum)
   
   // get names of other Actors we might communicate with
   _controllerName = TextFragment(appName, "controller", ml::textUtils::naturalNumberToText(instanceNum));
-  std::cout << "_controllerName = " << _controllerName << "\n";
 
   // register ourself
   auto myName = TextFragment(appName, "view", ml::textUtils::naturalNumberToText(instanceNum));
@@ -247,7 +246,7 @@ void AppView::_handleGUIEvents()
 
 void AppView::_debug()
 {
-  //std::cout << "TestAppView: " << getMessagesAvailable() << " messages in queue. max: "
+  //std::cout << "UtuViewView: " << getMessagesAvailable() << " messages in queue. max: "
   //  << _maxQueueSize << " handled: " << _msgCounter << " \n";
   //_msgCounter = 0;
 }

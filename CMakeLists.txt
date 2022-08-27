@@ -22,7 +22,16 @@
     SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
  ENDIF(APPLE)
  
+ #--------------------------------------------------------------------
+ # project and version
+ #--------------------------------------------------------------------
+
  project(mlvg)
+
+ set(VERSION_MAJOR "0")
+ set(VERSION_MINOR "1")
+ set(VERSION_PATCH "0")
+ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
  
  #--------------------------------------------------------------------
@@ -38,8 +47,8 @@
  
  if(APPLE)
      include(GNUInstallDirs)
-     set (MADRONALIB_INCLUDE_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR})
-     set (MADRONALIB_LIBRARY_DIR ${CMAKE_INSTALL_FULL_LIBDIR})
+     set (MADRONALIB_INCLUDE_DIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}/madronalib")
+     set (MADRONALIB_LIBRARY_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
  elseif(WIN32)
      set (MADRONALIB_INCLUDE_DIR "C:/Program Files/madronalib/include")
      set (MADRONALIB_LIBRARY_DIR "C:/Program Files/madronalib/lib")
@@ -204,12 +213,12 @@ list(APPEND mlvg_sources ${MLVG_SOURCES_NATIVE} )
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/common")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
 list(APPEND MLVG_INCLUDE_DIRS ${NANOVG_INCLUDE_DIRS})
-list(APPEND MLVG_INCLUDE_DIRS ${MADRONALIB_INCLUDE_DIR}/madronalib)
-
+list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/include")
+list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_SOURCE_DIR}")
+list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}")
 
 #--------------------------------------------------------------------
-# make mlvg target 
-# contains all our graphics / UI source
+# make and install mlvg library and headers
 #--------------------------------------------------------------------
   
 set(target mlvg)
@@ -217,7 +226,32 @@ set(target mlvg)
 # Define the library
 add_library(${target} STATIC ${mlvg_sources})
 
+set_target_properties(${target} PROPERTIES
+  OUTPUT_NAME "${target}"
+  VERSION ${VERSION}
+  SOVERSION ${VERSION_MAJOR}
+  POSITION_INDEPENDENT_CODE ON
+  FOLDER "mlvg")
+
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+
+install(
+    TARGETS ${target}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+message("mlvg destination: " ${CMAKE_INSTALL_LIBDIR} )
+
+# install(FILES source/include/mlvg.h DESTINATION include/mlvg)
+
+install(FILES 
+    source/include/mlvg.h
+    DESTINATION 
+    # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
+    include/mlvg
+  )
 
 
 #--------------------------------------------------------------------
@@ -319,6 +353,8 @@ endif()
 # make SDL2 application target 
 #--------------------------------------------------------------------
 
+ 
+ 
 create_resources (examples/app/resources build/resources/testapp)
  
 set(target testapp)
@@ -344,7 +380,7 @@ elseif(WIN32)
     target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
 endif()
 
-# add mlvg
+# add mlvg library
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 target_link_libraries(${target} PRIVATE mlvg)
 
@@ -392,7 +428,6 @@ if(APPLE)
     # set debug info format
     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
 endif() 
-
 
 message("SDL2 include dirs: " ${SDL2_INCLUDE_DIRS} )
 

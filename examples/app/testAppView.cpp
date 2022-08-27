@@ -30,8 +30,6 @@ void TestAppView::layoutView()
   _view->setProperty("grid_units_x", gx);
   _view->setProperty("grid_units_y", gy);
   
-  Rect viewBounds(0, 0, gx, gy);
-  
   // layout dials
   _view->_widgets["freq1"]->setBounds(alignCenterToPoint(largeDialRect, {1, 1}));
   _view->_widgets["freq2"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, 1}));
@@ -48,6 +46,7 @@ void TestAppView::layoutView()
     _view->_backgroundWidgets[labelName]->setRectProperty
     ("bounds", alignCenterToPoint(labelRect, dialRect.bottomCenter() - Vec2(0, 0.125)));
   };
+  
   for(auto dialName : {"freq1", "freq2", "gain"})
   {
     positionLabelUnderDial(dialName);
@@ -132,8 +131,6 @@ void TestAppView::makeWidgets()
 
 void TestAppView::onMessage(Message msg)
 {
-  // std::cout << "TestAppView: onMessage: " << msg.address << " : " << msg.value << "\n";
-  
   if(head(msg.address) == "editor")
   {
     // we are the editor, so remove "editor" and handle message

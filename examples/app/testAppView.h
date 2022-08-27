@@ -6,16 +6,7 @@
 #pragma once
 
 #include "madronalib.h"
-#include "MLAppView.h"
-#include "MLWidget.h"
-#include "MLView.h"
-#include "MLDialBasic.h"
-#include "MLResizer.h"
-#include "MLTextLabelBasic.h"
-#include "MLSVGImage.h"
-#include "MLSVGButton.h"
-#include "MLParameters.h"
-#include "MLSerialization.h"
+#include "mlvg.h"
 
 class TestAppView final:
   public ml::AppView

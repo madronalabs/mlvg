@@ -92,7 +92,8 @@ int main(int argc, char *argv[])
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
 
-  // make controller and get instance number
+  // make controller and get instance number. The Controller
+  // creates the ActorRegistry, allowing us to register other Actors.
   AppController appController(getAppName(), pdl);
   auto instanceNum = appController.getInstanceNum();
 
@@ -143,4 +144,5 @@ int main(int argc, char *argv[])
     
   return 0;
 }
+
 
