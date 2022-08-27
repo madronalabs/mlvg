@@ -265,7 +265,7 @@ void PlatformView::Impl::swapBuffers()
 
 // PlatformView
 
-PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* platformHandle)
+PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* platformHandle, int platformFlags)
 {
   if(!pParent) return;
   
@@ -287,7 +287,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
     _pImpl->_appView = pR;
     _pImpl->_appView->initializeResources(_pImpl->_nvg);
 
-    resizeView(bounds.width(), bounds.height());
+    resizePlatformView(bounds.width(), bounds.height());
   }
 }
 
@@ -312,7 +312,7 @@ PlatformView::~PlatformView()
   }
 }
 
-void PlatformView::resizeView(int w, int h)
+void PlatformView::resizePlatformView(int w, int h)
 {  
   if (_pImpl)
   {
@@ -340,7 +340,7 @@ void PlatformView::resizeView(int w, int h)
     // notify the renderer
     if (_pImpl->_appView)
     {
-      _pImpl->_appView->viewResized(w, h);
+	  _pImpl->_appView->viewResized(_pImpl->_nvg, ml::Vec2{static_cast<float>(w), static_cast<float>(h)});
     }
   }
 }
@@ -450,7 +450,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         nvgBeginFrame(nvg, w, h, 1.0f);
 
         // render the App view
-        pView->renderView(nvg);
+        pView->renderView(nvg, pGraphics->_pImpl->_nvgBackingLayer.get());
 
         // end backing layer update
         nvgEndFrame(nvg);
