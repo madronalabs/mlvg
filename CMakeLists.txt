@@ -21,19 +21,20 @@
  IF(APPLE)
     SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
  ENDIF(APPLE)
- 
- #--------------------------------------------------------------------
- # project and version
- #--------------------------------------------------------------------
 
- project(mlvg)
+#--------------------------------------------------------------------
+# project and version
+#--------------------------------------------------------------------
 
- set(VERSION_MAJOR "0")
- set(VERSION_MINOR "1")
- set(VERSION_PATCH "0")
- set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE) 
 
- 
+project(mlvg)
+
+set(VERSION_MAJOR "0")
+set(VERSION_MINOR "1")
+set(VERSION_PATCH "0")
+set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+
  #--------------------------------------------------------------------
  # Compiler flags
  #--------------------------------------------------------------------
@@ -41,6 +42,13 @@
  set(CMAKE_CXX_STANDARD 14)
  set(CMAKE_CXX_STANDARD_REQUIRED True)
  
+ #--------------------------------------------------------------------
+ # Choose library output name
+ #--------------------------------------------------------------------
+ 
+ # creates the library mlvg-debug in debug configuration
+ set(mlvg_NAME mlvg$<$<CONFIG:Debug>:-debug>)
+
  #--------------------------------------------------------------------
  # find madronalib
  #--------------------------------------------------------------------
@@ -227,7 +235,7 @@ set(target mlvg)
 add_library(${target} STATIC ${mlvg_sources})
 
 set_target_properties(${target} PROPERTIES
-  OUTPUT_NAME "${target}"
+  OUTPUT_NAME "${mlvg_NAME}"
   VERSION ${VERSION}
   SOVERSION ${VERSION_MAJOR}
   POSITION_INDEPENDENT_CODE ON
@@ -244,15 +252,33 @@ install(
 
 message("mlvg destination: " ${CMAKE_INSTALL_LIBDIR} )
 
-# install(FILES source/include/mlvg.h DESTINATION include/mlvg)
+file(GLOB COMMON_HEADERS "source/common/*.h")
+file(GLOB WIDGETS_HEADERS "source/widgets/*.h")
+
+# TODO clean this up! should not be externally visible
+file(GLOB NATIVE_HEADERS "source/native/*.h")
+file(GLOB NATIVE_HEADERS_HACK "source/external/MetalNanoVG/src/*.h")
+file(GLOB NATIVE_HEADERS_HACK2 "source/external/nanovg/src/*.h")
+file(GLOB NATIVE_HEADERS_HACK3 "source/external/nanosvg/src/*.h")
+file(GLOB NATIVE_HEADERS_HACK4 "source/external/miniz/*.h")
+file(GLOB NATIVE_HEADERS_HACK5 "source/external/nativefiledialog-extended/src/include/*.h")
+# file(GLOB NATIVE_HEADERS_HACK6 "source/external/nativefiledialog-extended/src/include/*.hpp")
 
 install(FILES 
     source/include/mlvg.h
+    ${COMMON_HEADERS}
+    ${WIDGETS_HEADERS}
+    ${NATIVE_HEADERS}
+    ${NATIVE_HEADERS_HACK}
+    ${NATIVE_HEADERS_HACK2}
+    ${NATIVE_HEADERS_HACK3}
+    ${NATIVE_HEADERS_HACK4}
+    ${NATIVE_HEADERS_HACK5}
+    ${NATIVE_HEADERS_HACK6}
     DESTINATION 
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
     include/mlvg
   )
-
 
 #--------------------------------------------------------------------
 # make juce-core library
@@ -264,12 +290,14 @@ add_library(${target} STATIC ${juce_core_sources})
 
 target_include_directories(${target} PRIVATE ${juce_core_include_dirs})
 
-# set juce-core configuration for this target
+# set juce-core configurations for this target
 target_compile_definitions(${target} PRIVATE JUCE_APP_CONFIG_HEADER="external/juce_core/JuceCoreConfig.h")
 target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
+target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:JUCE_DEBUG=1>")
 target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:JUCE_DEBUG=0>")
 
-if(APPLE)
+if(APPLE) 
   # ARC must be off for juce
   target_compile_options(${target} PRIVATE "-fno-objc-arc")
 
@@ -353,8 +381,6 @@ endif()
 # make SDL2 application target 
 #--------------------------------------------------------------------
 
- 
- 
 create_resources (examples/app/resources build/resources/testapp)
  
 set(target testapp)
