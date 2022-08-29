@@ -22,7 +22,7 @@ namespace ml{
 
 // A Widget is a drawable UI element stored in a View.
 // its appearance in the view depends on two kinds of values:
-// Parameters annd Properties.
+// Parameters and Properties.
 //
 // Parameters are quantities in the app or plugin Processor that
 // the Widget may control.

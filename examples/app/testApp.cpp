@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     // attach app view to window and resize
     ParentWindowInfo windowInfo = getParentWindowInfo(window);
     appView.doAttached(windowInfo.windowPtr, windowInfo.flags);
-    testAppResize(&watcherData);
+    SdlAppResize(&watcherData);
     
     // start Actor and audio processing
     appProcessor.start();

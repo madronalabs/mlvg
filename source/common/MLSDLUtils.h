@@ -17,7 +17,7 @@ struct ResizingEventWatcherData
   AppView* view;
 };
 
-inline void testAppResize(ResizingEventWatcherData* watcherData)
+inline void SdlAppResize(ResizingEventWatcherData* watcherData)
 {
   int w{0};
   int h{0};
@@ -39,7 +39,7 @@ inline int resizingEventWatcher(void* data, SDL_Event* event)
     if( SDL_GetWindowFromID( ev.window.windowID ) == watcherData->window )
     {
       //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
-      testAppResize(watcherData);
+      SdlAppResize(watcherData);
     }
   }
   return 0;
