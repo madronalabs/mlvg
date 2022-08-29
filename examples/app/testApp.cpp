@@ -20,7 +20,8 @@
 constexpr int kInputChannels = 0;
 constexpr int kOutputChannels = 2;
 constexpr int kSampleRate = 48000;
-constexpr float kOutputGain = 0.1f;
+constexpr float kDefaultGain = 0.1f;
+constexpr float kMaxGain = 0.5f;
 constexpr float kFreqLo = 40, kFreqHi = 4000;
 
 void readParameterDescriptions(ParameterDescriptionList& params)
@@ -44,7 +45,8 @@ void readParameterDescriptions(ParameterDescriptionList& params)
   
   params.push_back( ml::make_unique< ParameterDescription >(WithValues{
     { "name", "gain" },
-    { "range", {0, kOutputGain} }
+    { "range", {0, kMaxGain} },
+    { "plaindefault", kDefaultGain }
   } ) );
   
   // Controller parameters

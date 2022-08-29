@@ -63,33 +63,36 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   
   NativeFontHandle fontHandle = getImageHandleResource(dc, "d_din");
   if(!isValid(fontHandle)) return;
-  
-  float buttonDownShift = _down ? gridSizeInPixels/32.f : 0.f;
-  nvgTranslate(nvg, Vec2(0, buttonDownShift));
-  
+
   float opacity = getFloatPropertyWithDefault("opacity", 1.0f);
-  opacity *= getBoolPropertyWithDefault("enabled", true) ? 1.f : 0.25f;
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
-  
   float strokeWidth = gridSizeInPixels/64.f;
   float margin = gridSizeInPixels/16.f;
-  float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.5f);
   
-  auto hAlign = NVG_ALIGN_CENTER;
-  auto vAlign = NVG_ALIGN_MIDDLE;
-  float textX = bounds.center().x();
-  float textY = bounds.center().y();
+  float buttonDownShift = _down ? gridSizeInPixels/16 : 0.f;
+  {
+    UsingTransform t(nvg, translate(Vec2{0, buttonDownShift}));
+    opacity *= getBoolPropertyWithDefault("enabled", true) ? 1.f : 0.25f;
+    float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.5f);
+    
+    auto hAlign = NVG_ALIGN_CENTER;
+    auto vAlign = NVG_ALIGN_MIDDLE;
+    float textX = bounds.center().x();
+    float textY = bounds.center().y();
 
-  nvgFontFaceId(nvg, fontHandle);
-  nvgFontSize(nvg, textSize);
-  nvgTextLetterSpacing(nvg, textSize*0.00f);
-  nvgFillColor(nvg, markColor);
-  drawText(nvg, {textX, textY}, getTextProperty("text"), hAlign | vAlign);
+    nvgFontFaceId(nvg, fontHandle);
+    nvgFontSize(nvg, textSize);
+    nvgTextLetterSpacing(nvg, textSize*0.00f);
+    nvgFillColor(nvg, markColor);
+    drawText(nvg, {textX, textY}, getTextProperty("text"), hAlign | vAlign);
+  }
   
+  // draw outline
   nvgBeginPath(nvg);
   nvgRect(nvg, shrink(bounds, margin));
   nvgStrokeWidth(nvg, strokeWidth);
   nvgStrokeColor(nvg, markColor);
   nvgStroke(nvg);
+
   return;
 }

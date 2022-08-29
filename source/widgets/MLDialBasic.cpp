@@ -176,11 +176,11 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     float valueToSend{getNormalizedValue(_params, pname)};
     if(e.keyFlags & commandModifier)
     {
-      // set parameter to default
-      float defaultValue = _params.descriptions[pname]->getFloatPropertyWithDefault("default", 0.5f);
-      setParamValue(pname, defaultValue);
-      rawNormValue = defaultValue;
-      valueToSend = defaultValue;
+      // command or double click: set parameter to default
+      float normDefault = getDefaultValue(_params, pname);
+      setParamValue(pname, normDefault);
+      rawNormValue = normDefault;
+      valueToSend = normDefault;
     }
       
     // if engaged, disengage and send a sequence end message

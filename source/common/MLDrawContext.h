@@ -283,11 +283,6 @@ inline void nvgTransform(NativeDrawContext* nvg, VGMatrix t)
   nvgTransform(nvg, t[0], t[1], t[2], t[3], t[4], t[5]);
 }
 
-
-//ml::Projection
-
-// typedef std::function<Vec2(Vec2)> Transform;
-
 struct VGTransform
 {
   VGMatrix transMatrix;
