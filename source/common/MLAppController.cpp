@@ -41,6 +41,7 @@ AppController::AppController(TextFragment appName, const ParameterDescriptionLis
   
   // make parameter descriptions and projections
   buildParameterTree(pdl, _params);
+  setDefaults(_params);
   
   // store IDs by name and param names by ID
   for(size_t i=0; i < pdl.size(); ++i)
@@ -72,6 +73,9 @@ AppController::~AppController()
 
 void AppController::sendParamToView(Path pname)
 {
+  // MLTEST
+  std::cout << " AppController::sendParamToView " << pname << " = " << getNormalizedValue(_params, pname) << "\n";
+  
   sendMessageToActor(_viewName, {Path("set_param", pname), getNormalizedValue(_params, pname), kMsgFromController});
 }
 
@@ -137,17 +141,6 @@ void AppController::onMessage(Message m)
       Path whatParam = tail(addr);
       switch(hash(head(whatParam)))
       {
-        // TODO refactor, set params here and send to proc if needed
-          
-          /*
-        case(hash("view_size")):
-        {
-          //std::cout << "AppController::onMessage: view_size = " << m.value << " \n ";
-          _params["view_size"] = m.value;
-          break;
-        }
-          */
-          
         default:
         {
           // usual set_param messages

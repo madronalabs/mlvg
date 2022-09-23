@@ -177,7 +177,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     if(e.keyFlags & commandModifier)
     {
       // command or double click: set parameter to default
-      float normDefault = getDefaultValue(_params, pname);
+      float normDefault = getNormalizedDefaultValue(_params, pname).getFloatValue();
       setParamValue(pname, normDefault);
       rawNormValue = normDefault;
       valueToSend = normDefault;

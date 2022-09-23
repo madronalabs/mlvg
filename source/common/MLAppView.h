@@ -40,11 +40,9 @@ public:
   AppView(TextFragment appName, size_t instanceNum);
   virtual ~AppView();
 
-  // build widgets and params, start Actor
-  void startup(const ParameterDescriptionList& pdl);
   
-  // set the size of the view in system coordinates.
-  void viewResized(NativeDrawContext* nvg, Vec2 newSize);
+  // called by the PlatformView to set our size in system coordinates.
+  void viewResized(Vec2 newSize);
 
   void createVectorImage(Path newImageName, const unsigned char* dataStart, size_t dataSize);
   
@@ -66,7 +64,10 @@ public:
   void setGridSizeLimits(int a, int c){ _minGridSize = a; _maxGridSize = c; }
 
   void renderView(NativeDrawContext* nvg, Layer* backingLayer);
+  
   void doAttached (void* pParent, int flags);
+  void doRemoved ();
+  
   void doResize(Vec2 newSize);
   void pushEvent(GUIEvent g);
   
@@ -82,7 +83,7 @@ protected:
   Path _controllerName;
 
   // dimensions
-
+  Vec2 viewSize_;
   GUICoordinates _GUICoordinates;
   Vec2 _sizeInGridUnits;
   ml::Rect _borderRect;
@@ -91,7 +92,6 @@ protected:
   size_t _defaultGridSize{60};
   size_t _maxGridSize{240};
 
-  
   // drawing resources
   VectorImageTree _vectorImages;
   ResourceTree _resources;
@@ -108,6 +108,11 @@ protected:
   Tree< std::vector< Widget* > > _widgetsByCollection;
   Tree< std::vector< Widget* > > _widgetsBySignal;
   
+  // TODO ------------------------
+    
+  Tree< std::vector< Widget* > > _modalWidgetsByParameter;
+  Path _currentModalParam;
+
   // timing
   time_point< system_clock > _previousFrameTime;
   Timer _ioTimer;
@@ -121,13 +126,15 @@ protected:
   Vec2 _doubleClickStartPosition;
   
   void _deleteWidgets();
-  void _initializeParams(const ParameterDescriptionList& pdl);
+  void _makeWidgetIndexes(const ParameterDescriptionList& pdl);
+  void _setupWidgets();
   void _handleGUIEvents();
   void _debug();
-  void _sendParameterToWidgets(const Message& msg);
+  void _sendParameterMessageToWidgets(const Message& msg);
   GUIEvent _detectDoubleClicks(GUIEvent e);
   Vec2 _constrainSize(Vec2 size);
   size_t _getElapsedTime();
+  void layoutFixedSizeWidgets_(Vec2 newSize);
 
 private:
   // here is where all the Widgets are stored. Other instances of Collection < Widget >

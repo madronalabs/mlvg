@@ -38,6 +38,7 @@ public:
   FileTree* updateCollection(Path which);
   
   size_t getInstanceNum() { return _instanceNum; }
+  Path getInstanceName() { return _instanceName; }
 
 private:
 

@@ -295,7 +295,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     
     _appView->setDisplayScale(scale);
     
-    [self resize: CGSizeMake(width, height)];
+    //[self resize: CGSizeMake(width, height)];
   }
   return self;
 }
@@ -362,15 +362,14 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if(!_nvg) return;
   
   float displayScale = _appView->getCoords().displayScale;
-  Vec2 systemSize(width, height);// = viewSizeInPixels;
+  Vec2 systemSize(width, height);
   Vec2 viewSizeInPixels = systemSize*displayScale;
-
 
   if((viewSizeInPixels != _nativeSize) || (!_backingLayer.get()))
   {
     _nativeSize = viewSizeInPixels;
     _backingLayer = ml::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
-    _appView->viewResized(_nvg, systemSize);
+    _appView->viewResized(systemSize);
   }
 }
 
@@ -469,6 +468,7 @@ PlatformView::~PlatformView()
     _pImpl->_mtkView.preferredFramesPerSecond = 0;
     _pImpl->_mtkView.paused = true;
     [_pImpl->_mtkView removeFromSuperviewWithoutNeedingDisplay];
+    _pImpl->_mtkView = nullptr;
   }
 }
 

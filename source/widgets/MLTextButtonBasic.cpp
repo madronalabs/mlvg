@@ -66,33 +66,35 @@ void TextButtonBasic::draw(ml::DrawContext dc)
 
   float opacity = getFloatPropertyWithDefault("opacity", 1.0f);
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
+  auto backgroundColor = multiplyAlpha(getColor(dc, "background"), opacity);
   float strokeWidth = gridSizeInPixels/64.f;
   float margin = gridSizeInPixels/16.f;
-  
-  float buttonDownShift = _down ? gridSizeInPixels/16 : 0.f;
-  {
-    UsingTransform t(nvg, translate(Vec2{0, buttonDownShift}));
-    opacity *= getBoolPropertyWithDefault("enabled", true) ? 1.f : 0.25f;
-    float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.5f);
-    
-    auto hAlign = NVG_ALIGN_CENTER;
-    auto vAlign = NVG_ALIGN_MIDDLE;
-    float textX = bounds.center().x();
-    float textY = bounds.center().y();
+  float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.5f);
 
-    nvgFontFaceId(nvg, fontHandle);
-    nvgFontSize(nvg, textSize);
-    nvgTextLetterSpacing(nvg, textSize*0.00f);
+  auto textColor = _down ? backgroundColor : markColor;
+  
+  if(_down)
+  {
+    // draw fill
+    nvgBeginPath(nvg);
+    nvgRect(nvg, shrink(bounds, margin));
     nvgFillColor(nvg, markColor);
-    drawText(nvg, {textX, textY}, getTextProperty("text"), hAlign | vAlign);
+    nvgFill(nvg);
+  }
+  else
+  {
+    // draw outline
+    nvgBeginPath(nvg);
+    nvgRect(nvg, shrink(bounds, margin));
+    nvgStrokeWidth(nvg, strokeWidth);
+    nvgStrokeColor(nvg, markColor);
+    nvgStroke(nvg);
   }
   
-  // draw outline
-  nvgBeginPath(nvg);
-  nvgRect(nvg, shrink(bounds, margin));
-  nvgStrokeWidth(nvg, strokeWidth);
-  nvgStrokeColor(nvg, markColor);
-  nvgStroke(nvg);
+  nvgFontFaceId(nvg, fontHandle);
+  nvgFontSize(nvg, textSize);
+  nvgFillColor(nvg, textColor);
+  drawText(nvg, bounds.center(), getTextProperty("text"), NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
 
   return;
 }
