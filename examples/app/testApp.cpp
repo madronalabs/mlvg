@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
   //appView.setFixedRatioSize(true);
   
   // make widgets and setup parameters
-  appView.startup(pdl);
+  // appView.startup(pdl);
 
   SDL_Window *window = initSDLWindow(appView);
   if(window)
@@ -125,10 +125,12 @@ int main(int argc, char *argv[])
       
     // attach app view to window and resize
     ParentWindowInfo windowInfo = getParentWindowInfo(window);
-    appView.doAttached(windowInfo.windowPtr, windowInfo.flags);
+    appView.createPlatformView(windowInfo.windowPtr, windowInfo.flags);
+    appView.makeWidgets(pdl);
+    appView.startTimersAndActor();
     SdlAppResize(&watcherData);
     
-    // start Actor and audio processing
+    // start audio processing
     appProcessor.start();
     appProcessor.startAudio();
     
@@ -138,7 +140,8 @@ int main(int argc, char *argv[])
       SDLAppLoop(window, &doneFlag);
     }
     
-    // stop audio and Actor and quit
+    // stop doing things and quit
+    appView.stopTimersAndActor();
     appProcessor.stopAudio();
     appProcessor.stop();
     SDL_Quit();

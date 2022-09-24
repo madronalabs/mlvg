@@ -18,7 +18,7 @@
 
 namespace ml
 {
-  // forward declaration of a class that has a renderView() method.
+  // forward declaration of a class that has a render() method.
   class AppView;
 
   // declare PlatformView, which draws our application into an AppView.

@@ -291,11 +291,8 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     }
     
     _appView = [mtkView getAppView];
-    _appView->initializeResources(_nvg);
-    
     _appView->setDisplayScale(scale);
-    
-    //[self resize: CGSizeMake(width, height)];
+    _appView->initializeResources(_nvg);
   }
   return self;
 }
@@ -332,7 +329,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     int h = _backingLayer->height;
 
     // draw the AppView to the backing layer
-    _appView->renderView(_nvg, _backingLayer.get());
+    _appView->render(_nvg, _backingLayer.get());
     
     // blit backing layer to main layer
     drawToLayer(nullptr);

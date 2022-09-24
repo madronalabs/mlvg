@@ -17,11 +17,12 @@ public:
 
   // AppView interface
   void initializeResources(NativeDrawContext* nvg) override;
-  void makeWidgets() override;
   void layoutView() override;
   void onGUIEvent(const GUIEvent& event) override {};
   void onResize(Vec2 newSize) override {};
 
   // Actor interface
   void onMessage(Message m) override;
+  
+  void makeWidgets(const ParameterDescriptionList& pdl);
 };

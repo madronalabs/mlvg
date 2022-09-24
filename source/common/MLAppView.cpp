@@ -153,7 +153,7 @@ void AppView::_deleteWidgets()
 }
 
 
-void AppView::_makeWidgetIndexes(const ParameterDescriptionList& pdl)
+void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
 {
   // build index of widgets by parameter.
   // for each parameter, collect Widgets responding to it
@@ -161,7 +161,7 @@ void AppView::_makeWidgetIndexes(const ParameterDescriptionList& pdl)
   for(auto& paramDesc : pdl)
   {
     Path paramName = paramDesc->getTextProperty("name");
-     
+    
     forEach< Widget >
     (_view->_widgets, [&](Widget& w)
      {
@@ -171,7 +171,7 @@ void AppView::_makeWidgetIndexes(const ParameterDescriptionList& pdl)
         w.setParameterDescription(paramName, *paramDesc);
       }
     }
-     );    
+     );
     
     //std::cout << paramName << ": " << _widgetsByParameter[paramName].size() << " widgets.\n";
   }
@@ -200,21 +200,6 @@ void AppView::_makeWidgetIndexes(const ParameterDescriptionList& pdl)
     }
   }
   
-  /*
-  // now that widgets are set up, send default param values to widgets.
-  for(auto& paramDesc : pdl)
-  {
-    Path pname = paramDesc->getTextProperty("name");
-    auto pval = _params.getNormalizedValue(pname);
-    Message msg(Path("set_param", pname), pval);
-    _sendParameterMessageToWidgets(msg);
-  }
-   */
-  
-}
-
-void AppView::_setupWidgets()
-{
   // give each Widget a chance to do setup now: after it has its
   // parameter description(s) and before it is animated or drawn.
   for(auto& w : _view->_widgets)
@@ -344,11 +329,9 @@ size_t AppView::_getElapsedTime()
   return elapsedTime;
 }
 
-void AppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
+void AppView::render(NativeDrawContext* nvg, Layer* backingLayer)
 {
   if(!backingLayer) return;
-  int w = backingLayer->width;
-  int h = backingLayer->height;
   
   // TODO move resource types into Renderer, DrawContext points to Renderer
   DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
@@ -361,7 +344,7 @@ void AppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
   
   // begin the frame on the backing layer
   drawToLayer(backingLayer);
-  nvgBeginFrame(nvg, w, h, 1.0f);
+  nvgBeginFrame(nvg, backingLayer->width, backingLayer->height, 1.0f);
   
   // if top level view is dirty, clear entire window
   if(_view->isDirty())
@@ -385,7 +368,7 @@ void AppView::renderView(NativeDrawContext* nvg, Layer* backingLayer)
   _view->setDirty(false);
 }
 
-void AppView::doAttached(void* pParent, int flags)
+void AppView::createPlatformView(void* pParent, int flags)
 {
   // get size in system coords
   Vec2 dims;
@@ -401,29 +384,28 @@ void AppView::doAttached(void* pParent, int flags)
 
   Vec2 cDims = _constrainSize(dims);
 
+  // create the native platform view
   if(pParent != _parent)
   {
     _parent = pParent;
     _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
   }
-  
+}
 
-  // start timers
+void AppView::startTimersAndActor()
+{
   _previousFrameTime = system_clock::now();
   _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
   _debugTimer.start([=]() { _debug(); }, milliseconds(1000));
   Actor::start();
-
 }
 
-// set new editor size in system coordinates.
-void AppView::doRemoved()
+void AppView::stopTimersAndActor()
 {
   Actor::stop();
   _ioTimer.stop();
-
+  _debugTimer.stop();
 }
-
 
 // set new editor size in system coordinates.
 void AppView::doResize(Vec2 newSize)

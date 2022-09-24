@@ -79,7 +79,7 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
   ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
 }
 
-void TestAppView::makeWidgets()
+void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
 {
   // add labels to background
   auto addControlLabel = [&](Path name, TextFragment t)
@@ -125,6 +125,8 @@ void TestAppView::makeWidgets()
     w.setProperty("visible", true);
   }
    );
+  
+  _setupWidgets(pdl);
 }
 
 // Actor implementation
@@ -161,7 +163,7 @@ void TestAppView::onMessage(Message msg)
           // if the message comes from a Widget, we do send the parameter back
           // to other Widgets so they can synchronize. It's up to individual
           // Widgets to filter out duplicate values.
-          _sendParameterToWidgets(msg);
+          _sendParameterMessageToWidgets(msg);
           break;
         }
       }

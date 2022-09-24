@@ -25,9 +25,6 @@ public:
   // initialize resources such as images, needed to draw the View.
   virtual void initializeResources(NativeDrawContext* nvg) = 0;
   //
-  // create any widgets needed to draw the View.
-  virtual void makeWidgets() = 0;
-  //
   // set the bounds of all the Widgets.
   virtual void layoutView() = 0;
   //
@@ -40,6 +37,7 @@ public:
   AppView(TextFragment appName, size_t instanceNum);
   virtual ~AppView();
 
+  void render(NativeDrawContext* nvg, Layer* backingLayer);
   
   // called by the PlatformView to set our size in system coordinates.
   void viewResized(Vec2 newSize);
@@ -63,10 +61,10 @@ public:
   void setGridSizeDefault(int b){ _defaultGridSize = b; }
   void setGridSizeLimits(int a, int c){ _minGridSize = a; _maxGridSize = c; }
 
-  void renderView(NativeDrawContext* nvg, Layer* backingLayer);
+  void createPlatformView(void* pParent, int flags);
   
-  void doAttached (void* pParent, int flags);
-  void doRemoved ();
+  void startTimersAndActor();
+  void stopTimersAndActor();
   
   void doResize(Vec2 newSize);
   void pushEvent(GUIEvent g);
@@ -126,8 +124,7 @@ protected:
   Vec2 _doubleClickStartPosition;
   
   void _deleteWidgets();
-  void _makeWidgetIndexes(const ParameterDescriptionList& pdl);
-  void _setupWidgets();
+  void _setupWidgets(const ParameterDescriptionList& pdl);
   void _handleGUIEvents();
   void _debug();
   void _sendParameterMessageToWidgets(const Message& msg);
