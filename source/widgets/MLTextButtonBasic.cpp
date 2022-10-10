@@ -67,25 +67,25 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   float opacity = getFloatPropertyWithDefault("opacity", 1.0f);
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
   auto backgroundColor = multiplyAlpha(getColor(dc, "background"), opacity);
-  float strokeWidth = gridSizeInPixels/64.f;
-  float margin = gridSizeInPixels/16.f;
-  float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.5f);
+  
+  float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
+  float strokeWidth = gridSizeInPixels*strokeWidthMul;
+  float margin = gridSizeInPixels/12.f;
+  float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.6f);
 
   auto textColor = _down ? backgroundColor : markColor;
   
+  nvgBeginPath(nvg);
+  nvgRoundedRect(nvg, shrink(bounds, margin), strokeWidth*2);
   if(_down)
   {
     // draw fill
-    nvgBeginPath(nvg);
-    nvgRect(nvg, shrink(bounds, margin));
     nvgFillColor(nvg, markColor);
     nvgFill(nvg);
   }
   else
   {
     // draw outline
-    nvgBeginPath(nvg);
-    nvgRect(nvg, shrink(bounds, margin));
     nvgStrokeWidth(nvg, strokeWidth);
     nvgStrokeColor(nvg, markColor);
     nvgStroke(nvg);
@@ -94,7 +94,7 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   nvgFontFaceId(nvg, fontHandle);
   nvgFontSize(nvg, textSize);
   nvgFillColor(nvg, textColor);
-  drawText(nvg, bounds.center(), getTextProperty("text"), NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+  drawText(nvg, bounds.center() - Vec2(0, gridSizeInPixels/64.f), getTextProperty("text"), NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
 
   return;
 }

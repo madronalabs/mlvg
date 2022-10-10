@@ -6,8 +6,6 @@
 #pragma once
 
 // common
-
-#include "MLAppController.h"
 #include "MLAppView.h"
 #include "MLDrawContext.h"
 #include "MLFiles.h"	

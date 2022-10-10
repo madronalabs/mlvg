@@ -416,7 +416,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   nvgRect(nvg, nativeRect);
   nvgFillPaint(nvg, paintPattern);
   nvgFill(nvg);
-  
+
   // draw background Widgets intersecting rect
   for(const auto& w : _backgroundWidgets)
   {

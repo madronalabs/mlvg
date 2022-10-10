@@ -59,7 +59,8 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
   _drawingProperties.setProperty("mark", colorToMatrix({0.01, 0.01, 0.01, 1.0}));
   _drawingProperties.setProperty("background", colorToMatrix({0.8, 0.8, 0.8, 1.0}));
   _drawingProperties.setProperty("draw_background_grid", true);
-
+  _drawingProperties.setProperty("common_stroke_width", 1/32.f);
+  
   // fonts
   int font1 = nvgCreateFontMem(nvg, "MLVG_sans", (unsigned char*)resources::D_DIN_otf, resources::D_DIN_otf_size, 0);
   const unsigned char* pFont1 = reinterpret_cast<const unsigned char *>(&font1);

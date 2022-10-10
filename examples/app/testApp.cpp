@@ -107,9 +107,6 @@ int main(int argc, char *argv[])
   appView.setGridSizeDefault(60);
   
   //appView.setFixedRatioSize(true);
-  
-  // make widgets and setup parameters
-  // appView.startup(pdl);
 
   SDL_Window *window = initSDLWindow(appView);
   if(window)
@@ -123,13 +120,16 @@ int main(int argc, char *argv[])
     TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(instanceNum));
     registerActor(Path(processorName), &appProcessor);
       
-    // attach app view to window and resize
+    // attach app view to window, make UI and resize
     ParentWindowInfo windowInfo = getParentWindowInfo(window);
     appView.createPlatformView(windowInfo.windowPtr, windowInfo.flags);
     appView.makeWidgets(pdl);
     appView.startTimersAndActor();
     SdlAppResize(&watcherData);
     
+    appController.sendAllParamsToView();
+    appController.sendAllParamsToProcessor();
+
     // start audio processing
     appProcessor.start();
     appProcessor.startAudio();

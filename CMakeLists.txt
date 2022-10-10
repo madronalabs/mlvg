@@ -39,7 +39,7 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  # Compiler flags
  #--------------------------------------------------------------------
  
- set(CMAKE_CXX_STANDARD 14)
+ set(CMAKE_CXX_STANDARD 17)
  set(CMAKE_CXX_STANDARD_REQUIRED True)
  
  #--------------------------------------------------------------------

@@ -268,6 +268,8 @@ void DialBasic::draw(ml::DrawContext dc)
   float textScale = getFloatPropertyWithDefault("text_size",0.625);
   float normalizedValue = enabled ? currentNormalizedValue : 0.f;
   float opacity = enabled ? 1.0f : 0.25f;
+  float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
+
 
   // colors
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
@@ -308,7 +310,7 @@ void DialBasic::draw(ml::DrawContext dc)
   float r5 = r0*1.06f; // ticks end
 
   // other sizes
-  float strokeWidth = gridSizeInPixels/32.f;
+  float strokeWidth = gridSizeInPixels*strokeWidthMul;
   float tickWidth = gridSizeInPixels/128.f;
   float textSize = gridSizeInPixels*dialSize*textScale;
   

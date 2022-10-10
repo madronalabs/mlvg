@@ -14,15 +14,8 @@
 
 #include "MLSerialization.h"
 
-// include miniz - in mlvg/external directory
-#include "external/miniz/miniz.h"
-#include "external/miniz/miniz.c"
-
 // include nfd
 #include "external/nativefiledialog-extended/src/include/nfd.h"
-
-#define JUCE_APP_CONFIG_HEADER "external/juce_core/JuceCoreConfig.h"
-#include "external/juce_core/juce_core.h"
 
 using namespace ml;
 
@@ -130,7 +123,7 @@ void AppController::onMessage(Message m)
 {
   if(!m.address) return;
   
-  //std::cout << "AppController::onMessage:" << m.address << " " << m.value << " \n ";
+  std::cout << "AppController::onMessage:" << m.address << " " << m.value << " \n ";
   
   Path addr = m.address;
   switch(hash(head(addr)))

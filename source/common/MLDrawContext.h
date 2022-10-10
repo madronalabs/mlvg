@@ -577,6 +577,7 @@ Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWi
 // drawing property helpers
 
 inline float getFloat(DrawContext t, Path p) { return t.pProperties->getFloatProperty(p); }
+inline float getFloatWithDefault(DrawContext t, Path p, float d) { return t.pProperties->getFloatPropertyWithDefault(p, d); }
 
 inline NVGcolor getColor(DrawContext t, Path p) { return matrixToColor(t.pProperties->getMatrixProperty(p)); }
 
