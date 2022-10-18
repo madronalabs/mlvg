@@ -9,14 +9,14 @@
 
 using namespace ml;
 
-class SVGButton : public Widget
+class SVGButtonBasic : public Widget
 {
   bool _down{false};
   bool _initialized{false};
   NSVGimage* _image{nullptr};
   
 public:
-  SVGButton(WithValues p) : Widget(p) {}
+  SVGButtonBasic(WithValues p) : Widget(p) {}
 
   // Widget implementation
   MessageList processGUIEvent(const GUICoordinates& gc, GUIEvent e) override;

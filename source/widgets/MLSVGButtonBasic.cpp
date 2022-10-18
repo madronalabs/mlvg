@@ -7,7 +7,7 @@
 
 using namespace ml;
 
-MessageList SVGButton::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
+MessageList SVGButtonBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 {
   MessageList r{};
   if(getBoolPropertyWithDefault("enabled", true))
@@ -56,7 +56,7 @@ MessageList SVGButton::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   return r;
 }
 
-void SVGButton::draw(ml::DrawContext dc)
+void SVGButtonBasic::draw(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   const int gridSizeInPixels = dc.coords.gridSizeInPixels;
