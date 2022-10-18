@@ -70,7 +70,7 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   
   float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
   float strokeWidth = gridSizeInPixels*strokeWidthMul;
-  float margin = gridSizeInPixels/12.f;
+  float margin = gridSizeInPixels/8.f;
   float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.6f);
 
   auto textColor = _down ? backgroundColor : markColor;

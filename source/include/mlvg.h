@@ -24,6 +24,6 @@
 #include "MLSVGImage.h"
 #include "MLTextLabelBasic.h"
 #include "MLPanel.h"
-#include "MLSVGButton.h"
+#include "MLSVGButtonBasic.h"
 #include "MLTextButtonBasic.h"
 #include "MLToggleButtonBasic.h"

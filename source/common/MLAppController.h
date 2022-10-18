@@ -40,12 +40,17 @@ public:
   size_t getInstanceNum() { return _instanceNum; }
   Path getInstanceName() { return _instanceName; }
 
-private:
-
+protected:
   // parameters of our plugin or application.
   // in the SignalProcessor the parameter tree is in plain units. Everywhere else it is normalized.
-  ParameterTreeNormalized _params;
+  ParameterTreeNormalized params;
+
+  int _instanceNum;
+  Path _instanceName;
+  Path _viewName;
+  Path _processorName;
   
+private:
   std::vector< ml::Path > _paramNamesByID;
   Tree< size_t > _paramIDsByName;
   
@@ -72,10 +77,6 @@ private:
   // without this, we can't register Actors!
   SharedResourcePointer< ActorRegistry > _actorRegistry ;
 
-  int _instanceNum;
-  Path _instanceName;
-  Path _viewName;
-  Path _processorName;
   
   // an index to file trees
   Tree< std::unique_ptr< FileTree > > _fileTreeIndex;

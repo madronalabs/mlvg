@@ -33,8 +33,8 @@ AppController::AppController(TextFragment appName, const ParameterDescriptionLis
 #endif
   
   // make parameter descriptions and projections
-  buildParameterTree(pdl, _params);
-  setDefaults(_params);
+  buildParameterTree(pdl, params);
+  setDefaults(params);
   
   // store IDs by name and param names by ID
   for(size_t i=0; i < pdl.size(); ++i)
@@ -67,9 +67,9 @@ AppController::~AppController()
 void AppController::sendParamToView(Path pname)
 {
   // MLTEST
-  std::cout << " AppController::sendParamToView " << pname << " = " << getNormalizedValue(_params, pname) << "\n";
+  std::cout << " AppController::sendParamToView " << pname << " = " << getNormalizedValue(params, pname) << "\n";
   
-  sendMessageToActor(_viewName, {Path("set_param", pname), getNormalizedValue(_params, pname), kMsgFromController});
+  sendMessageToActor(_viewName, {Path("set_param", pname), getNormalizedValue(params, pname), kMsgFromController});
 }
 
 void AppController::sendAllParamsToView()
@@ -99,7 +99,7 @@ void AppController::sendAllParamsToProcessor()
 
 void AppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
-  auto pval = getNormalizedValue(_params, pname);
+  auto pval = getNormalizedValue(params, pname);
   sendMessageToActor(_processorName, {Path("set_param", pname), pval, flags});
 }
 
@@ -144,7 +144,7 @@ void AppController::onMessage(Message m)
           // undo will be another message
           
           // save in our ParameterTree
-          _params.setParamFromNormalizedValue(whatParam, m.value);
+          params.setParamFromNormalizedValue(whatParam, m.value);
           
           // send to processor
           sendParamToProcessor(whatParam, m.flags);

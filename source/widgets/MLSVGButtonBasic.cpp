@@ -3,7 +3,7 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-#include "MLSVGButton.h"
+#include "MLSVGButtonBasic.h"
 
 using namespace ml;
 
@@ -34,41 +34,8 @@ MessageList SVGButton::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       _down = false;
       if(hit)
       {
-        if(hasProperty("popup"))
-        {
-          // tell editor which widget we want to launch.
-          r.push_back(Message("editor/do/set_popup_widget", getTextProperty("popup")));
-          
-          // the modal widget controls no parameter (?)
-          r.push_back(Message("editor/set_popup_prop/modal_param", ""));
-          
-          // send info to the editor about this widget and incoming event
-          r.push_back(Message("editor/set_popup_prop/target_click_position", vec2ToMatrix(e.position)));
-          
-          Vec2 targetOffset = getPointPropertyWithDefault("target_offset", {0, 0});
-          r.push_back(Message("editor/set_popup_prop/target_bounds", rectToMatrix(getBounds() + targetOffset)));
-
-          // trigger message popup sequence
-          
-          /*
-          auto indicatorColor = getColorPropertyWithDefault("indicator", rgba(0.8, 0.8, 0.8, 1.0));
-          r.push_back(Message("editor/popup/set_prop/indicator_color", colorToMatrix(indicatorColor)));
-          */
-          
-          r.push_back(Message("editor/set_popup_prop/text_color", "mark"));
-          
-          // after setting popup widget, send message to editor
-          Path editorMsg("editor", getTextProperty("editor_message"));
-          r.push_back(Message(editorMsg)); // no value
-                    
-          // request immediate popup launch
-          r.push_back(Message("editor/do/request_popup", true));
-        }
-        else
-        {
-          // request an action
-          r.push_back(Message{actionRequestPath});
-        }
+        // request an action
+        r.push_back(Message{actionRequestPath});
       }
     }
     else if(type == "drag")
