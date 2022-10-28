@@ -224,10 +224,9 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
   w->setDirty(false);
   nvgRestore(nvg);
   
-  constexpr bool kShowWidgetBounds{false};
+  bool kShowWidgetBounds = dc.pProperties->getBoolPropertyWithDefault("draw_widget_bounds", false);
   if(kShowWidgetBounds)
   {
-    // TEST
     nvgBeginPath(nvg);
     nvgStrokeColor(nvg, rgba(0, 1, 0, 1.0));
     nvgStrokeWidth(nvg, 1);
@@ -430,10 +429,12 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   
   if(drawGrid)
   {
+    auto markColor = multiplyAlpha(getColor(dc, "mark"), 0.125f);
+
     const int gx = std::ceilf(getFloatProperty("grid_units_x"));
     const int gy = std::ceilf(getFloatProperty("grid_units_y"));
     
-    nvgStrokeColor(nvg, rgba(1, 1, 1, 0.25));
+    nvgStrokeColor(nvg, markColor);
     nvgStrokeWidth(nvg, 1.0f*dc.coords.displayScale);
     
     nvgBeginPath(nvg);

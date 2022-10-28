@@ -270,7 +270,6 @@ void DialBasic::draw(ml::DrawContext dc)
   float opacity = enabled ? 1.0f : 0.25f;
   float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
 
-
   // colors
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
 
@@ -324,7 +323,7 @@ void DialBasic::draw(ml::DrawContext dc)
     nvgTranslate(nvg, getCenter(bounds).getIntPart());
     
     auto indicatorColor = markColor;
-    auto fillColor = multiplyAlpha(markColor, 0.25f);
+    auto fillColor = multiplyAlpha(markColor, 0.5f);
     
     // fill
     if(enabled && (a3 - a2 > kMinAngle))
