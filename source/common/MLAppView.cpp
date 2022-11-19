@@ -30,7 +30,7 @@ AppView::~AppView()
 
 // called when native view size changes in the PlatformView callback.
 // newSize is in system coordinates.
-void AppView::viewResized(Vec2 newSize)
+void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
 {
   if(newSize != viewSize_)
   {
@@ -97,7 +97,7 @@ void AppView::viewResized(Vec2 newSize)
 
     layoutFixedSizeWidgets_(newSize);
     
-    layoutView();
+    layoutView(nvg);
     _view->setDirty(true);
   }
 }

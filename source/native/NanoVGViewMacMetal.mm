@@ -366,7 +366,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   {
     _nativeSize = viewSizeInPixels;
     _backingLayer = ml::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
-    _appView->viewResized(systemSize);
+    _appView->viewResized(_nvg, systemSize);
   }
 }
 

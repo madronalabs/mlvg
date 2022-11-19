@@ -17,7 +17,7 @@ TestAppView::~TestAppView ()
 
 #pragma mark AppView
 
-void TestAppView::layoutView()
+void TestAppView::layoutView(NativeDrawContext* nvg)
 {
   ml::Rect largeDialRect{0, 0, 1.5, 1.5};
   ml::Rect labelRect(0, 0, 2, 0.5);

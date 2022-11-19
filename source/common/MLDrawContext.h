@@ -59,6 +59,8 @@ using NativeDrawBuffer = NVGLUframebuffer;
 
 namespace ml {
 
+constexpr float kMinVisibleAlpha { 0.01f };
+
 class VectorImage
 {
 public:
@@ -438,7 +440,7 @@ inline NVGcolor colorWithAlpha(NVGcolor c, float alpha)
 
 // shadow helpers
 
-// no center?
+// draw shadow arc centered at (0, 0)
 inline void drawShadowArc(NativeDrawContext* nvg, float a0, float a1, float r0, float r1, NVGcolor shadowColor, float alpha)
 {
   auto r2Alpha = projections::intervalMap( {r0, r1}, {alpha, 0.f}, projections::easeOutCubic );
@@ -447,8 +449,8 @@ inline void drawShadowArc(NativeDrawContext* nvg, float a0, float a1, float r0, 
   {
     for(float r = r0; r < r1; r += 1.0f)
     {
-      auto c = shadowColor;
-      c.a *= r2Alpha(r);
+      auto c = multiplyAlpha(shadowColor, r2Alpha(r));
+      if(c.a < kMinVisibleAlpha) break;
       nvgStrokeColor(nvg, c);
       nvgBeginPath(nvg);
       nvgArc(nvg, 0, 0, r, a0, a1, NVG_CW);
@@ -459,13 +461,49 @@ inline void drawShadowArc(NativeDrawContext* nvg, float a0, float a1, float r0, 
   {
     for(float r = r0; r > r1; r -= 1.0f)
     {
-      auto c = shadowColor;
-      c.a *= r2Alpha(r);
+      auto c = multiplyAlpha(shadowColor, r2Alpha(r));
+      if(c.a < kMinVisibleAlpha) break;
       nvgStrokeColor(nvg, c);
       nvgBeginPath(nvg);
       nvgArc(nvg, 0, 0, r, a0, a1, NVG_CW);
       nvgStroke(nvg);
     }
+  }
+}
+
+// draw shadow line from p1 -> p2 with thickness r1.
+// use clockwise rule in the 2d plane to place shadow
+inline void drawShadowLine(NativeDrawContext* nvg, Vec2 p1, Vec2 p2, float r1, NVGcolor shadowColor, float alpha)
+{
+  float dx = p2.x() - p1.x();
+  float dy = p2.y() - p1.y();
+  Vec2 p3(dy, -dx);
+  Vec2 p3u = p3 / magnitude(p3);
+  
+  if(r1 < 0.f)
+  {
+    r1 = -r1;
+    p3u = -p3u;
+  }
+  
+  auto r2Alpha = projections::intervalMap( {0.f, r1}, {alpha, 0.f}, projections::easeOutCubic );
+  nvgStrokeWidth(nvg, 1.0f);
+
+  for(float r = 0.f; r < r1; r += 1.0f)
+  {
+    auto c = multiplyAlpha(shadowColor, r2Alpha(r));
+    if(c.a < kMinVisibleAlpha) break;
+    nvgStrokeColor(nvg, c);
+    nvgBeginPath(nvg);
+    
+    Vec2 p1r = p1 + p3u*r;
+    Vec2 p2r = p2 + p3u*r;
+    
+    nvgMoveTo(nvg, p1r.x(), p1r.y());
+    nvgLineTo(nvg, p2r.x(), p2r.y());
+    nvgStroke(nvg);
+    
+    std::cout << "o: " << c.a << "\n";
   }
 }
 
@@ -475,7 +513,9 @@ inline void drawCircleShadow(NativeDrawContext* nvg, Vec2 center, float r0, floa
   nvgStrokeWidth(nvg, 1.0f);
   for(float r = r0; r < r1; r += 1.0f)
   {
-    nvgStrokeColor(nvg, multiplyAlpha(shadowColor, r2Alpha(r)));
+    auto c = multiplyAlpha(shadowColor, r2Alpha(r));
+    if(c.a < kMinVisibleAlpha) break;
+    nvgStrokeColor(nvg, c);
     nvgBeginPath(nvg);
     nvgCircle(nvg, center.x(), center.y(), r);
     nvgStroke(nvg);
@@ -484,14 +524,16 @@ inline void drawCircleShadow(NativeDrawContext* nvg, Vec2 center, float r0, floa
 
 inline void drawRoundRectShadow(NativeDrawContext* nvg, ml::Rect r, int width, int radius, NVGcolor shadowColor, float alpha)
 {
-  auto r2Alpha = projections::intervalMap( {0, width + 0.f}, {alpha, 0.f}, projections::easeOutQuartic );
+  auto r2Alpha = projections::intervalMap( {0, width + 0.f}, {alpha, 0.f}, projections::easeOutCubic );
   nvgStrokeWidth(nvg, 1);
   for(int i=0; i<width; ++i)
   {
+    auto c = multiplyAlpha(shadowColor, r2Alpha(i));
+    if(c.a < kMinVisibleAlpha) break;
     auto br = grow(r, i);
     nvgBeginPath(nvg);
     nvgRoundedRect(nvg, br, radius + i);
-    nvgStrokeColor(nvg, multiplyAlpha(shadowColor, r2Alpha(i)));
+    nvgStrokeColor(nvg, c);
     nvgStroke(nvg);
   }
 }

@@ -26,7 +26,7 @@ public:
   virtual void initializeResources(NativeDrawContext* nvg) = 0;
   //
   // set the bounds of all the Widgets.
-  virtual void layoutView() = 0;
+  virtual void layoutView(NativeDrawContext* nvg) = 0;
   //
   // do any additional processing for events.
   virtual void onGUIEvent(const GUIEvent& event) = 0;
@@ -40,7 +40,7 @@ public:
   void render(NativeDrawContext* nvg, Layer* backingLayer);
   
   // called by the PlatformView to set our size in system coordinates.
-  void viewResized(Vec2 newSize);
+  void viewResized(NativeDrawContext* nvg, Vec2 newSize);
 
   void createVectorImage(Path newImageName, const unsigned char* dataStart, size_t dataSize);
   
