@@ -26,7 +26,7 @@ public:
   virtual void initializeResources(NativeDrawContext* nvg) = 0;
   //
   // set the bounds of all the Widgets.
-  virtual void layoutView(NativeDrawContext* nvg) = 0;
+  virtual void layoutView(DrawContext dc) = 0;
   //
   // do any additional processing for events.
   virtual void onGUIEvent(const GUIEvent& event) = 0;

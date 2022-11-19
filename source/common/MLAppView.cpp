@@ -96,8 +96,10 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     _view->setBounds({0, 0, gridUnitsX, gridUnitsY});
 
     layoutFixedSizeWidgets_(newSize);
+
+    DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
+    layoutView(dc);
     
-    layoutView(nvg);
     _view->setDirty(true);
   }
 }
