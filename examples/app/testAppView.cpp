@@ -46,11 +46,29 @@ void TestAppView::layoutView(DrawContext dc)
     _view->_backgroundWidgets[labelName]->setRectProperty
     ("bounds", alignCenterToPoint(labelRect, dialRect.bottomCenter() - Vec2(0, 0.125)));
   };
-  
   for(auto dialName : {"freq1", "freq2", "gain"})
   {
     positionLabelUnderDial(dialName);
   }
+  
+  // layout buttons
+  float centerX = gx/2.f;
+  int bottomY = gy - 2;
+  float buttonWidth = 3;
+  float buttonHeight = 0.75;
+  ml::Rect textButtonRect(0, 0, buttonWidth, buttonHeight);
+  float halfButtonWidth = buttonWidth/2.f;
+  float buttonsY1 = bottomY + 0.5;
+  
+  _view->_widgets["open"]->setRectProperty("bounds", alignCenterToPoint(textButtonRect, {centerX, buttonsY1}));
+  
+  
+  // resize widgets
+  forEach< Widget >
+  (_view->_widgets, [&](Widget& w)
+   {
+    w.resize(dc);
+  });
 }
 
 void TestAppView::initializeResources(NativeDrawContext* nvg)
@@ -119,6 +137,13 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"image_name", "tesseract" }
   } );
   
+  // buttons
+  _view->_widgets.add_unique< TextButtonBasic >("open", WithValues{
+    {"text", "open" },
+    {"text_size", 0.4f },
+    {"action", "open" }
+  } );
+  
   // make all the above Widgets visible
   forEach< Widget >
   (_view->_widgets, [&](Widget& w)
@@ -172,6 +197,28 @@ void TestAppView::onMessage(Message msg)
     }
     case(hash("do")):
     {
+      switch(hash(second(msg.address)))
+      {
+        case(hash("set_audio_data")):
+        {
+          // get Sample pointer
+          //Sample* pSample = *reinterpret_cast<Sample**>(msg.value.getBlobValue());
+          //_view->_widgets["sample"]->receiveNamedRawPointer("sample", pSample);
+          
+          break;
+        }
+          
+        default:
+        {
+          // if the message is not from the controller,
+          // forward it to the controller.
+          if(!(msg.flags & kMsgFromController))
+          {
+            sendMessageToActor(_controllerName, msg);
+          }
+          break;
+        }
+      }
       break;
     }
     default:
