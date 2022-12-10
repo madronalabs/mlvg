@@ -68,6 +68,14 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
   auto backgroundColor = multiplyAlpha(getColor(dc, "background"), opacity);
   
+  constexpr float kDisabledAlpha{0.25f};
+  if(!getBoolPropertyWithDefault("enabled", true))
+  {
+    markColor = multiplyAlpha(markColor, kDisabledAlpha);
+    backgroundColor = multiplyAlpha(backgroundColor, kDisabledAlpha);
+  }
+  
+  
   float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
   float strokeWidth = gridSizeInPixels*strokeWidthMul;
   float margin = gridSizeInPixels/8.f;

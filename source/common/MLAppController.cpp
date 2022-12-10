@@ -123,8 +123,6 @@ void AppController::onMessage(Message m)
 {
   if(!m.address) return;
   
-  std::cout << "AppController::onMessage:" << m.address << " " << m.value << " \n ";
-  
   Path addr = m.address;
   switch(hash(head(addr)))
   {
