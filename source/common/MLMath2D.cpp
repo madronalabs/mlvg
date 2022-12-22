@@ -249,6 +249,16 @@ Vec2 Rect::topCenter() const
   return Vec2(left() + width()*0.5f, top());
 }
 
+Vec2 Rect::middleLeft() const
+{
+  return Vec2(left(), top() + height()*0.5f);
+}
+
+Vec2 Rect::middleRight() const
+{
+  return Vec2(right(), top() + height()*0.5f);
+}
+
 Vec2 Rect::bottomLeft() const
 {
   return Vec2(left(), bottom());

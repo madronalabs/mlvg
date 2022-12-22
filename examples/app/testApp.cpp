@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
   
   //appView.setFixedRatioSize(true);
 
-  SDL_Window *window = initSDLWindow(appView);
+  SDL_Window *window = initSDLWindow(appView, "mlvg test");
   if(window)
   {
     // init NFD after SDL.

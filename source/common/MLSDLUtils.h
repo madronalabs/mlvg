@@ -59,7 +59,7 @@ inline uint32_t getPlatformWindowCreateFlags()
 }
 
 
-inline SDL_Window* initSDLWindow(const AppView& appView)
+inline SDL_Window* initSDLWindow(const AppView& appView, const char* windowName)
 {
   // Enable standard application logging
   SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -75,7 +75,7 @@ inline SDL_Window* initSDLWindow(const AppView& appView)
   
   // Create window
   Vec2 defaultDims = appView.getDefaultDims();
-  SDL_Window* newWindow = SDL_CreateWindow("mlvg test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+  SDL_Window* newWindow = SDL_CreateWindow(windowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                             defaultDims.x(), defaultDims.y(), commonFlags | getPlatformWindowCreateFlags());
   if(!newWindow)
   {

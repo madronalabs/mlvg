@@ -257,6 +257,8 @@ public:
   Vec2 topLeft() const;
   Vec2 topRight() const;
   Vec2 topCenter() const;
+  Vec2 middleLeft() const;
+  Vec2 middleRight() const;
   Vec2 bottomLeft() const;
   Vec2 bottomRight() const;
   Vec2 bottomCenter() const;
@@ -318,6 +320,10 @@ inline Rect alignTopLeftToOrigin(const Rect& a) { return Rect(0, 0, a.width(), a
 inline Rect alignTopLeftToPoint(Rect a, Vec2 b) { return Rect(b.x(), b.y(), a.width(), a.height()); }
 inline Rect alignTopRightToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width(), b.y(), a.width(), a.height()); }
 inline Rect alignTopCenterToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width()/2, b.y(), a.width(), a.height()); }
+
+inline Rect alignMiddleLeftToPoint(Rect a, Vec2 b) { return Rect(b.x(), b.y() - a.height()/2, a.width(), a.height()); }
+inline Rect alignMiddleRightToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width(), b.y() - a.height()/2, a.width(), a.height()); }
+
 inline Rect alignBottomLeftToPoint(Rect a, Vec2 b) { return Rect(b.x(), b.y() - a.height(), a.width(), a.height()); }
 inline Rect alignBottomRightToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width(), b.y() - a.height(), a.width(), a.height()); }
 inline Rect alignBottomCenterToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width()/2, b.y() - a.height(), a.width(), a.height()); }
