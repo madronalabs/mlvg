@@ -16,17 +16,17 @@
  set(VST3_SDK_ROOT "" CACHE PATH "Location of VST3 SDK")
  set(public_sdk_SOURCE_DIR ${VST3_SDK_ROOT}/public.sdk)
  
- set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE STRING "Minimum OS X deployment version")
- 
+  
  IF(APPLE)
-    SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+  SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE STRING "Minimum OS X deployment version")
  ENDIF(APPLE)
 
 #--------------------------------------------------------------------
 # project and version
 #--------------------------------------------------------------------
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE) 
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
 project(mlvg)
 
@@ -43,7 +43,7 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  set(CMAKE_CXX_STANDARD_REQUIRED True)
  
  if(APPLE)
-   # For now, explicitly disable C++17 alignment feature 
+   # For now, explicitly disable C++17 alignment feature
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-aligned-new")
  elseif(WIN32)
    #untested
@@ -194,6 +194,40 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
      )
  endif()
  
+ #--------------------------------------------------------------------
+ # gather nfd sources
+ #--------------------------------------------------------------------
+ 
+ set(nfd_sources
+ ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.h
+ ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.hpp)
+ 
+ if(WIN32)
+   set(nfd_sources_native
+       ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_win.cpp
+   )
+ elseif(APPLE)
+   set(nfd_sources_native
+       ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_cocoa.m
+   )
+ elseif(UNIX AND NOT APPLE)
+   set(nfd_sources_native
+       ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_gtk.cpp
+   )
+ endif()
+ 
+ list(APPEND nfd_sources ${nfd_sources_native} )
+ 
+ #--------------------------------------------------------------------
+ # gather cJSON sources
+ #--------------------------------------------------------------------
+ 
+ set(cjson_sources
+ ${MLVG_SOURCE_DIR}/external/cJSON/cJSON.c
+ ${MLVG_SOURCE_DIR}/external/cJSON/cJSON.h)
+ 
+ set(cjson_include_dirs ${MLVG_SOURCE_DIR}/external/cJSON)
+ 
 #--------------------------------------------------------------------
 # gather mlvg sources
 #--------------------------------------------------------------------
@@ -203,7 +237,7 @@ file(GLOB MLVG_HEADERS_COMMON "${MLVG_SOURCE_DIR}/common/*.h")
 file(GLOB MLVG_SOURCES_WIDGETS "${MLVG_SOURCE_DIR}/widgets/*.cpp")
 file(GLOB MLVG_HEADERS_WIDGETS "${MLVG_SOURCE_DIR}/widgets/*.h")
   
-set(MLVG_INCLUDE_DIRS 
+set(MLVG_INCLUDE_DIRS
    source
    ${MLVG_SOURCE_DIR}
    ${MLVG_SOURCE_DIR}/external
@@ -227,6 +261,7 @@ list(APPEND mlvg_sources ${MLVG_HEADERS_WIDGETS} )
 list(APPEND mlvg_sources ${NANOVG_SOURCES} )
 list(APPEND mlvg_sources ${MLVG_SOURCES_NATIVE} )
 list(APPEND mlvg_sources ${juce_core_sources} )
+list(APPEND mlvg_sources ${cjson_sources} )
 
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/common")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
@@ -235,31 +270,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/include")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_SOURCE_DIR}")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}")
 list(APPEND MLVG_INCLUDE_DIRS "${juce_core_include_dirs}")
-
-
-#--------------------------------------------------------------------
-# gather nfd sources
-#--------------------------------------------------------------------
-
-set(nfd_sources
-${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.h
-${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.hpp)
-
-if(WIN32)
-  set(nfd_sources_native
-      ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_win.cpp
-  )
-elseif(APPLE)
-  set(nfd_sources_native
-      ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_cocoa.m
-  )
-elseif(UNIX AND NOT APPLE)
-  set(nfd_sources_native
-      ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_gtk.cpp
-  )
-endif()
-
-list(APPEND nfd_sources ${nfd_sources_native} )
+list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 
 
 #--------------------------------------------------------------------
@@ -269,7 +280,7 @@ list(APPEND nfd_sources ${nfd_sources_native} )
 set(target mlvg)
 
 # Define the library
-add_library(${target} STATIC ${mlvg_sources} ${nfd_sources})
+add_library(${target} STATIC ${mlvg_sources} ${nfd_sources} ${cjson_sources})
 
 set_target_properties(${target} PROPERTIES
   OUTPUT_NAME "${mlvg_NAME}"
@@ -281,6 +292,7 @@ set_target_properties(${target} PROPERTIES
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 
 # add nfd includes
+file(GLOB NFD_HEADERS "${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/*.h")
 target_include_directories(${target} PUBLIC ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/)
 
 # set juce-core configurations for this target
@@ -309,8 +321,9 @@ file(GLOB NATIVE_HEADERS_HACK2 "source/external/nanovg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK3 "source/external/nanosvg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK4 "source/external/miniz/*.h")
 
-install(FILES 
+install(FILES
     source/include/mlvg.h
+    ${NFD_HEADERS}
     ${COMMON_HEADERS}
     ${WIDGETS_HEADERS}
     ${NATIVE_HEADERS}
@@ -318,13 +331,13 @@ install(FILES
     ${NATIVE_HEADERS_HACK2}
     ${NATIVE_HEADERS_HACK3}
     ${NATIVE_HEADERS_HACK4}
-    DESTINATION 
+    DESTINATION
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
     include/mlvg
   )
 
 #--------------------------------------------------------------------
-# make SDL2 application target 
+# make SDL2 application target
 #--------------------------------------------------------------------
 
 create_resources (examples/app/resources build/resources/testapp)
@@ -339,15 +352,16 @@ list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 
 add_executable(${target} ${test_app_sources})
 
-# add SDL2
-find_package(SDL2 REQUIRED)
+# to use the SDL2 framework in /Library/Frameworks, do this:
+find_package(SDL2 REQUIRED COMPONENTS SDL2)
 target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})
-target_link_libraries(${target} PRIVATE ${SDL2_LIBRARIES})
+message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
+
 
 # add madronalib
 target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
 if(APPLE)
-    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")   
+    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")
 elseif(WIN32)
     target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
 endif()
@@ -381,27 +395,15 @@ endif()
 target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
 target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 
-# add UI frameworks- note that these appear under 
+# add UI frameworks- note that these appear under
 # "other linker flags" in XCode and not in its file browser
 if(APPLE)
-    target_link_libraries(${target} PRIVATE "-framework Cocoa")
-    target_link_libraries(${target} PRIVATE "-framework Metal")
-    target_link_libraries(${target} PRIVATE "-framework MetalKit")
-    target_link_libraries(${target} PRIVATE "-framework CoreAudio")
+    target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+      "-framework CoreAudio" "-framework AppKit" "-framework SDL2" )
 elseif(WIN32)
     find_package(OpenGL REQUIRED)
     target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
 endif()
-
-if(APPLE)
-    # build only active arch for Debug builds
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
-
-    # set debug info format
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
-endif() 
-
-message("SDL2 include dirs: " ${SDL2_INCLUDE_DIRS} )
 
 
 #--------------------------------------------------------------------
@@ -412,5 +414,6 @@ source_group(vstsdk REGULAR_EXPRESSION "vst3sdk+")
 source_group(mlvg-native REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/vg/native.*")
 source_group(nanovg REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/external/nanovg/src.*|${MLVG_SOURCE_DIR}/external/MetalNanoVG/src.*")
 source_group(nanosvg REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/external/nanosvg/src.*")
+
 
 

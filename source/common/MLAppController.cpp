@@ -66,9 +66,6 @@ AppController::~AppController()
 
 void AppController::sendParamToView(Path pname)
 {
-  // MLTEST
-  std::cout << " AppController::sendParamToView " << pname << " = " << getNormalizedValue(params, pname) << "\n";
-  
   sendMessageToActor(_viewName, {Path("set_param", pname), getNormalizedValue(params, pname), kMsgFromController});
 }
 
