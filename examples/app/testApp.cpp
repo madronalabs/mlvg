@@ -293,8 +293,8 @@ int main(int argc, char *argv[])
       
     // attach app view to window, make UI and resize
     ParentWindowInfo windowInfo = getParentWindowInfo(window);
-    appView.createPlatformView(windowInfo.windowPtr, windowInfo.flags);
     appView.makeWidgets(pdl);
+    appView.createPlatformView(windowInfo.windowPtr, windowInfo.flags);
     appView.startTimersAndActor();
     SdlAppResize(&watcherData);
     
