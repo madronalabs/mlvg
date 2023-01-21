@@ -129,6 +129,7 @@ bool File::load(BinaryVector& dataVec) const
 
   auto pathText = getFullPathAsText();
   juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
+  if(!jf.exists()) { return r; }
 
   juce::MemoryBlock jmb;
   if(jf.loadFileAsData(jmb))
@@ -151,7 +152,8 @@ bool File::loadAsText(TextFragment& fileAsText) const
 
   auto pathText = getFullPathAsText();
   juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-
+  if(!jf.exists()) { return r; }
+  
   juce::String juceFileStr = jf.loadFileAsString();
   
   if(juceFileStr != juce::String())

@@ -323,7 +323,7 @@ void DialBasic::draw(ml::DrawContext dc)
     nvgTranslate(nvg, getCenter(bounds).getIntPart());
     
     auto indicatorColor = markColor;
-    auto fillColor = multiplyAlpha(markColor, 0.5f);
+    auto fillColor = multiplyAlpha(markColor, 0.33f);
     
     // fill
     if(enabled && (a3 - a2 > kMinAngle))

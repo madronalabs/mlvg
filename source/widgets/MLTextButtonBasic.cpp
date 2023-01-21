@@ -68,7 +68,7 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
   auto backgroundColor = multiplyAlpha(getColor(dc, "background"), opacity);
   
-  constexpr float kDisabledAlpha{0.25f};
+  constexpr float kDisabledAlpha{0.33f};
   if(!getBoolPropertyWithDefault("enabled", true))
   {
     markColor = multiplyAlpha(markColor, kDisabledAlpha);
