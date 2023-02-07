@@ -1,21 +1,18 @@
  # root CMakeLists.txt for mlvg examples.
- # to run, set VST3_SDK_ROOT to inform CMake where the VST3 SDK is, for example:
+ # for example:
  # mkdir build
  # cd build
- # cmake -DVST3_SDK_ROOT=~/dev/VST3_SDK -GXcode ..
+ # cmake -GXcode ..
  #
  # Windows:
- # cmake -DVST3_SDK_ROOT=~/dev/VST3_SDK -G"Visual Studio 14 2015 Win64" ..
+ # cmake -G"Visual Studio 14 2015 Win64" ..
  
  # for windows validator debug:
  # debugging / command: C:\Users\Randy\dev\mlvg\build\bin\Debug\validator.exe
  # debugging / command arguments: C:\Users\Randy\dev\mlvg\build\VST3\Debug\aaltoverb.vst3\Contents\x86_64-win\aaltoverb.vst3
  
  cmake_minimum_required (VERSION 3.16)
- 
- set(VST3_SDK_ROOT "" CACHE PATH "Location of VST3 SDK")
- set(public_sdk_SOURCE_DIR ${VST3_SDK_ROOT}/public.sdk)
- 
+
   
  IF(APPLE)
   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
@@ -357,7 +354,6 @@ find_package(SDL2 REQUIRED COMPONENTS SDL2)
 target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})
 message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
 
-
 # add madronalib
 target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
 if(APPLE)
@@ -395,11 +391,12 @@ endif()
 target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
 target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 
-# add UI frameworks- note that these appear under
+# add UI libs and frameworks- note that these appear under
 # "other linker flags" in XCode and not in its file browser
 if(APPLE)
     target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
-      "-framework CoreAudio" "-framework AppKit" "-framework SDL2" )
+      "-framework CoreAudio" "-framework CoreServices" "-framework UniformTypeIdentifiers" 
+      "-framework AppKit" "-framework SDL2" )
 elseif(WIN32)
     find_package(OpenGL REQUIRED)
     target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
