@@ -636,10 +636,25 @@ namespace colors
 {
   constexpr NVGcolor black{0, 0, 0, 1};
   constexpr NVGcolor white{1, 1, 1, 1};
+  constexpr NVGcolor gray1{0.1, 0.1, 0.1, 1};
+  constexpr NVGcolor gray2{0.2, 0.2, 0.2, 1};
+  constexpr NVGcolor gray3{0.3, 0.3, 0.3, 1};
+  constexpr NVGcolor gray4{0.4, 0.4, 0.4, 1};
+  constexpr NVGcolor gray5{0.5, 0.5, 0.5, 1};
+  constexpr NVGcolor gray6{0.6, 0.6, 0.6, 1};
+  constexpr NVGcolor gray7{0.7, 0.7, 0.7, 1};
+  constexpr NVGcolor gray8{0.8, 0.8, 0.8, 1};
+  constexpr NVGcolor gray9{0.9, 0.9, 0.9, 1};
 
   constexpr NVGcolor red{1, 0, 0, 1};
   constexpr NVGcolor green{0, 1, 0, 1};
   constexpr NVGcolor blue{0, 0, 1, 1};
+
+  constexpr NVGcolor yellow{1, 1, 0, 1};
+  constexpr NVGcolor magenta{1, 0, 1, 1};
+  constexpr NVGcolor cyan{0, 1, 1, 1};
+
+
 }
 
 

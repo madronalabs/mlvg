@@ -35,11 +35,16 @@ public:
   void draw(ml::DrawContext d) override;
    
   // View interface
-  void drawWidget(const ml::DrawContext& dc, Widget* w);
+  void drawWidget(const ml::DrawContext& dc, Widget* w, bool isBackground = false);
   void drawAllWidgets(ml::DrawContext dc);
   void drawDirtyWidgets(ml::DrawContext dc);
 
 private:
+  
+  
+  void dirtyWidgetAndOverlapping(Widget* w);
+    
+    
   Path _widgetPointerToName(Widget* w);
   std::vector< Widget* > findWidgetsForEvent(const GUIEvent& e);
   virtual void drawBackground(DrawContext dc, ml::Rect nativeRect);

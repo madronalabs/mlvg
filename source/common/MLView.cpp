@@ -162,6 +162,8 @@ void View::draw(ml::DrawContext dc)
   // if the View itself is dirty, all the Widgets in it must be redrawn.
   // otherwise, only the dirty Widgets need to be redrawn.
   if(_dirty)
+    // TEMP
+   // if(1)
   {
     if(getBoolPropertyWithDefault("draw_background", true))
     {
@@ -212,7 +214,7 @@ std::vector< Widget* > View::findWidgetsForEvent(const GUIEvent& e)
 // draw widget in the current View context.
 // each widget is drawn in View coordinates, with the origin at its top left.
 // if widget is a view, it may draw sub-widgets.
-void View::drawWidget(const ml::DrawContext& dc, Widget* w)
+void View::drawWidget(const ml::DrawContext& dc, Widget* w, bool isBackground)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   Rect widgetBounds = getPixelBounds(dc, *w);
@@ -234,7 +236,7 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
     nvgStroke(nvg);
   }
   
-  constexpr bool kShowDirtyWidgets{false};
+  bool kShowDirtyWidgets = dc.pProperties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
   if(kShowDirtyWidgets)
   {
     // DEBUG
@@ -244,10 +246,14 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
     float b = fb(sinf(omega*ml::kTwoPi));
     
     auto flickerColor = rgba(b, b, 0, 1.);
+    if(isBackground)
+    {
+      flickerColor = rgba(b/2., b/2., b, 1.);
+    }
     
     nvgBeginPath(nvg);
     nvgStrokeColor(nvg, flickerColor);
-    nvgStrokeWidth(nvg, 8);
+    nvgStrokeWidth(nvg, 1);
     nvgRect(nvg, widgetBounds);
     nvgStroke(nvg);
   }
@@ -278,6 +284,26 @@ void View::drawAllWidgets(ml::DrawContext dc)
   }
 }
 
+
+void View::dirtyWidgetAndOverlapping(Widget* w)
+{
+  w->setDirty(true);
+
+  // TODO add previous bounds
+  
+  forEachChild< Widget >
+  (_widgets, [&](Widget& w2) {
+    if(w2.getBoolProperty("visible") && w2.hasProperty("bounds")) {
+      if(!w2.isDirty()) {
+        if(intersectRects(w->getBounds(), w2.getBounds())){
+          w2.setDirty(true);
+        }
+      }
+    }
+  }
+   );
+}
+
 void View::drawDirtyWidgets(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
@@ -306,35 +332,53 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
   // auto visibleWidgetsSorted = sort(visibleWidgets, [&](Widget* a, Widget* b){ return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());} );
   
   // in z sorted order from back to front:
-  
-  // for each widget needing drawing, mark as dirty all widgets intersecting its bounds
-  for(auto it = visibleWidgets.begin(); it != visibleWidgets.end(); ++it)
+ 
+  // any order is fine
+  for(auto w1 : visibleWidgets)
   {
-    Widget* w1 = *it;
-    if(w1->isDirty())
-    {
-      ml::Rect widget1Bounds = w1->getBounds();
-      if(w1->getProperty("previous_bounds"))
-      {
-        ml::Rect widget1PreviousBounds = matrixToRect(w1->getProperty("previous_bounds").getMatrixValue());
-        widget1Bounds = rectEnclosing(widget1Bounds, widget1PreviousBounds);
-      }
-      for(auto it2 = visibleWidgets.begin(); it2 != visibleWidgets.end(); ++it2)
-      {
-        Widget* w2 = *it2;
-        if(w1 != w2)
-        {
-          if(!w2->isDirty())
-          {
-            if(intersectRects(widget1Bounds, w2->getBounds()))
-            {
-              w2->setDirty(true);
-            }
-          }
-        }
-      }
+    if(w1->isDirty()){
+      dirtyWidgetAndOverlapping(w1);
     }
   }
+  
+  
+  
+  
+  // new algorithm:
+  // collect rectangular groups of dirty widgets.
+  //
+  
+  // int groupID = 0;
+  // clear widget groups (set group to -1)
+  
+  /*
+  // collect rects of any widgets overlapping dirty widgets into groups
+  for(auto w1 : visibleWidgets)
+  {
+    if(w1->isDirty()){
+      groupRect[groupID] = collectOverlappingGroup(w1->bounds, groupID);
+    }
+   
+   
+  }
+  */
+  
+  // collectOverlappingGroup: collect bounds rect, recursive on overlapping widgets
+  // also has to merge with other overlapping groups
+  //
+  // at some point just bail and redraw every widget.
+  
+  // for each group,
+  // set scissor to group rect
+  // draw background in rect
+  // draw all widgets in rect group
+  // restore scissor
+  
+
+  // assert, no widget is in more than one rect group
+  // overlapping groups should be combined
+  
+  
   
   // collect previous and current bounds of each dirty widget. Previous
   // bounds are needed in case widget has moved.
@@ -360,7 +404,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
     {
       nvgSave(nvg);
       auto nativeRect = dc.coords.gridToPixel(rect);
-      nativeRect = grow(nativeRect, 2); // MLTEST workaround for slop
+      //nativeRect = grow(nativeRect, 2); // MLTEST workaround for slop
       nvgIntersectScissor(nvg, nativeRect);
       
       drawBackground(dc, nativeRect);
@@ -368,13 +412,21 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
     }
   }
   
+  // TEST
+  int count {0};
+  
   // draw each dirty widget.
   for(auto w : visibleWidgets)
   {
     if(w->isDirty())
     {
       drawWidget(dc, w);
+      count++;
     }
+  }
+  
+  if(count > 0){
+    std::cout << count << " dirty widgets\n";
   }
 }
 
@@ -417,11 +469,12 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   nvgFill(nvg);
 
   // draw background Widgets intersecting rect
+  // TODO these could be drawn only on resize.
   for(const auto& w : _backgroundWidgets)
   {
     if(intersectRects(dc.coords.gridToPixel(w->getBounds()), nativeRect))
     {
-      drawWidget(dc, w.get());
+      drawWidget(dc, w.get(), true);
     }
   };
   
