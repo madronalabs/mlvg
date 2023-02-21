@@ -233,6 +233,14 @@ constexpr inline NVGcolor rgba(float pr, float pg, float pb, float pa)
   return NVGcolor{{{pr, pg, pb, pa}}};
 }
 
+constexpr inline NVGcolor rgba(const uint32_t hexRGB)
+{
+  int r = (hexRGB & 0xFF0000) >> 16;
+  int g = (hexRGB & 0xFF00) >> 8;
+  int b = (hexRGB & 0xFF);
+  return NVGcolor{{{r/255.f, g/255.f, b/255.f, 1.0f}}};
+}
+
 inline void drawBrackets(NativeDrawContext* nvg, ml::Rect b, int width)
 {
   float bl = b.left();
