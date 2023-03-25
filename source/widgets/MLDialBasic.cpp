@@ -126,7 +126,6 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       {
         float cookedNormValue = hasDetents ? _quantizeNormalizedValue(trackVal) : trackVal;
         setParamValue(pname, cookedNormValue);
-        rawNormValue = cookedNormValue;
         valueToSend = cookedNormValue;
       }
     }
@@ -179,7 +178,6 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       // command or double click: set parameter to default
       float normDefault = getNormalizedDefaultValue(_params, pname).getFloatValue();
       setParamValue(pname, normDefault);
-      rawNormValue = normDefault;
       valueToSend = normDefault;
     }
       
