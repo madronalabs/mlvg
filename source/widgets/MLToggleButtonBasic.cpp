@@ -17,7 +17,7 @@ MessageList ToggleButtonBasic::processGUIEvent(const GUICoordinates& gc, GUIEven
   MessageList r{};
   
   Path paramName{getTextProperty("param")};
-  auto currentNormalizedValue = getNormalizedValue(_params, paramName);
+  float currentNormalizedValue = _params.getNormalizedFloatValue(paramName);
   bool currentValue = currentNormalizedValue > 0.5f;
   
   if(getBoolPropertyWithDefault("enabled", true))
@@ -70,7 +70,7 @@ MessageList ToggleButtonBasic::processGUIEvent(const GUICoordinates& gc, GUIEven
 void ToggleButtonBasic::draw(ml::DrawContext dc)
 {
   Path paramName{getTextProperty("param")};
-  auto currentNormalizedValue = getNormalizedValue(_params, paramName);
+  float currentNormalizedValue = _params.getNormalizedFloatValue(paramName);
   bool currentValue = currentNormalizedValue > 0.5f;
 
   NativeDrawContext* nvg = getNativeContext(dc);

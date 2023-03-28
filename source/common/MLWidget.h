@@ -46,7 +46,7 @@ protected:
   
   // This is where the values, projections and descriptions of any
   // program parameters we control are stored.
-  ParameterTreeNormalized _params;
+  ParameterTree _params;
   
   // true if the Widget needs to be redrawn.
   bool _dirty{true};
@@ -57,10 +57,16 @@ protected:
   // else there.
   void setParamValue(Path paramName, Value v)
   {
-    _params[paramName] = v;
+    _params.setFromNormalizedValue(paramName, v);
     _dirty = true;
   }
-
+  
+  void setRealParamValue(Path paramName, Value v)
+  {
+    _params.setRealValue(paramName, v);
+    _dirty = true;
+  }
+  
 public:
 
   // set our dirty flag. Views need to override this to also set
@@ -156,7 +162,7 @@ public:
   
   inline Value getParamValue(Path paramName)
   {
-    return _params[paramName];
+    return _params.getNormalizedValue(paramName);
   }
 
   // process user input, modify our internal state, and generate ValueChanges.

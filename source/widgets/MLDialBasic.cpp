@@ -81,7 +81,8 @@ void DialBasic::setupParams()
     _normDetents.resize(nDetents);
     for(int i=0; i<nDetents; ++i)
     {
-      _normDetents[i] = _params.projections[pname].plainToNormalized(detents[i]);
+      _normDetents[i] = _params.projections[pname].realToNormalized(detents[i]);
+      
     }
   }
   
@@ -115,7 +116,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   
   if(type == "down")
   {
-    float valueToSend{getNormalizedValue(_params, pname)};
+    float valueToSend{_params.getNormalizedFloatValue(pname)};
     if (!(e.keyFlags & commandModifier))
     {
       _dragY1 = componentPosition.y();
@@ -161,7 +162,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       rawNormValue = clamp(rawNormValue + delta, 0.f, 1.f);
       
       float cookedNormValue = (hasDetents && !doFineDrag) ? _quantizeNormalizedValue(rawNormValue) : rawNormValue;
-      float currentParamValue = getNormalizedValue(_params, pname);
+      float currentParamValue = _params.getNormalizedFloatValue(pname);
       
       if(cookedNormValue != currentParamValue)
       {
@@ -172,7 +173,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   }
   else if(type == "up")
   {
-    float valueToSend{getNormalizedValue(_params, pname)};
+    float valueToSend{_params.getNormalizedFloatValue(pname)};
     if(e.keyFlags & commandModifier)
     {
       // command or double click: set parameter to default
@@ -198,7 +199,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       // keep track of raw value before quantize
       rawNormValue = clamp(rawNormValue + scaledDelta, 0.f, 1.f);
       float cookedNormValue = (hasDetents && !doFineDrag) ? _quantizeNormalizedValue(rawNormValue) : rawNormValue;
-      float currentParamValue = getNormalizedValue(_params, pname);
+      float currentParamValue = _params.getNormalizedFloatValue(pname);
       
       if(cookedNormValue != currentParamValue)
       {
@@ -239,7 +240,8 @@ MessageList DialBasic::animate(int elapsedTimeInMs, ml::DrawContext dc)
     {
       Path pname{getTextProperty("param")};
       Path paramRequestPath = Path("editor/set_param", pname);
-      r.push_back(Message{paramRequestPath, _params[pname], kMsgSequenceEnd});
+      float val = _params.getNormalizedFloatValue(pname);
+      r.push_back(Message{paramRequestPath, val, kMsgSequenceEnd});
       engaged = false;
     }
   }
@@ -250,8 +252,8 @@ void DialBasic::draw(ml::DrawContext dc)
 {
   // get parameter value
   Path paramName{getTextProperty("param")};
-  auto currentNormalizedValue = getNormalizedValue(_params, paramName);
-  auto currentPlainValue = getPlainValue(_params, paramName);
+  auto currentNormalizedValue = _params.getNormalizedFloatValue(paramName);
+  auto currentPlainValue = _params.getRealFloatValue(paramName);
   
   // get context and dimensions
   NativeDrawContext* nvg = getNativeContext(dc);
@@ -407,7 +409,7 @@ void DialBasic::draw(ml::DrawContext dc)
       for(int i=0; i<nDetents; ++i)
       {
         float detentValuePlain = detents[i];
-        float detentValueNorm = _params.projections[paramName].plainToNormalized(detentValuePlain);
+        float detentValueNorm = _params.projections[paramName].realToNormalized(detentValuePlain);
         auto a = lerp(a0, a1, detentValueNorm);
         nvgStrokeColor(nvg, markColor);
         nvgStrokeWidth(nvg, tickWidth);

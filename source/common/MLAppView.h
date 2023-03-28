@@ -75,7 +75,7 @@ protected:
   std::unique_ptr< View > _view;
 
   // all parameters we are viewing
-  ParameterTreeNormalized _params;
+  ParameterTree _params;
   
   // Actors
   Path _controllerName;

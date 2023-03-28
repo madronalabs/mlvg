@@ -42,8 +42,7 @@ public:
 
 protected:
   // parameters of our plugin or application.
-  // in the SignalProcessor the parameter tree is in plain units. Everywhere else it is normalized.
-  ParameterTreeNormalized params;
+  ParameterTree params;
 
   int _instanceNum;
   Path _instanceName;

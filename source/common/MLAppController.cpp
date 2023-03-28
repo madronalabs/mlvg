@@ -66,7 +66,7 @@ AppController::~AppController()
 
 void AppController::sendParamToView(Path pname)
 {
-  sendMessageToActor(_viewName, {Path("set_param", pname), getNormalizedValue(params, pname), kMsgFromController});
+  sendMessageToActor(_viewName, {Path("set_param", pname), params.getNormalizedValue(pname), kMsgFromController});
 }
 
 void AppController::sendAllParamsToView()
@@ -96,7 +96,7 @@ void AppController::sendAllParamsToProcessor()
 
 void AppController::sendParamToProcessor(Path pname, uint32_t flags)
 {
-  auto pval = getNormalizedValue(params, pname);
+  auto pval = params.getNormalizedValue(pname);
   sendMessageToActor(_processorName, {Path("set_param", pname), pval, flags});
 }
 
@@ -139,7 +139,7 @@ void AppController::onMessage(Message m)
           // undo will be another message
           
           // save in our ParameterTree
-          params.setParamFromNormalizedValue(whatParam, m.value);
+          params.setFromNormalizedValue(whatParam, m.value);
           
           // send to processor
           sendParamToProcessor(whatParam, m.flags);

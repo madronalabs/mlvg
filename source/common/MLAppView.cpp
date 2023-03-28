@@ -169,6 +169,9 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
      {
       if(w.knowsParam(paramName))
       {
+        
+        std::cout << "_setupWidgets: sending " << paramName << " desc\n";
+        
         _widgetsByParameter[paramName].push_back(&w);
         w.setParameterDescription(paramName, *paramDesc);
       }
@@ -374,7 +377,7 @@ void AppView::createPlatformView(void* pParent, int flags)
 {
   // get size in system coords
   Vec2 dims;
-  auto initialSize = _params["view_size"].getMatrixValue();
+  auto initialSize = _params.getNormalizedValue("view_size").getMatrixValue();
   if(initialSize.getWidth() == 2)
   {
     dims = Vec2(initialSize[0], initialSize[1]);
