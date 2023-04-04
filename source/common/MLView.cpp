@@ -332,35 +332,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
   static int frameCounter{};
   frameCounter++;
   
- // std::vector< Widget* > visibleWidgets;
-  
   WidgetGroupList widgetGroups;
-  
-  
-  /*
-  // we use forEachChild to draw only the visible widgets at this level of the tree.
-  // any widgets at lower levels will be drawn in subviews.
-  forEachChild< Widget >
-  (_widgets, [&](Widget& w)
-   {
-    if(w.getBoolProperty("visible") && w.hasProperty("bounds"))
-    {
-      // TODO if bounds intersects view bounds
-      visibleWidgets.push_back(&w);
-    }
-  }
-   );
-  std::sort(visibleWidgets.begin(), visibleWidgets.end(), [&](Widget* a, Widget* b){ return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());} );
-  */
-  
-  // instead this visibility check above could be implemented as a SubCollection.
-  // auto visibleWidgets = reduce(children(_widgets), [](const Widget& w){ return w.getBoolProperty("visible") && w.hasProperty("bounds"); }
-  // auto visibleWidgetsSorted = sort(visibleWidgets, [&](Widget* a, Widget* b){ return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());} );
-  
-  
-  // in any order, make list of widgets needing redraw and any widgets overlapping them.
-  // keep track of rectangle groups of widgets: the groups grow and "eat" any widgets overlapping the rectangle.
-  //
   
   // clear needsDraw flags
   forEachChild< Widget >
@@ -374,21 +346,8 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
    {
       if(w.getBoolProperty("visible") && w.isDirty())
       {
-//        WidgetGroup& newGroup = widgetGroups.add(WidgetGroup(w));
-            
-       
-     //   auto newGroupPtr = make_unique<WidgetGroup>(w);
-        
-     //   widgetGroups.groups.push_back(make_unique<WidgetGroup>(w));
-
-      //  WidgetGroup& newGroup = *newGroupPtr;
-        
         WidgetGroup newGroup(w);
-        
-      //  WidgetGroup newGroup = widgetGroups.add(WidgetGroup(w));
         w._needsDraw = true;
-        //int sizeBefore = widgetGroups.groups.size();
-        
         
         while(1)
         {
@@ -439,151 +398,29 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
    }
    );
   
-  // TEST
   
+  // for each widget group,
   for(auto& wg : widgetGroups.groups)
   {
+    // sort the widgets by z
+    std::sort(wg.widgets.begin(), wg.widgets.end(), [&](Widget* a, Widget* b){ return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());} );
+    
+    // draw background
+    auto groupBounds = dc.coords.gridToPixel(wg.bounds);
+    drawBackground(dc, groupBounds);
+
     for(auto w : wg.widgets)
     {
-      ml::Rect widgetBounds = w->getBounds();
-      auto nativeBounds = dc.coords.gridToPixel(widgetBounds);
-      //nvgIntersectScissor(nvg, nativeBounds);
-      
-      drawBackground(dc, nativeBounds);
       drawWidget(dc, w);
-    }
-    
-    // TEMP
-    {
-      Rect widgetBounds = roundToInt(dc.coords.gridToPixel(wg.bounds));
-      
-      nvgBeginPath(nvg);
-      nvgStrokeColor(nvg, colors::red);
-      nvgStrokeWidth(nvg, 3);
-      nvgRect(nvg, widgetBounds + ml::Rect{0.5, 0.5, 0., 0.});
-      nvgStroke(nvg);
     }
   }
   
+  /*
   if(widgetGroups.groups.size()  > 0)
   {
     std::cout << "drawing: " << sweepIters << " iters, " << widgetGroups.groups.size() << " groups\n";
   }
-  
-  // group and merge:
-  
-  // if a widget w is dirty,
-  // get prev + current bounds rect wb
-  // for each rectangle-group a,
-  // if wb overlaps the rectangle-group a, add w to the rectangle-group
-  // calculate new group bounds rect ab
-  // for each other rectangle group b,
-  // if ab overlaps b, merge b into a
-  
-  
-  /*
-  forEachChild< Widget >
-  (_widgets, [&](Widget& w)
-   {
-    if(w.getBoolProperty("visible") && w.hasProperty("bounds")) // TODO clean
-    {
-      // TODO if bounds intersects view bounds
-      visibleWidgets.push_back(&w);
-    }
-    
-    if(w.isDirty())
-    {
-    }
-  }
-   );
-  
-  
   */
-  
-  
-  
-  // in z sorted order from back to front:
-
-  
-  /*
-  // for each widget needing drawing, mark as dirty all widgets intersecting its bounds
-  for(auto it = visibleWidgets.begin(); it != visibleWidgets.end(); ++it)
-  {
-    Widget* w1 = *it;
-    if(w1->isDirty())
-    {
-      ml::Rect widget1Bounds = w1->getBounds();
-      if(w1->getProperty("previous_bounds"))
-      {
-        ml::Rect widget1PreviousBounds = matrixToRect(w1->getProperty("previous_bounds").getMatrixValue());
-        widget1Bounds = rectEnclosing(widget1Bounds, widget1PreviousBounds);
-      }
-      for(auto it2 = visibleWidgets.begin(); it2 != visibleWidgets.end(); ++it2)
-      {
-        Widget* w2 = *it2;
-        if(w1 != w2)
-        {
-          if(!w2->isDirty())
-          {
-            if(intersectRects(widget1Bounds, w2->getBounds()))
-            {
-              w2->setDirty(true);
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  // collect previous and current bounds of each dirty widget. Previous
-  // bounds are needed in case widget has moved.
-  std::vector< Rect > dirtyRects;
-  for(auto w : visibleWidgets)
-  {
-    if(w->isDirty())
-    {
-      if(w->getProperty("previous_bounds"))
-      {
-        dirtyRects.push_back(matrixToRect(w->getProperty("previous_bounds").getMatrixValue()));
-      }
-      dirtyRects.push_back(w->getBounds());
-    }
-  }
-  
-  */
-  
-  
-  
-  /*
-  // fill dirty rects with background.
-  // TODO we want a non-rectangular scissor region but don't have it in nanovg so we make a bunch
-  // of drawBackground calls with rects. instead try one big rect.
-  if(getBoolPropertyWithDefault("draw_background", true))
-  {
-    for(auto rect : dirtyRects)
-    {
-      nvgSave(nvg);
-      auto nativeRect = dc.coords.gridToPixel(rect);
-      nativeRect = grow(nativeRect, 2); // MLTEST workaround for slop
-      nvgIntersectScissor(nvg, nativeRect);
-      
-      drawBackground(dc, nativeRect);
-      nvgRestore(nvg);
-    }
-  }
-  */
-  
-  /*
-  // draw each dirty widget.
-  for(auto w : visibleWidgets)
-  {
-    if(w->isDirty())
-    {
-      drawWidget(dc, w);
-    }
-  }
-   */
-  
   
 }
 
