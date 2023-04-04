@@ -173,14 +173,6 @@ void View::draw(ml::DrawContext dc)
   {
     drawDirtyWidgets(dc);
   }
-  
-  /*
-   // TEST
-   //NativeDrawContext* nvg = getNativeContext(dc);
-   nvgStrokeWidth(nvg, 20);
-   nvgStrokeColor(nvg, rgba(1, 1, 1, 0.5));
-   drawBrackets(nvg, getLocalBounds(dc, *this), 40);
-   */
 }
 
 std::vector< Widget* > View::findWidgetsForEvent(const GUIEvent& e)
@@ -234,7 +226,7 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
     nvgStroke(nvg);
   }
   
-  constexpr bool kShowDirtyWidgets{false};
+  bool kShowDirtyWidgets = dc.pProperties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
   if(kShowDirtyWidgets)
   {
     // DEBUG
@@ -247,11 +239,25 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
     
     nvgBeginPath(nvg);
     nvgStrokeColor(nvg, flickerColor);
-    nvgStrokeWidth(nvg, 8);
+    nvgStrokeWidth(nvg, 4);
     nvgRect(nvg, widgetBounds);
     nvgStroke(nvg);
   }
 }
+
+// draw background widget in the current View context.
+
+void View::drawBackgroundWidget(const ml::DrawContext& dc, Widget* w)
+{
+  NativeDrawContext* nvg = getNativeContext(dc);
+  Rect widgetBounds = getPixelBounds(dc, *w);
+  
+  nvgSave(nvg);
+  nvgTranslate(nvg, getTopLeft(widgetBounds));
+  w->draw(dc);
+  nvgRestore(nvg);
+}
+
 
 void View::drawAllWidgets(ml::DrawContext dc)
 {
@@ -278,6 +284,47 @@ void View::drawAllWidgets(ml::DrawContext dc)
   }
 }
 
+struct WidgetGroup
+{
+  Rect bounds;
+  std::vector< Widget* > widgets;
+  
+  WidgetGroup(Widget& w)
+  {
+    bounds = getCurrentAndPreviousBounds(w);
+    widgets.push_back(&w);
+  }
+  ~WidgetGroup() = default;
+  
+  void add(Widget* w)
+  {
+    bounds = rectEnclosing(bounds, w->getBounds());
+    widgets.push_back(w);
+  }
+  
+  void mergeWithGroup(const WidgetGroup& wg2)
+  {
+    for(Widget* w2 : wg2.widgets)
+    {
+      widgets.push_back(w2);
+    }
+    bounds = rectEnclosing(bounds, wg2.bounds);
+  }
+};
+
+struct WidgetGroupList
+{
+//  std::vector< std::unique_ptr< WidgetGroup > > groups;
+  std::vector< WidgetGroup > groups;
+
+  /*
+  WidgetGroup& add(WidgetGroup wg)
+  {
+    groups.emplace_back(wg);
+    return groups->back();
+  }*/
+};
+
 void View::drawDirtyWidgets(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
@@ -285,8 +332,12 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
   static int frameCounter{};
   frameCounter++;
   
-  std::vector< Widget* > visibleWidgets;
+ // std::vector< Widget* > visibleWidgets;
   
+  WidgetGroupList widgetGroups;
+  
+  
+  /*
   // we use forEachChild to draw only the visible widgets at this level of the tree.
   // any widgets at lower levels will be drawn in subviews.
   forEachChild< Widget >
@@ -300,13 +351,161 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
   }
    );
   std::sort(visibleWidgets.begin(), visibleWidgets.end(), [&](Widget* a, Widget* b){ return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());} );
+  */
   
   // instead this visibility check above could be implemented as a SubCollection.
   // auto visibleWidgets = reduce(children(_widgets), [](const Widget& w){ return w.getBoolProperty("visible") && w.hasProperty("bounds"); }
   // auto visibleWidgetsSorted = sort(visibleWidgets, [&](Widget* a, Widget* b){ return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());} );
   
-  // in z sorted order from back to front:
   
+  // in any order, make list of widgets needing redraw and any widgets overlapping them.
+  // keep track of rectangle groups of widgets: the groups grow and "eat" any widgets overlapping the rectangle.
+  //
+  
+  // clear needsDraw flags
+  forEachChild< Widget >
+  (_widgets, [&](Widget& w)
+   { w._needsDraw = false; }
+   );
+  
+  size_t sweepIters{0};
+  forEachChild< Widget >
+  (_widgets, [&](Widget& w)
+   {
+      if(w.getBoolProperty("visible") && w.isDirty())
+      {
+//        WidgetGroup& newGroup = widgetGroups.add(WidgetGroup(w));
+            
+       
+     //   auto newGroupPtr = make_unique<WidgetGroup>(w);
+        
+     //   widgetGroups.groups.push_back(make_unique<WidgetGroup>(w));
+
+      //  WidgetGroup& newGroup = *newGroupPtr;
+        
+        WidgetGroup newGroup(w);
+        
+      //  WidgetGroup newGroup = widgetGroups.add(WidgetGroup(w));
+        w._needsDraw = true;
+        //int sizeBefore = widgetGroups.groups.size();
+        
+        
+        while(1)
+        {
+          sweepIters++;
+          bool changed{false};
+          // if new group overlaps any Widgets w2 that are not marked as
+          // needing drawing, add w2 to the group.
+          forEachChild< Widget >
+          (_widgets, [&](Widget& w2)
+           {
+            
+            // if newGroup intersects visible w2, add to group
+            if(w2.getBoolProperty("visible") && intersectRects(newGroup.bounds, w2.getBounds()))
+            {
+              if(!w2._needsDraw)
+              {
+                newGroup.add(&w2);
+                w2._needsDraw = true;
+                changed = true;
+              }
+            }
+          }
+           );
+          
+          // if new group overlaps any other group wg2, merge wg2 into new group
+          // and delete wg2 from list
+          for(auto it = widgetGroups.groups.begin(); it != widgetGroups.groups.end(); )
+          {
+            WidgetGroup& wg2 = *it;
+            if(intersectRects(newGroup.bounds, wg2.bounds))
+            {
+              newGroup.mergeWithGroup(wg2);
+              it = widgetGroups.groups.erase(it);
+              changed = true;
+            }
+            else
+            {
+              it++;
+            }
+          }
+          
+          if(!changed) break;
+        }
+        
+        // add new group to the group list
+        widgetGroups.groups.push_back(newGroup);
+      }
+   }
+   );
+  
+  // TEST
+  
+  for(auto& wg : widgetGroups.groups)
+  {
+    for(auto w : wg.widgets)
+    {
+      ml::Rect widgetBounds = w->getBounds();
+      auto nativeBounds = dc.coords.gridToPixel(widgetBounds);
+      //nvgIntersectScissor(nvg, nativeBounds);
+      
+      drawBackground(dc, nativeBounds);
+      drawWidget(dc, w);
+    }
+    
+    // TEMP
+    {
+      Rect widgetBounds = roundToInt(dc.coords.gridToPixel(wg.bounds));
+      
+      nvgBeginPath(nvg);
+      nvgStrokeColor(nvg, colors::red);
+      nvgStrokeWidth(nvg, 3);
+      nvgRect(nvg, widgetBounds + ml::Rect{0.5, 0.5, 0., 0.});
+      nvgStroke(nvg);
+    }
+  }
+  
+  if(widgetGroups.groups.size()  > 0)
+  {
+    std::cout << "drawing: " << sweepIters << " iters, " << widgetGroups.groups.size() << " groups\n";
+  }
+  
+  // group and merge:
+  
+  // if a widget w is dirty,
+  // get prev + current bounds rect wb
+  // for each rectangle-group a,
+  // if wb overlaps the rectangle-group a, add w to the rectangle-group
+  // calculate new group bounds rect ab
+  // for each other rectangle group b,
+  // if ab overlaps b, merge b into a
+  
+  
+  /*
+  forEachChild< Widget >
+  (_widgets, [&](Widget& w)
+   {
+    if(w.getBoolProperty("visible") && w.hasProperty("bounds")) // TODO clean
+    {
+      // TODO if bounds intersects view bounds
+      visibleWidgets.push_back(&w);
+    }
+    
+    if(w.isDirty())
+    {
+    }
+  }
+   );
+  
+  
+  */
+  
+  
+  
+  // in z sorted order from back to front:
+
+  
+  /*
   // for each widget needing drawing, mark as dirty all widgets intersecting its bounds
   for(auto it = visibleWidgets.begin(); it != visibleWidgets.end(); ++it)
   {
@@ -351,6 +550,11 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
     }
   }
   
+  */
+  
+  
+  
+  /*
   // fill dirty rects with background.
   // TODO we want a non-rectangular scissor region but don't have it in nanovg so we make a bunch
   // of drawBackground calls with rects. instead try one big rect.
@@ -367,7 +571,9 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
       nvgRestore(nvg);
     }
   }
+  */
   
+  /*
   // draw each dirty widget.
   for(auto w : visibleWidgets)
   {
@@ -376,6 +582,9 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
       drawWidget(dc, w);
     }
   }
+   */
+  
+  
 }
 
 // draw a rectangle of the background.
@@ -390,9 +599,9 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   // MLTEST
   // std::cout << "view_size: " << dc.coords.viewSizeInPixels << "\n";
   
+  // get image or gradient
   NVGpaint paintPattern;
   Resource* pr = getResource(dc, "background");
-    
   if(pr)
   {
     // TODO better cache image handles
@@ -410,49 +619,56 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.viewSizeInPixels.y() + u, bgColor, bgColor);
   }
   
-  // draw background image or gradient
-  nvgBeginPath(nvg);
-  nvgRect(nvg, nativeRect);
-  nvgFillPaint(nvg, paintPattern);
-  nvgFill(nvg);
-
-  // draw background Widgets intersecting rect
-  for(const auto& w : _backgroundWidgets)
+  // do the drawing
   {
-    if(intersectRects(dc.coords.gridToPixel(w->getBounds()), nativeRect))
-    {
-      drawWidget(dc, w.get());
-    }
-  };
-  
-  bool drawGrid = dc.pProperties->getBoolPropertyWithDefault("draw_background_grid", false);
-  
-  if(drawGrid)
-  {
-    auto markColor = multiplyAlpha(getColor(dc, "mark"), 0.125f);
-
-    const int gx = std::ceilf(getFloatProperty("grid_units_x"));
-    const int gy = std::ceilf(getFloatProperty("grid_units_y"));
+    nvgSave(nvg);
+    nvgIntersectScissor(nvg, nativeRect);
     
-    nvgStrokeColor(nvg, markColor);
-    nvgStrokeWidth(nvg, 1.0f*dc.coords.displayScale);
-    
+    // draw image or gradient
     nvgBeginPath(nvg);
-    for(int i=0; i <= gx; ++i)
+    nvgRect(nvg, nativeRect);
+    nvgFillPaint(nvg, paintPattern);
+    nvgFill(nvg);
+    
+    // draw background Widgets intersecting rect
+    for(const auto& w : _backgroundWidgets)
     {
-      Vec2 a = dc.coords.gridToPixel(Vec2(i, 0));
-      Vec2 b = dc.coords.gridToPixel(Vec2(i, gy));
-      nvgMoveTo(nvg, a.x(), a.y());
-      nvgLineTo(nvg, b.x(), b.y());
-    }
-    for(int j=0; j <= gy; ++j)
+      if(intersectRects(dc.coords.gridToPixel(w->getBounds()), nativeRect))
+      {
+        drawBackgroundWidget(dc, w.get());
+      }
+    };
+    
+    bool drawGrid = dc.pProperties->getBoolPropertyWithDefault("draw_background_grid", false);
+    
+    if(drawGrid)
     {
-      Vec2 a = dc.coords.gridToPixel(Vec2(0, j));
-      Vec2 b = dc.coords.gridToPixel(Vec2(gx, j));
-      nvgMoveTo(nvg, a.x(), a.y());
-      nvgLineTo(nvg, b.x(), b.y());
+      auto markColor = multiplyAlpha(getColor(dc, "mark"), 0.125f);
+      
+      const int gx = std::ceilf(getFloatProperty("grid_units_x"));
+      const int gy = std::ceilf(getFloatProperty("grid_units_y"));
+      
+      nvgStrokeColor(nvg, markColor);
+      nvgStrokeWidth(nvg, 1.0f*dc.coords.displayScale);
+      
+      nvgBeginPath(nvg);
+      for(int i=0; i <= gx; ++i)
+      {
+        Vec2 a = dc.coords.gridToPixel(Vec2(i, 0));
+        Vec2 b = dc.coords.gridToPixel(Vec2(i, gy));
+        nvgMoveTo(nvg, a.x(), a.y());
+        nvgLineTo(nvg, b.x(), b.y());
+      }
+      for(int j=0; j <= gy; ++j)
+      {
+        Vec2 a = dc.coords.gridToPixel(Vec2(0, j));
+        Vec2 b = dc.coords.gridToPixel(Vec2(gx, j));
+        nvgMoveTo(nvg, a.x(), a.y());
+        nvgLineTo(nvg, b.x(), b.y());
+      }
+      nvgStroke(nvg);
     }
-    nvgStroke(nvg);
+    nvgRestore(nvg);
   }
 }
 

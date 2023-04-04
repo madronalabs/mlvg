@@ -42,15 +42,18 @@ public:
   // as a dial does when dragging. Single clicks will not set this flag.
   bool engaged{false};
   
+  // true if the Widget needs to be redrawn.
+  bool _dirty{true};
+  
+  // internal flag for View
+  bool _needsDraw{false};
+
 protected:
   
   // This is where the values, projections and descriptions of any
   // program parameters we control are stored.
   ParameterTree _params;
   
-  // true if the Widget needs to be redrawn.
-  bool _dirty{true};
-    
   // set the value of the named parameter and mark the Widget dirty.
   // this is not virtual. To override its behavior, instead intercept the
   // set_param message in handleMessage in your Widget and do something
@@ -219,5 +222,20 @@ inline ml::Rect getPixelBounds(const ml::DrawContext& dc, const Widget& w)
 {
   return roundToInt(dc.coords.gridToPixel(w.getBounds()));
 }
+
+inline ml::Rect getCurrentAndPreviousBounds(const Widget& w)
+{
+  // not needed? w.hasProperty("bounds")
+  ml::Rect currentBounds = w.getBounds();
+  if(w.getProperty("previous_bounds"))
+  {
+    ml::Rect previousBounds = matrixToRect(w.getProperty("previous_bounds").getMatrixValue());
+    currentBounds = rectEnclosing(currentBounds, previousBounds);
+  }
+  return currentBounds;
+}
+
+
+
 
 } // namespace ml

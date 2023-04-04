@@ -40,6 +40,8 @@ public:
   void drawDirtyWidgets(ml::DrawContext dc);
 
 private:
+  void drawBackgroundWidget(const ml::DrawContext& dc, Widget* w);
+
   Path _widgetPointerToName(Widget* w);
   std::vector< Widget* > findWidgetsForEvent(const GUIEvent& e);
   virtual void drawBackground(DrawContext dc, ml::Rect nativeRect);

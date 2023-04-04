@@ -169,9 +169,6 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
      {
       if(w.knowsParam(paramName))
       {
-        
-        std::cout << "_setupWidgets: sending " << paramName << " desc\n";
-        
         _widgetsByParameter[paramName].push_back(&w);
         w.setParameterDescription(paramName, *paramDesc);
       }
