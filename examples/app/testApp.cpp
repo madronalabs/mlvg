@@ -76,9 +76,9 @@ public:
   void processVector(MainInputs inputs, MainOutputs outputs, void *stateDataUnused) override
   {
     // get params from the SignalProcessor.
-    float f1 = getParam("freq1");
-    float f2 = getParam("freq2");
-    float gain = getParam("gain");
+    float f1 = _params.getRealFloatValue("freq1");
+    float f2 = _params.getRealFloatValue("freq2");
+    float gain = _params.getRealFloatValue("gain");
 
     // Running the sine generators makes DSPVectors as output.
     // The input parameter is omega: the frequency in Hz divided by the sample rate.
