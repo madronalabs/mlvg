@@ -448,7 +448,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   // pView->setDisplayScale(displayScale);
   
   // We should set this to a frame rate that we think our renderer can consistently maintain.
-  view.preferredFramesPerSecond = 60;
+  view.preferredFramesPerSecond = kTargetFPS;
 
   // add the new view to our parent view supplied by the host.
   [parentView addSubview: view];

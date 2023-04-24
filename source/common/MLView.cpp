@@ -124,6 +124,7 @@ MessageList View::animate(int elapsedTimeInMs, ml::DrawContext dc)
   {
     secsCounter++;
     testCounter -= 1000;
+    framesSinceTick = 0;
   }
   
   forEachChild< Widget >
@@ -137,6 +138,8 @@ MessageList View::animate(int elapsedTimeInMs, ml::DrawContext dc)
 void View::draw(ml::DrawContext dc)
 {
   _frameCounter++;
+  
+  framesSinceTick++;
 
   NativeDrawContext* nvg = getNativeContext(dc);
   Rect nativeBounds = getLocalBounds(dc, *this);
@@ -144,6 +147,7 @@ void View::draw(ml::DrawContext dc)
   
   // TODO before scaling, is this widget or any children dirty?
   
+
   // we save the context before every Widget is drawn,
   // so no need to save it here when we change the transform
   if(hasProperty("scale"))
@@ -159,6 +163,7 @@ void View::draw(ml::DrawContext dc)
     nvgTranslate(nvg, dc.coords.gridToPixel(matrixToVec2(getMatrixProperty("position"))));
   }
   
+  
   // if the View itself is dirty, all the Widgets in it must be redrawn.
   // otherwise, only the dirty Widgets need to be redrawn.
   if(_dirty)
@@ -173,6 +178,7 @@ void View::draw(ml::DrawContext dc)
   {
     drawDirtyWidgets(dc);
   }
+  setDirty(false);
 }
 
 std::vector< Widget* > View::findWidgetsForEvent(const GUIEvent& e)
@@ -288,7 +294,7 @@ struct WidgetGroup
 {
   Rect bounds;
   std::vector< Widget* > widgets;
-  
+
   WidgetGroup(Widget& w)
   {
     bounds = getCurrentAndPreviousBounds(w);
@@ -298,31 +304,20 @@ struct WidgetGroup
   
   void add(Widget* w)
   {
+    if(std::find(widgets.begin(), widgets.end(), w) == widgets.end())
+      widgets.push_back(w);
     bounds = rectEnclosing(bounds, w->getBounds());
-    widgets.push_back(w);
   }
   
   void mergeWithGroup(const WidgetGroup& wg2)
   {
     for(Widget* w2 : wg2.widgets)
     {
-      widgets.push_back(w2);
+      if(std::find(widgets.begin(), widgets.end(), w2) == widgets.end())
+        widgets.push_back(w2);
     }
     bounds = rectEnclosing(bounds, wg2.bounds);
   }
-};
-
-struct WidgetGroupList
-{
-//  std::vector< std::unique_ptr< WidgetGroup > > groups;
-  std::vector< WidgetGroup > groups;
-
-  /*
-  WidgetGroup& add(WidgetGroup wg)
-  {
-    groups.emplace_back(wg);
-    return groups->back();
-  }*/
 };
 
 void View::drawDirtyWidgets(ml::DrawContext dc)
@@ -332,7 +327,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
   static int frameCounter{};
   frameCounter++;
   
-  WidgetGroupList widgetGroups;
+  std::vector< WidgetGroup > widgetGroups;
   
   // clear needsDraw flags
   forEachChild< Widget >
@@ -374,13 +369,13 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
           
           // if new group overlaps any other group wg2, merge wg2 into new group
           // and delete wg2 from list
-          for(auto it = widgetGroups.groups.begin(); it != widgetGroups.groups.end(); )
+          for(auto it = widgetGroups.begin(); it != widgetGroups.end(); )
           {
             WidgetGroup& wg2 = *it;
             if(intersectRects(newGroup.bounds, wg2.bounds))
             {
               newGroup.mergeWithGroup(wg2);
-              it = widgetGroups.groups.erase(it);
+              it = widgetGroups.erase(it);
               changed = true;
             }
             else
@@ -389,39 +384,51 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
             }
           }
           
+          // if no groups can grow any more, we are done collecting.
           if(!changed) break;
         }
         
         // add new group to the group list
-        widgetGroups.groups.push_back(newGroup);
+        widgetGroups.push_back(newGroup);
       }
    }
    );
   
-  
   // for each widget group,
-  for(auto& wg : widgetGroups.groups)
+  
+//  int g{0};
+//  std::cout << "drawing groups: -------------\n";
+  
+  for(auto& wg : widgetGroups)
   {
     // sort the widgets by z
-    std::sort(wg.widgets.begin(), wg.widgets.end(), [&](Widget* a, Widget* b){ return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());} );
+    std::sort(wg.widgets.begin(), wg.widgets.end(), [&](Widget* a, Widget* b) {
+      return (a->getProperty("z").getFloatValue() > b->getProperty("z").getFloatValue());
+    } );
     
-    // draw background
+    // draw background under this group's rect
     auto groupBounds = dc.coords.gridToPixel(wg.bounds);
+    groupBounds = grow(groupBounds, 1);
     drawBackground(dc, groupBounds);
 
+//    std::cout << "         group: " << g++ << " -------------\n";
+
+    
     for(auto w : wg.widgets)
     {
+//      std::cout << "              widget: " << (unsigned long)w << "\n";
+
       drawWidget(dc, w);
+
     }
   }
   
   /*
-  if(widgetGroups.groups.size()  > 0)
+  if(widgetGroups.size()  > 0)
   {
     std::cout << "drawing: " << sweepIters << " iters, " << widgetGroups.groups.size() << " groups\n";
   }
   */
-  
 }
 
 // draw a rectangle of the background.

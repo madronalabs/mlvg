@@ -46,7 +46,7 @@ private:
   std::vector< Widget* > findWidgetsForEvent(const GUIEvent& e);
   virtual void drawBackground(DrawContext dc, ml::Rect nativeRect);
   size_t _frameCounter{0};
-  
+  int framesSinceTick{0};
   int testCounter{0};
   int secsCounter{0};
 };

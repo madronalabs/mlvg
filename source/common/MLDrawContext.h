@@ -16,6 +16,8 @@
 #include "MLMath2D.h"
 #include "MLGUICoordinates.h"
 
+constexpr int kTargetFPS{60};
+
 // TODO clean up cross-platform code
 
 #ifdef __APPLE__
@@ -192,6 +194,11 @@ inline void nvgLineTo(NativeDrawContext* nvg, Vec2 p)
 inline void nvgMoveTo(NativeDrawContext* nvg, Vec2 p)
 {
   nvgMoveTo(nvg, p.x(), p.y());
+}
+
+inline void nvgArcTo(NativeDrawContext* nvg, Vec2 p1, Vec2 p2, float r)
+{
+  nvgArcTo(nvg, p1.x(), p1.y(), p2.x(), p2.y(), r);
 }
 
 inline void nvgRect(NativeDrawContext* nvg, ml::Rect r)
@@ -642,14 +649,24 @@ inline NVGcolor lerp(NVGcolor a, NVGcolor b, float mix) { return nvgLerpRGBA(a, 
 
 namespace colors
 {
-  constexpr NVGcolor black{0, 0, 0, 1};
-  constexpr NVGcolor white{1, 1, 1, 1};
+constexpr NVGcolor black{0, 0, 0, 1};
+constexpr NVGcolor white{1, 1, 1, 1};
 
-  constexpr NVGcolor red{1, 0, 0, 1};
-  constexpr NVGcolor green{0, 1, 0, 1};
-  constexpr NVGcolor blue{0, 0, 1, 1};
+constexpr NVGcolor gray1{0.1f, 0.1f, 0.1f, 1};
+constexpr NVGcolor gray2{0.2f, 0.2f, 0.2f, 1};
+constexpr NVGcolor gray3{0.3f, 0.3f, 0.3f, 1};
+constexpr NVGcolor gray4{0.4f, 0.4f, 0.4f, 1};
+constexpr NVGcolor gray5{0.5f, 0.5f, 0.5f, 1};
+constexpr NVGcolor gray{0.5f, 0.5f, 0.5f, 1};
+constexpr NVGcolor gray6{0.6f, 0.6f, 0.6f, 1};
+constexpr NVGcolor gray7{0.7f, 0.7f, 0.7f, 1};
+constexpr NVGcolor gray8{0.8f, 0.8f, 0.8f, 1};
+constexpr NVGcolor gray9{0.9f, 0.9f, 0.9f, 1};
+
+constexpr NVGcolor red{1, 0, 0, 1};
+constexpr NVGcolor green{0, 1, 0, 1};
+constexpr NVGcolor blue{0, 0, 1, 1};
 }
-
 
 } // namespace ml
 
