@@ -17,10 +17,11 @@ using namespace std::chrono;
 struct GUIEvent
 {
   Symbol type{};
-  Vec2 position{}; // position in grid coordinates
-  Vec2 delta{};
-  uint32_t keyFlags{};
-  int sourceIndex{}; // for multiple touches etc.
+  Vec2 position{0, 0}; // position in grid coordinates
+  Vec2 delta{0, 0};
+  uint32_t keyCode{0};
+  uint32_t keyFlags{0};
+  int sourceIndex{0}; // for multiple touches etc.
 
 //  time_point<system_clock> time;
   
@@ -61,9 +62,13 @@ enum KeyFlags
 
   /** Middle mouse button flag. */
   middleButtonModifier                    = 64
-
 };
 
+enum KeyCodes
+{
+  // just a start, to implement delete
+  deleteKey = 127
+};
 
 
 // TEMP for navigation

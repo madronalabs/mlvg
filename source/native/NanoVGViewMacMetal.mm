@@ -253,6 +253,34 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   }
 }
 
+- (void)keyDown:(NSEvent*)pEvent
+{
+  GUIEvent e{"keydown"};
+  
+  [self convertEventPositions:pEvent toGUIEvent:&e];
+  [self convertEventFlags:pEvent toGUIEvent:&e];
+  
+  auto chars = [pEvent charactersIgnoringModifiers];
+  auto utf8 = [chars UTF8String];
+  TextFragment t(utf8);
+  auto it = t.begin();
+  e.keyCode = *it;
+  
+  NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
+  _totalDrag = NSMakePoint(0, 0);
+  
+  if (_appView)
+  {
+    _appView->pushEvent(e);
+  }
+}
+
+
+- (BOOL)acceptsFirstResponder
+{
+  return YES;
+}
+
 @end
 
 

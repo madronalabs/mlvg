@@ -292,6 +292,7 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
     {
       if(magnitude(Vec2(systemPosition - _doubleClickStartPosition)) < kDoubleClickRadius)
       {
+        // fake command modifier?
         r.keyFlags |= commandModifier;
         _doubleClickTimer.stop();
       }
