@@ -173,14 +173,17 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   }
   else if(type == "up")
   {
-    float valueToSend{_params.getNormalizedFloatValue(pname)};
+    Value valueToSend;
     if(e.keyFlags & commandModifier)
     {
-      // command or double click: set parameter to default
-      float normDefault = getNormalizedDefaultValue(_params, pname).getFloatValue();
-      setParamValue(pname, normDefault);
-      valueToSend = normDefault;
+      auto defaultVal = getNormalizedDefaultValue(_params, pname);
+      setParamValue(pname, defaultVal);
+      valueToSend = defaultVal;
     }
+    else
+    {
+      valueToSend = _params.getNormalizedFloatValue(pname);
+    };
       
     // if engaged, disengage and send a sequence end message
     if(engaged)

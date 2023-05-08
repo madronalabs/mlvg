@@ -56,7 +56,7 @@ MessageList View::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   if(wvec.size() > 0)
   {
     std::sort(wvec.begin(), wvec.end(), [&](Widget* a, Widget* b){
-      return (a->getProperty("z").getFloatValue() < b->getProperty("z").getFloatValue());
+      return (a->getFloatProperty("z") < b->getFloatProperty("z"));
     } );
   }
   
@@ -306,6 +306,12 @@ struct WidgetGroup
   {
     if(std::find(widgets.begin(), widgets.end(), w) == widgets.end())
       widgets.push_back(w);
+  }
+  
+  void addAndExpand(Widget* w)
+  {
+    if(std::find(widgets.begin(), widgets.end(), w) == widgets.end())
+      widgets.push_back(w);
     bounds = rectEnclosing(bounds, w->getBounds());
   }
   
@@ -353,20 +359,16 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
           forEachChild< Widget >
           (_widgets, [&](Widget& w2)
            {
-            
             // if newGroup intersects visible w2, add to group
-            if(w2.getBoolProperty("visible") && intersectRects(newGroup.bounds, w2.getBounds()))
+            if((!w2._needsDraw) && w2.getBoolProperty("visible") && intersectRects(newGroup.bounds, w2.getBounds()))
             {
-              if(!w2._needsDraw)
-              {
-                newGroup.add(&w2);
-                w2._needsDraw = true;
-                changed = true;
-              }
+              w2._needsDraw = true;
+              newGroup.addAndExpand(&w2);
+              changed = true;
             }
           }
            );
-          
+            
           // if new group overlaps any other group wg2, merge wg2 into new group
           // and delete wg2 from list
           for(auto it = widgetGroups.begin(); it != widgetGroups.end(); )
@@ -408,7 +410,11 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
     
     // draw background under this group's rect
     auto groupBounds = dc.coords.gridToPixel(wg.bounds);
-    groupBounds = grow(groupBounds, 1);
+//    groupBounds = grow(groupBounds, 1);
+
+    nvgSave(nvg);
+    nvgIntersectScissor(nvg, groupBounds);
+
     drawBackground(dc, groupBounds);
 
 //    std::cout << "         group: " << g++ << " -------------\n";
@@ -421,6 +427,8 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
       drawWidget(dc, w);
 
     }
+    
+    nvgRestore(nvg);
   }
   
   /*

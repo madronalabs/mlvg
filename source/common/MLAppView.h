@@ -67,7 +67,12 @@ public:
   void stopTimersAndActor();
   
   void doResize(Vec2 newSize);
-  void pushEvent(GUIEvent g);
+  
+  // return true if the event will be handled by the View.
+  bool willHandleEvent(GUIEvent g);
+  
+  // push event to the input queue and return true if the event will be handled by the View.
+  bool pushEvent(GUIEvent g);
   
 protected:
   

@@ -666,6 +666,12 @@ constexpr NVGcolor gray9{0.9f, 0.9f, 0.9f, 1};
 constexpr NVGcolor red{1, 0, 0, 1};
 constexpr NVGcolor green{0, 1, 0, 1};
 constexpr NVGcolor blue{0, 0, 1, 1};
+
+constexpr NVGcolor yellow{1, 1, 0, 1};
+constexpr NVGcolor magenta{1, 0, 1, 1};
+constexpr NVGcolor cyan{0, 1, 1, 1};
+
+
 }
 
 } // namespace ml

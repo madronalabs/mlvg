@@ -16,7 +16,7 @@ AppView::AppView(TextFragment appName, size_t instanceNum)
   
   // get names of other Actors we might communicate with
   _controllerName = TextFragment(appName, "controller", ml::textUtils::naturalNumberToText(instanceNum));
-
+  
   // register ourself
   auto myName = TextFragment(appName, "view", ml::textUtils::naturalNumberToText(instanceNum));
   registerActor(myName, this);
@@ -24,7 +24,7 @@ AppView::AppView(TextFragment appName, size_t instanceNum)
 
 AppView::~AppView()
 {
-
+  
   removeActor(this);
 }
 
@@ -80,7 +80,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     
     _view->setProperty("grid_units_x", gridUnitsX);
     _view->setProperty("grid_units_y", gridUnitsY);
-
+    
     // get origin of grid system, relative to view top left,
     // in pixel coordinate system.
     Vec2 origin = getTopLeft(_borderRect)*displayScale;
@@ -94,9 +94,9 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     
     // set bounds for top-level View in grid coordinates
     _view->setBounds({0, 0, gridUnitsX, gridUnitsY});
-
+    
     layoutFixedSizeWidgets_(newSize);
-
+    
     DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
     layoutView(dc);
     
@@ -144,7 +144,7 @@ void AppView::createVectorImage(Path newImageName, const unsigned char* dataStar
     std::cout << "createVectorImage: alloc failed! " << newImageName << ", " << dataSize << " bytes \n";
     return;
   }
-
+  
   free(tempData);
 }
 
@@ -358,7 +358,7 @@ void AppView::render(NativeDrawContext* nvg, Layer* backingLayer)
     nvgFillColor(nvg, bgColor);
     nvgFill(nvg);
   }
-    
+  
   // translate the draw context to top level view bounds and draw.
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
   nvgIntersectScissor(nvg, topViewBounds);
@@ -384,9 +384,9 @@ void AppView::createPlatformView(void* pParent, int flags)
   {
     dims = getDefaultDims();
   }
-
+  
   Vec2 cDims = _constrainSize(dims);
-
+  
   // create the native platform view
   if(pParent != _parent)
   {
@@ -430,9 +430,37 @@ void AppView::doResize(Vec2 newSize)
   }
 }
 
-void AppView::pushEvent(GUIEvent g)
+
+bool AppView::willHandleEvent(GUIEvent g)
 {
-  _inputQueue.push(g);
+  // Just check against types of events we return. These checks are stateless.
+  // Future checks that look for example at "are we editing text?" may require
+  // all events in queue to be handled before deciding.
+  if(g.type == "keydown")
+  {
+    if(g.keyCode == KeyCodes::deleteKey)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
+
+bool AppView::pushEvent(GUIEvent g)
+{
+  bool willHandle = willHandleEvent(g);
+  if(willHandle)
+  {
+    _inputQueue.push(g);
+  }
+  return willHandle;
 }
+
+
+} // namespace ml
+

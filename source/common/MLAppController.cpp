@@ -163,6 +163,10 @@ void AppController::onMessage(Message m)
     case(hash("do")):
     {
       Path whatAction = tail(addr);
+      switch(hash(head(whatAction)))
+      {
+          
+      }
       break;
     }
       

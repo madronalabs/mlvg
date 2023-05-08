@@ -268,10 +268,14 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
   _totalDrag = NSMakePoint(0, 0);
-  
-  if (_appView)
+   
+  if (_appView->willHandleEvent(e))
   {
     _appView->pushEvent(e);
+  }
+  else
+  {
+    [super keyDown:pEvent];
   }
 }
 
