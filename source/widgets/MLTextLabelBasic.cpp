@@ -6,36 +6,7 @@
 #include "MLTextLabelBasic.h"
 #include "MLDSPProjections.h"
 
-
 using namespace ml;
-
-void TextLabelBasic::handleMessage(Message msg, Message* rp)
-{
-  // std::cout << "TextLabelBasic::handleMessage: " << msg << "\n";
-
-  switch(hash(head(msg.address)))
-  {
-    case(hash("set_prop")):
-    {
-      switch(hash(head(tail(msg.address))))
-      {
-
-        default:
-        {
-          Widget::handleMessage(msg, rp);
-          break;
-        }
-      }
-      break;
-    }
-
-    default:
-    {
-      Widget::handleMessage(msg, rp);
-      break;
-    }
-  }
-}
 
 void TextLabelBasic::draw(ml::DrawContext dc)
 {

@@ -130,6 +130,7 @@ protected:
   
   void _deleteWidgets();
   void _setupWidgets(const ParameterDescriptionList& pdl);
+  void _updateParameterDescription(const ParameterDescriptionList& pdl, Path pname);
   void _handleGUIEvents();
   void _debug();
   void _sendParameterMessageToWidgets(const Message& msg);

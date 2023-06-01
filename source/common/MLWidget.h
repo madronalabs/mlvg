@@ -79,7 +79,7 @@ public:
 
   // default implementation of Widget::handleMessage:
   // set a param value or an internal property and mark self as dirty.
-  virtual void handleMessage(Message msg, Message*)
+  void handleMessage(Message msg, MessageList* /* replyPtr */) override
   {
     switch(hash(head(msg.address)))
     {

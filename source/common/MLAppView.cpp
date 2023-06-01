@@ -154,9 +154,33 @@ void AppView::_deleteWidgets()
   _rootWidgets.clear();
 }
 
+void AppView::_updateParameterDescription(const ParameterDescriptionList& pdl, Path pname)
+{
+  for(auto& paramDesc : pdl)
+  {
+    Path paramName = paramDesc->getTextProperty("name");
+    if(paramName == pname)
+    {
+      forEach< Widget >
+      (_view->_widgets, [&](Widget& w)
+       {
+        if(w.knowsParam(paramName))
+        {
+          w.setParameterDescription(paramName, *paramDesc);
+          w.setupParams();
+        }
+      }
+       );
+    }
+  }
+}
 
 void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
 {
+  _widgetsByParameter.clear();
+  _widgetsByCollection.clear();
+  _widgetsBySignal.clear();
+
   // build index of widgets by parameter.
   // for each parameter, collect Widgets responding to it
   // and add the parameter to the Widget's param tree.
@@ -245,13 +269,15 @@ void AppView::_sendParameterMessageToWidgets(const Message& msg)
     // get param name
     Path pname = tail(msg.address);
     
+    MessageList replies;
+
     // send to Widgets that care about it
     for(auto pw : _widgetsByParameter[pname])
     {
       // if Widget is not engaged, send it the new value.
       if(!pw->engaged)
       {
-        sendMessage(*pw, msg);
+        sendMessageExpectingReply(*pw, msg, &replies);
       }
     }
     
@@ -267,11 +293,15 @@ void AppView::_sendParameterMessageToWidgets(const Message& msg)
           {
             Path wildCardMessageAddress("set_param", "*",
                                         lastN(pname, pname.getSize() - _currentModalParam.getSize()));
-            sendMessage(*pw, {wildCardMessageAddress, msg.value});
+            sendMessageExpectingReply(*pw, {wildCardMessageAddress, msg.value}, &replies);
+
           }
         }
       }
     }
+    
+    // handle any replies
+    enqueueMessageList(reply);
   }
 }
 

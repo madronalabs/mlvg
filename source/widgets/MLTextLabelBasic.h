@@ -13,10 +13,6 @@ class TextLabelBasic : public Widget
 {
 public:
   TextLabelBasic(WithValues p) : Widget(p) {}
-  
-  // TEMP
-  void handleMessage(Message msg, Message*) override;
-
 
   // Widget implementation
   MessageList processGUIEvent(const GUICoordinates& gc, GUIEvent e) override { return MessageList(); }
