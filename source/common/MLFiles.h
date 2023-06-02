@@ -29,7 +29,6 @@ public:
   
   Path getFullPath() const;
   TextFragment getFullPathAsText() const; 
-  Path fullPathMinusExtension() const;
   Path getRelativePathFrom(const File& other) const;
 
   bool exists() const;
@@ -68,9 +67,5 @@ public:
 
 Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type);
 File getApplicationDataFile(TextFragment maker, TextFragment app, Symbol type, Path relativeName);
-
-Path removeExtensionFromPath(Path p);
-Path addExtensionToPath(Path p, TextFragment ext);
-
 
 } // namespaces

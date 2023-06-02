@@ -301,7 +301,7 @@ void AppView::_sendParameterMessageToWidgets(const Message& msg)
     }
     
     // handle any replies
-    enqueueMessageList(reply);
+    enqueueMessageList(replies);
   }
 }
 

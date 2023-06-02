@@ -65,14 +65,6 @@ TextFragment File::getFullPathAsText() const
   return tf;
 }
 
-Path File::fullPathMinusExtension() const
-{
-  Symbol fullName = last(_fullPath);
-  auto nameWithExtension = fullName.getTextFragment();
-  auto nameWithoutExtension = textUtils::stripFileExtension(nameWithExtension);
-  return Path(butLast(_fullPath), Path(nameWithoutExtension));
-}
-
 Path File::getRelativePathFrom(const File& other) const
 {
   auto pathText = getFullPathAsText();
@@ -386,18 +378,4 @@ File ml::getApplicationDataFile(TextFragment maker, TextFragment app, Symbol typ
   }
     
   return ret;
-}
-
-Path ml::removeExtensionFromPath(Path p)
-{
-  auto nameWithExtension = last(p).getTextFragment();
-  auto nameWithoutExtension = textUtils::stripFileExtension(nameWithExtension);
-  return Path(butLast(p), Path(nameWithoutExtension));
-}
-
-Path ml::addExtensionToPath(Path p, TextFragment ext)
-{
-  auto nameWithoutExtension = last(p).getTextFragment();
-  auto nameWithExtension = TextFragment(nameWithoutExtension, ".", ext);
-  return Path(butLast(p), Path(nameWithExtension));
 }
