@@ -117,7 +117,7 @@ bool File::replaceWithText(const TextFragment& text) const
 bool File::load(BinaryVector& dataVec) const
 {
   bool r{false};
-  constexpr size_t kMaxFileBlock{ 1000*1000 };
+  constexpr size_t kMaxFileBlock{ 1000*1000*256 }; // TODO
 
   auto pathText = getFullPathAsText();
   juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
@@ -140,7 +140,7 @@ bool File::load(BinaryVector& dataVec) const
 bool File::loadAsText(TextFragment& fileAsText) const
 {
   bool r{false};
-  constexpr size_t kMaxFileBlock{ 1000*1000 };
+  constexpr size_t kMaxFileBlock{ 1000*1000*256 }; // TODO
 
   auto pathText = getFullPathAsText();
   juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
