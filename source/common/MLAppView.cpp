@@ -365,7 +365,7 @@ size_t AppView::_getElapsedTime()
 void AppView::render(NativeDrawContext* nvg, Layer* backingLayer)
 {
   if(!backingLayer) return;
-  
+
   // TODO move resource types into Renderer, DrawContext points to Renderer
   DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
   
@@ -379,18 +379,22 @@ void AppView::render(NativeDrawContext* nvg, Layer* backingLayer)
   drawToLayer(backingLayer);
   nvgBeginFrame(nvg, backingLayer->width, backingLayer->height, 1.0f);
   
+  ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
+
   // if top level view is dirty, clear entire window
   if(_view->isDirty())
   {
     nvgBeginPath(nvg);
-    nvgRect(nvg, ml::Rect{-10000, -10000, 20000, 20000});
+    
+    // we don't have the window dims. so add sufficient margin around the top view bounds to cover the window.
+    nvgRect(nvg, grow(topViewBounds, 1000));
+    
     auto bgColor = getColorWithDefault(dc, "background", colors::black);
     nvgFillColor(nvg, bgColor);
     nvgFill(nvg);
   }
   
   // translate the draw context to top level view bounds and draw.
-  ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
   nvgIntersectScissor(nvg, topViewBounds);
   auto topLeft = getTopLeft(topViewBounds);
   nvgTranslate(nvg, topLeft);

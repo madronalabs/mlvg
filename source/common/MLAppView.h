@@ -37,7 +37,7 @@ public:
   AppView(TextFragment appName, size_t instanceNum);
   virtual ~AppView();
 
-  void render(NativeDrawContext* nvg, Layer* backingLayer);
+  virtual void render(NativeDrawContext* nvg, Layer* backingLayer);
   
   // called by the PlatformView to set our size in system coordinates.
   void viewResized(NativeDrawContext* nvg, Vec2 newSize);
