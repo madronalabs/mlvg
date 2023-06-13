@@ -172,8 +172,8 @@ public:
   // input coordinates are in the parent view's grid coordinate system.
   virtual MessageList processGUIEvent(const GUICoordinates& gc, GUIEvent e) { return MessageList{}; }
   
-  // process one DSPVector of signal input, for signal viewers. Most Widgets don't implement this.
-  virtual void processSignal(DSPVector sig, size_t channel = 0) {}
+  // process data from a published Signal, for signal viewers. Most Widgets don't implement this.
+  virtual void processPublishedSignal(Value sigVal) {}
   
   // called by the editor each frame just before drawing. This allows Widgets to
   // update any properties based on the time elapsed since the last frame.
