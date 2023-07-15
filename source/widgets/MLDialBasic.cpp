@@ -93,7 +93,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 {
   constexpr float kComponentDragScale{-0.005f};
   constexpr float kScrollScale{-0.04f};
-  constexpr float kFineDragScale{0.1f};
+  const float kFineDragScale = getFloatPropertyWithDefault("fine_drag_scale", 0.1f);
 
   Path pname{getTextProperty("param")};
   Path paramRequestPath = Path("editor/set_param", pname);
