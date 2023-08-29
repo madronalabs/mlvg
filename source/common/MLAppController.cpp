@@ -64,16 +64,18 @@ AppController::~AppController()
 
 #pragma mark mlvg
 
-void AppController::sendParamToView(Path pname)
+void AppController::broadcastParam(Path pname, uint32_t flags)
 {
-  sendMessageToActor(_viewName, {Path("set_param", pname), params.getNormalizedValue(pname), kMsgFromController});
+  auto pval = params.getNormalizedValue(pname);
+  sendMessageToActor(_processorName, {Path("set_param", pname), pval, flags});
+  sendMessageToActor(_viewName, {Path("set_param", pname), pval, kMsgFromController});
 }
 
-void AppController::sendAllParamsToView()
+void AppController::broadcastParams()
 {
   for(auto& pname : _paramNamesByID)
   {
-    sendParamToView(pname);
+    broadcastParam(pname, kMsgSequenceStart | kMsgSequenceEnd);
   }
 }
 
@@ -84,20 +86,6 @@ void AppController::sendAllCollectionsToView()
     const Path p = it.getCurrentNodePath();
     sendMessageToActor(_viewName, {"editor/do/update_collection", pathToText(p)});
   }
-}
-
-void AppController::sendAllParamsToProcessor()
-{
-  for(auto& pname : _paramNamesByID)
-  {
-    sendParamToProcessor(pname, kMsgSequenceStart | kMsgSequenceEnd);
-  }
-}
-
-void AppController::sendParamToProcessor(Path pname, uint32_t flags)
-{
-  auto pval = params.getNormalizedValue(pname);
-  sendMessageToActor(_processorName, {Path("set_param", pname), pval, flags});
 }
 
 void AppController::onFullQueue()
@@ -140,10 +128,9 @@ void AppController::onMessage(Message m)
           
           // save in our ParameterTree
           params.setFromNormalizedValue(whatParam, m.value);
-          
-          // send to processor
-          sendParamToProcessor(whatParam, m.flags);
-          
+          broadcastParam(whatParam, m.flags);
+
+
           break;
         }
       }

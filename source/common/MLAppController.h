@@ -24,11 +24,9 @@ public:
   
   // AppController interface
   void sendMessageToView(Message);
-  void sendParamToView(Path pname);
+  void broadcastParam(Path pname, uint32_t flags);
+  void broadcastParams();
   void sendAllCollectionsToView();
-  void sendAllParamsToView();
-  void sendParamToProcessor(Path pname, uint32_t flags);
-  void sendAllParamsToProcessor();
 
   // Actor interface
   void onMessage(Message m) override;
@@ -41,6 +39,7 @@ public:
   Path getInstanceName() { return _instanceName; }
 
 protected:
+
   // parameters of our plugin or application.
   ParameterTree params;
 

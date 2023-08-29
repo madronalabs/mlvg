@@ -66,7 +66,7 @@ protected:
   
   void setRealParamValue(Path paramName, Value v)
   {
-    _params.setRealValue(paramName, v);
+    _params.setValue(paramName, v);
     _dirty = true;
   }
   
@@ -167,7 +167,12 @@ public:
   {
     return _params.getNormalizedValue(paramName);
   }
-
+  
+  inline Value getRealParamValue(Path paramName)
+  {
+    return _params.getRealValue(paramName);
+  }
+  
   // process user input, modify our internal state, and generate ValueChanges.
   // input coordinates are in the parent view's grid coordinate system.
   virtual MessageList processGUIEvent(const GUICoordinates& gc, GUIEvent e) { return MessageList{}; }

@@ -298,9 +298,8 @@ int main(int argc, char *argv[])
     appView.startTimersAndActor();
     SdlAppResize(&watcherData);
     
-    appController.sendAllParamsToView();
-    appController.sendAllParamsToProcessor();
-
+    appController.broadcastParams();
+    
     // start audio processing
     appProcessor.start();
     appProcessor.startAudio();

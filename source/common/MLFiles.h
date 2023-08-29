@@ -29,6 +29,7 @@ public:
   
   Path getFullPath() const;
   TextFragment getFullPathAsText() const; 
+  TextFragment getShortName() const;
   Path getRelativePathFrom(const File& other) const;
 
   bool exists() const;

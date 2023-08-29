@@ -33,6 +33,7 @@ void TestAppView::layoutView(DrawContext dc)
   // layout dials
   _view->_widgets["freq1"]->setBounds(alignCenterToPoint(largeDialRect, {1, 1}));
   _view->_widgets["freq2"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, 1}));
+  _view->_widgets["freq2b"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 3.f, 1}));
   _view->_widgets["gain"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, gy - 1.f}));
   
   // layout test image
@@ -117,6 +118,7 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
   addControlLabel("gain_label", "gain");
   
   // add Dials to view
+  float mediumDialSize{0.4f};
   float largeDialSize{0.55f};
   _view->_widgets.add_unique< DialBasic >("freq1", WithValues{
     {"size", largeDialSize },
@@ -125,6 +127,11 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
   
   _view->_widgets.add_unique< DialBasic >("freq2", WithValues{
     {"size", largeDialSize },
+    {"param", "freq2" }
+  } );
+  
+  _view->_widgets.add_unique< DialBasic >("freq2b", WithValues{
+    {"size", mediumDialSize },
     {"param", "freq2" }
   } );
   

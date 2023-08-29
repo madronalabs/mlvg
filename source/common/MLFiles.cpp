@@ -65,6 +65,13 @@ TextFragment File::getFullPathAsText() const
   return tf;
 }
 
+TextFragment File::getShortName() const
+{
+  Symbol nameSym = last(_fullPath);
+  return nameSym.getTextFragment();
+}
+
+
 Path File::getRelativePathFrom(const File& other) const
 {
   auto pathText = getFullPathAsText();
