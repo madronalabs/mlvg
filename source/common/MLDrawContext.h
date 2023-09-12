@@ -201,6 +201,16 @@ inline void nvgArcTo(NativeDrawContext* nvg, Vec2 p1, Vec2 p2, float r)
   nvgArcTo(nvg, p1.x(), p1.y(), p2.x(), p2.y(), r);
 }
 
+inline void nvgBezierTo(NativeDrawContext* nvg, Vec2 c1, Vec2 c2, Vec2 dest)
+{
+  nvgBezierTo(nvg, c1.x(), c1.y(), c2.x(), c2.y(), dest.x(), dest.y());
+}
+
+inline void nvgQuadTo(NativeDrawContext* nvg, Vec2 ctrl, Vec2 dest)
+{
+  nvgQuadTo(nvg, ctrl.x(), ctrl.y(), dest.x(), dest.y());
+}
+
 inline void nvgRect(NativeDrawContext* nvg, ml::Rect r)
 {
   nvgRect(nvg, r.left(), r.top(), r.width(), r.height());
