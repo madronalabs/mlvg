@@ -45,14 +45,6 @@ bool MLVec::operator!=(const MLVec& b) const
 	return !operator==(b);  
 }
 
-void MLVec::normalize()
-{
-	float mag = magnitude(static_cast<Vec4>(*this));
-	MLVec b;
-	b.set(mag);
-	(*this) *= b;
-}
-
 void MLVec::quantize(int q)
 {
 	int i0, i1, i2, i3;

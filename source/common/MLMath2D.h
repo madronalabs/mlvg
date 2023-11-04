@@ -72,15 +72,12 @@ public:
   inline MLVec & operator*=(const float f) { (*this) *= MLVec(f); return *this; }
   inline const MLVec operator* (const float f) const { return MLVec(*this) *= MLVec(f, f, f, f); }
   inline const MLVec operator/ (const float f) const { return MLVec(*this) /= MLVec(f, f, f, f); }
-  
-  void normalize();
   void quantize(int q);
   
   MLVec getIntPart() const;
   MLVec getFracPart() const;
   void getIntAndFracParts(MLVec& intPart, MLVec& fracPart) const;
 };
-
 
 inline const MLVec vmin(const MLVec&a, const MLVec&b)
 { return MLVec(std::min(a.val[0],b.val[0]),std::min(a.val[1],b.val[1]),
@@ -104,6 +101,11 @@ public:
   Vec2(float px, float py) { val[0] = px; val[1] = py; val[2] = 0.; val[3] = 0.; }
   float x() const { return val[0]; }
   float y() const { return val[1]; }
+  
+  float& x() { return val[0]; }
+  float& y() { return val[1]; }
+  
+  // deprecated!
   void setX(float f) { val[0] = f; }
   void setY(float f) { val[1] = f; }
 };
@@ -114,10 +116,16 @@ public:
   Vec3() : MLVec() {}
   Vec3(const MLVec& b) : MLVec(b) {};
   Vec3(float px, float py, float pz) { val[0] = px; val[1] = py; val[2] = pz; val[3] = 0.; }
+
   float x() const { return val[0]; }
   float y() const { return val[1]; }
-  Vec2 xy() const { return Vec2(val[0], val[1]); }
   float z() const { return val[2]; }
+  
+  float& x() { return val[0]; }
+  float& y() { return val[1]; }
+  float& z() { return val[2]; }
+
+  // deprecated!
   void setX(float f) { val[0] = f; }
   void setY(float f) { val[1] = f; }
   void setZ(float f) { val[2] = f; }
@@ -129,11 +137,18 @@ public:
   Vec4() : MLVec() {}
   Vec4(const MLVec& b) : MLVec(b) {};
   Vec4(float px, float py, float pz, float pw) { val[0] = px; val[1] = py; val[2] = pz; val[3] = pw; }
+
   float x() const { return val[0]; }
   float y() const { return val[1]; }
-  Vec2 xy() const { return Vec2(val[0], val[1]); }
   float z() const { return val[2]; }
   float w() const { return val[3]; }
+  
+  float& x() { return val[0]; }
+  float& y() { return val[1]; }
+  float& z() { return val[2]; }
+  float& w() { return val[3]; }
+
+  // deprecated!
   void setX(float f) { val[0] = f; }
   void setY(float f) { val[1] = f; }
   void setZ(float f) { val[2] = f; }
@@ -164,6 +179,28 @@ inline float magnitude(Vec4 v)
   float c = v.val[2];
   float d = v.val[3];
   return sqrtf(a*a + b*b + c*c + d*d);
+}
+
+
+inline MLVec normalize(MLVec a)
+{
+  return MLVec(a/magnitude(Vec4(a)));
+}
+
+
+inline float dotProduct(Vec2 v, Vec2 w)
+{
+  return v.x()*w.x() + v.y()*w.y();
+}
+
+inline float dotProduct(Vec3 v, Vec3 w)
+{
+  return v.x()*w.x() + v.y()*w.y() + v.z()*w.z();
+}
+
+inline float dotProduct(Vec4 v, Vec4 w)
+{
+  return v.x()*w.x() + v.y()*w.y() + v.z()*w.z() + v.w()*w.w();
 }
 
 
@@ -204,6 +241,31 @@ inline float length(LineSegment a)
 {
   return magnitude(Vec2(a.end - a.start)); // TODO fix type for operator- and other operations
 }
+
+struct Rotation
+{
+  float theta_{0.f};
+  Mat22 m_{angleToMatrix(0.f)};
+
+  Mat22 angleToMatrix(float t)
+  {
+    return Mat22{cosf(t), -sinf(t), sinf(t), cosf(t)};
+  }
+
+  void setAngle(float t)
+  {
+    if(theta_ != t)
+    {
+      m_ = angleToMatrix(t);
+      theta_ = t;
+    }
+  }
+  
+  Vec2 operator()(Vec2 a)
+  {
+    return multiply(m_, a);
+  }
+};
 
 Vec2 intersect(const LineSegment& a, const LineSegment& b);
 

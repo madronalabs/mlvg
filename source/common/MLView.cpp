@@ -129,9 +129,24 @@ MessageList View::animate(int elapsedTimeInMs, ml::DrawContext dc)
   
   forEachChild< Widget >
   (_widgets,
-   [&](Widget& w) { v.append(w.animate(elapsedTimeInMs, dc)); }
+   [&](Widget& w) {
+    auto wAddr = &w;
+    if(!wAddr)
+    {
+      std::cout << "YIKES!\n";
+      return;
+    }
+    // std::cout << "anim" << wAddr << "\n";
+    auto retList = w.animate(elapsedTimeInMs, dc);
+    v.append(retList); }
    );
   
+  /*
+  forEachChild< Widget >
+  (_widgets,
+   [&](Widget& w) { v.append(w.animate(elapsedTimeInMs, dc)); }
+   );
+  */
   return v;
 }
 
