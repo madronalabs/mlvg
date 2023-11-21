@@ -76,7 +76,7 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  message("madronalib library should be at: " ${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME} )
  
  #--------------------------------------------------------------------
- # find mlvg sources - including our juce-core subset and nfd
+ # find mlvg sources including our juce-core subset 
  #--------------------------------------------------------------------
  
  set (MLVG_SOURCE_DIR "source")
@@ -131,42 +131,42 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  # gather nanovg and nanosvg sources
  #--------------------------------------------------------------------
  
- if(APPLE)
-     set(NANOVG_SOURCES
-         ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.c
-         ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.h
-         ${MLVG_SOURCE_DIR}/external/nanosvg/src/nanosvg.h
-         ${MLVG_SOURCE_DIR}/external/MetalNanoVG/src/nanovg_mtl.h
-         ${MLVG_SOURCE_DIR}/external/MetalNanoVG/src/nanovg_mtl.m
-     )
-     set(NANOVG_INCLUDE_DIRS
-         ${MLVG_SOURCE_DIR}/external/nanovg/src
-         ${MLVG_SOURCE_DIR}/external/nanosvg/src
-         ${MLVG_SOURCE_DIR}/external/MetalNanoVG/src
-     )
- elseif(WIN32)
-     set(NANOVG_SOURCES
-         ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.c
-         ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.h
-         ${MLVG_SOURCE_DIR}/external/nanosvg/src/nanosvg.h
-         ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl.h
-         ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl_utils.h
-         ${MLVG_SOURCE_DIR}/external/glad/src/glad.c
-         ${MLVG_SOURCE_DIR}/external/glad/include/glad/glad.h
-         ${MLVG_SOURCE_DIR}/external/glad/include/KHR/khrplatform.h
-     )
-     set(NANOVG_INCLUDE_DIRS
-         ${MLVG_SOURCE_DIR}/external/nanovg/src
-         ${MLVG_SOURCE_DIR}/external/nanosvg/src
-         ${MLVG_SOURCE_DIR}/external/glad/include
-         ${MLVG_SOURCE_DIR}/external/glad/include/glad
-     )
-     if (MSVC)
-         set_source_files_properties(source/external/glad/src/glad.c
-         PROPERTIES COMPILE_FLAGS /wd4055)
-     endif()
- endif()
- 
+  if(APPLE)
+      set(NANOVG_SOURCES
+          ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.c
+          ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.h
+          ${MLVG_SOURCE_DIR}/external/nanosvg/src/nanosvg.h
+          ${MLVG_SOURCE_DIR}/external/MetalNanoVG/src/nanovg_mtl.h
+          ${MLVG_SOURCE_DIR}/external/MetalNanoVG/src/nanovg_mtl.m
+      )
+      set(NANOVG_INCLUDE_DIRS
+          ${MLVG_SOURCE_DIR}/external/nanovg/src
+          ${MLVG_SOURCE_DIR}/external/nanosvg/src
+          ${MLVG_SOURCE_DIR}/external/MetalNanoVG/src
+      )
+  elseif(WIN32)
+      set(NANOVG_SOURCES
+          ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.c
+          ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg.h
+          ${MLVG_SOURCE_DIR}/external/nanosvg/src/nanosvg.h
+          ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl.h
+          ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl_utils.h
+          ${MLVG_SOURCE_DIR}/external/glad/src/glad.c
+          ${MLVG_SOURCE_DIR}/external/glad/include/glad/glad.h
+          ${MLVG_SOURCE_DIR}/external/glad/include/KHR/khrplatform.h
+      )
+      set(NANOVG_INCLUDE_DIRS
+          ${MLVG_SOURCE_DIR}/external/nanovg/src
+          ${MLVG_SOURCE_DIR}/external/nanosvg/src
+          ${MLVG_SOURCE_DIR}/external/glad/include
+          ${MLVG_SOURCE_DIR}/external/glad/include/glad
+      )
+      if (MSVC)
+          set_source_files_properties(source/external/glad/src/glad.c
+          PROPERTIES COMPILE_FLAGS /wd4055)
+      endif()
+  endif()
+  
  #--------------------------------------------------------------------
  # gather juce-core sources
  #--------------------------------------------------------------------
@@ -191,29 +191,29 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
      )
  endif()
  
- #--------------------------------------------------------------------
- # gather nfd sources
- #--------------------------------------------------------------------
- 
- set(nfd_sources
- ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.h
- ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/nfd.hpp)
- 
- if(WIN32)
-   set(nfd_sources_native
-       ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_win.cpp
+   #--------------------------------------------------------------------
+   # gather osdialog sources
+   #--------------------------------------------------------------------
+   
+   set(osdialog_sources
+      ${MLVG_SOURCE_DIR}/external/osdialog/osdialog.c
    )
- elseif(APPLE)
-   set(nfd_sources_native
-       ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_cocoa.m
-   )
- elseif(UNIX AND NOT APPLE)
-   set(nfd_sources_native
-       ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/nfd_gtk.cpp
-   )
- endif()
- 
- list(APPEND nfd_sources ${nfd_sources_native} )
+    
+   if(WIN32)
+     set(osdialog_sources_native
+         ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_win.c
+     )
+   elseif(APPLE)
+     set(osdialog_sources_native
+        ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_mac.m
+     )
+   elseif(UNIX AND NOT APPLE)
+     set(osdialog_sources_native
+         ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_gtk3.c
+     )
+   endif()
+   
+   list(APPEND osdialog_sources ${osdialog_sources_native} )
  
  #--------------------------------------------------------------------
  # gather cJSON sources
@@ -244,6 +244,7 @@ set(MLVG_INCLUDE_DIRS
      set(MLVG_SOURCES_NATIVE
          ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
          ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
+         
      )
  elseif(WIN32)
      set(MLVG_SOURCES_NATIVE
@@ -277,7 +278,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 set(target mlvg)
 
 # Define the library
-add_library(${target} STATIC ${mlvg_sources} ${nfd_sources} ${cjson_sources})
+add_library(${target} STATIC ${mlvg_sources} ${osdialog_sources} ${cjson_sources})
 
 set_target_properties(${target} PROPERTIES
   OUTPUT_NAME "${mlvg_NAME}"
@@ -287,10 +288,6 @@ set_target_properties(${target} PROPERTIES
   FOLDER "mlvg")
 
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
-
-# add nfd includes
-file(GLOB NFD_HEADERS "${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/*.h")
-target_include_directories(${target} PUBLIC ${MLVG_SOURCE_DIR}/external/nativefiledialog-extended/src/include/)
 
 # set juce-core configurations for this target
 target_compile_definitions(${target} PRIVATE JUCE_APP_CONFIG_HEADER="external/juce_core/JuceCoreConfig.h")
@@ -320,7 +317,6 @@ file(GLOB NATIVE_HEADERS_HACK4 "source/external/miniz/*.h")
 
 install(FILES
     source/include/mlvg.h
-    ${NFD_HEADERS}
     ${COMMON_HEADERS}
     ${WIDGETS_HEADERS}
     ${NATIVE_HEADERS}
@@ -365,9 +361,6 @@ endif()
 # add mlvg library
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 target_link_libraries(${target} PRIVATE mlvg)
-
-# add other external libraries
-target_link_libraries(${target} PRIVATE mlvg )
 
 if(APPLE)
     # ARC must be off for juce

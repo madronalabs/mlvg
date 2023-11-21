@@ -11,7 +11,6 @@
 #include "MLAppController.h"
 #include "mldsp.h"
 #include "mlvg.h"
-#include "nfd.h"
 #include "MLRtAudioProcessor.h"
 
 #include "testApp.h"
@@ -99,29 +98,26 @@ public:
   int _loadSampleFromDialog()
   {
     int OK{ false };
-    nfdchar_t *outPath;
     std::string sourcePath;
-    nfdfilteritem_t filterItem[2] = { { "WAV audio", "wav" }, { "AIFF audio", "aiff,aif,aifc" } };
-    nfdresult_t result = NFD_OpenDialog(&outPath, filterItem, 2, NULL);
-    if (result == NFD_OKAY)
-    {
-      puts("Success!");
-      puts(outPath);
-      
-      sourcePath = outPath;
-      NFD_FreePath(outPath);
-    }
-    else if (result == NFD_CANCEL)
-    {
-      puts("User pressed cancel.");
-    }
-    else
-    {
-      printf("Error: %s\n", NFD_GetError());
-    }
     
-    Path filePath(sourcePath.c_str());
-    File f(filePath);
+    
+    std::cout << FileDialog::getFolderForLoad("/Users", "");
+    /*
+    // just a test, show the dialog but don't do anything yet
+    {
+      fprintf(stderr, "file open in cwd\n");
+      osdialog_filters* filters = osdialog_filters_parse("WAV audio:wav;AIFF audio:aiff,aif,aifc");
+      char* filename = osdialog_file(OSDIALOG_OPEN, ".", "こんにちは", filters);
+      if (filename) {
+        fprintf(stderr, "\t%s\n", filename);
+        free(filename);
+      }
+      else {
+        fprintf(stderr, "\tCanceled\n");
+      }
+      osdialog_filters_free(filters);
+    }
+*/
     /*
     if(f)
     {
@@ -280,7 +276,7 @@ int main(int argc, char *argv[])
   if(window)
   {
     // init NFD after SDL.
-    NFD_Init();
+    //NFD_Init();
     
     // watch for window resize events during drag
     ResizingEventWatcherData watcherData{window, &appView};
@@ -314,7 +310,7 @@ int main(int argc, char *argv[])
     appView.stopTimersAndActor();
     appProcessor.stopAudio();
     appProcessor.stop();
-    NFD_Quit();
+    // NFD_Quit();
     SDL_Quit();
   }
     

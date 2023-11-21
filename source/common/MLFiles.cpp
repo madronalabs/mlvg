@@ -95,7 +95,7 @@ bool File::create() const
 {
   auto pathText = getFullPathAsText();
   juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  return jf.create();
+  return jf.create().wasOk();
 }
 
 bool File::hasWriteAccess() const

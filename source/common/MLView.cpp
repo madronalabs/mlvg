@@ -457,6 +457,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
 // draw a rectangle of the background.
 void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
 {
+
   NativeDrawContext* nvg = getNativeContext(dc);
   //auto white = nvgRGBAf(1, 1, 1, 0.25);
   auto bgColorA = nvgRGBA(131, 162, 199, 255);
@@ -482,7 +483,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   }
   else
   {
-    auto bgColor = getColor(dc, "background");
+    auto bgColor = colors::black;//getColor(dc, "background");
     paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.viewSizeInPixels.y() + u, bgColor, bgColor);
   }
   

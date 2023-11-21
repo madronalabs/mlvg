@@ -1,0 +1,3 @@
+[submodule "source/external/osdialog"]
+	path = source/external/osdialog
+	url = git@github.com:AndrewBelt/osdialog.git

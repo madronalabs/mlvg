@@ -5,16 +5,13 @@ mlvg is a cross-platform application and plugin framework. It can currently gene
 MacOS and Windows, VST3 plugins for Mac and Windows, and AU plugins for Mac.
 
 
-status (Dec 2022)
-----------------
-Mlvg is still a work in progress, not yet suitable for production. Theoretically this is cross-platform, and can build VST / AU plugins. But currently only examples/app for Mac are being tested.
-
-
-
 to build an app:
 ----------------
 
 First, build and install madronalib as a static library using the instructions in the madronalib project.
+
+If you haven't already, update the submodules to mlvg:
+- git submodule update --init --recursive
 
 Now use cmake to generate a project for a test application as follows:
 - mkdir build
@@ -76,7 +73,7 @@ Building the (PlugName_au) target creates an intermediate .vst3 named (PluginNam
 Copyright and license
 ----------------
 
-Mlvg is Copyright (C) 2022 Madrona Labs LLC.
+Mlvg is Copyright (C) 2023 Madrona Labs LLC.
 Mlvg is licensed under the GPL3. 
 
 Licensing options for closed-source use are available. 

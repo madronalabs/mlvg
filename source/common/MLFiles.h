@@ -9,6 +9,8 @@
 
 #include "madronalib.h"
 
+#include "external/osdialog/osdialog.h"
+
 namespace ml
 {
 
@@ -68,5 +70,53 @@ public:
 
 Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type);
 File getApplicationDataFile(TextFragment maker, TextFragment app, Symbol type, Path relativeName);
+
+
+// file dialog utils
+
+struct FileDialog
+{
+  static Path getFolderForLoad(Path startPath, TextFragment filters)
+  {
+    Path r;
+    auto pathText = pathToText(startPath);
+    pathText = TextFragment("/", pathText);
+    
+    char* filename = osdialog_file(OSDIALOG_OPEN_DIR, pathText.getText(), nullptr, nullptr);
+
+    r = textToPath(filename);
+    free(filename);
+    return r;
+  }
+  
+  static Path getFilePathForLoad(Path startPath, TextFragment filtersFrag)
+  {
+    Path r;
+    osdialog_filters* filters = osdialog_filters_parse(filtersFrag.getText());
+    auto pathText = pathToText(startPath);
+    pathText = TextFragment("/", pathText);
+
+    char* filename = osdialog_file(OSDIALOG_OPEN, pathText.getText(), nullptr, filters);
+    
+    r = textToPath(filename);
+    free(filename);
+    osdialog_filters_free(filters);
+    return r;
+  }
+  
+  static Path getFilePathForSave(Path startPath, TextFragment defaultName)
+  {
+    Path r;
+    auto pathText = pathToText(startPath);
+    pathText = TextFragment("/", pathText);
+    
+    char* filename = osdialog_file(OSDIALOG_SAVE, pathText.getText(), defaultName.getText(), nullptr);
+
+    r = textToPath(filename);
+    free(filename);
+    return r;
+  }
+  
+};
 
 } // namespaces
