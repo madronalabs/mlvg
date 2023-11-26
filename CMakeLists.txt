@@ -314,6 +314,7 @@ file(GLOB NATIVE_HEADERS_HACK "source/external/MetalNanoVG/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK2 "source/external/nanovg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK3 "source/external/nanosvg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK4 "source/external/miniz/*.h")
+file(GLOB NATIVE_HEADERS_HACK5 "source/external/osdialog/*.h")
 
 install(FILES
     source/include/mlvg.h
@@ -324,6 +325,7 @@ install(FILES
     ${NATIVE_HEADERS_HACK2}
     ${NATIVE_HEADERS_HACK3}
     ${NATIVE_HEADERS_HACK4}
+    ${NATIVE_HEADERS_HACK5}
     DESTINATION
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
     include/mlvg

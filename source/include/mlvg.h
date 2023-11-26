@@ -18,7 +18,6 @@
 #include "MLSDLUtils.h"
 
 // widgets
-
 #include "MLDialBasic.h"
 #include "MLResizer.h"
 #include "MLSVGImage.h"

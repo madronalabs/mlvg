@@ -9,9 +9,6 @@
 #include "SDL_syswm.h"
 #include "MLPlatform.h"
 
-// include osdialog
-#include "external/osdialog/osdialog.h"
-
 namespace ml {
 
 struct ResizingEventWatcherData

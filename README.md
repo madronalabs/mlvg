@@ -13,6 +13,8 @@ First, build and install madronalib as a static library using the instructions i
 If you haven't already, update the submodules to mlvg:
 - git submodule update --init --recursive
 
+Now install the SDL2 framework. You can get a binary release from libsdl.org. On MacOS this will go into /Library/Frameworks. On Windows into the System directories. 
+
 Now use cmake to generate a project for a test application as follows:
 - mkdir build
 - cd build

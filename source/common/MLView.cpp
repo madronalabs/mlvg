@@ -483,7 +483,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   }
   else
   {
-    auto bgColor = colors::black;//getColor(dc, "background");
+    auto bgColor = getColor(dc, "background");
     paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.viewSizeInPixels.y() + u, bgColor, bgColor);
   }
   

@@ -275,9 +275,6 @@ int main(int argc, char *argv[])
   SDL_Window *window = initSDLWindow(appView, "mlvg test");
   if(window)
   {
-    // init NFD after SDL.
-    //NFD_Init();
-    
     // watch for window resize events during drag
     ResizingEventWatcherData watcherData{window, &appView};
     SDL_AddEventWatch( resizingEventWatcher, &watcherData );
@@ -310,7 +307,6 @@ int main(int argc, char *argv[])
     appView.stopTimersAndActor();
     appProcessor.stopAudio();
     appProcessor.stop();
-    // NFD_Quit();
     SDL_Quit();
   }
     
