@@ -84,15 +84,15 @@ ml::Image::Image(NativeDrawContext* nvg, int w, int h)
   NVGpaint imgPaint;
   int i, j;
   
-  // get temp data and initialize with solid color
+  // get temp data and initialize with transparent black
   unsigned char data[kImageSize*kImageSize*4];
 
   unsigned char* px = data;
   for (i = 0; i < kImageSize; i++) {
     for (j = 0; j < kImageSize; j++) {
-      px[0] = 255;
-      px[1] = 128;
-      px[2] = 255;
+      px[0] = 0;
+      px[1] = 0;
+      px[2] = 0;
       px[3] = 0;
       px += 4;
     }
