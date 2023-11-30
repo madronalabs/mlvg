@@ -112,6 +112,9 @@ inline DrawContext translate(const DrawContext& dc, Vec2 topLeft)
   return dc2;
 }
 
+
+// Layer
+
 class Layer
 {
 public:
@@ -123,7 +126,22 @@ public:
   Layer(NativeDrawContext* nvg, int width, int height);
   ~Layer();
 };
-  
+
+
+// Image
+
+class Image
+{
+public:
+
+  int id{-1};
+  NVGcontext* nvg_{nullptr};
+
+  Image(NativeDrawContext* nvg, int width, int height);
+  ~Image();
+};
+
+
 // resource helpers
 
 inline NativeDrawContext* getNativeContext(const DrawContext& dc) { return static_cast<NativeDrawContext*>(dc.pNativeContext); }

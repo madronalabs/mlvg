@@ -44,6 +44,7 @@ NativeImageHandle getNativeImageHandle(const Layer& layer)
   return toNativeBuffer(layer._buf)->image;
 }
 
+
 // Layer
 
 ml::Layer::Layer(NativeDrawContext* nvg, int w, int h)
@@ -72,6 +73,43 @@ void drawToLayer(const Layer* pLayer)
     nvgBindFramebuffer(nullptr);
   }
 }
+
+
+// Image
+
+ml::Image::Image(NativeDrawContext* nvg, int w, int h)
+{
+  constexpr int kImageSize{4};
+  id = -1;
+  NVGpaint imgPaint;
+  int i, j;
+  
+  // get temp data and initialize with solid color
+  unsigned char data[kImageSize*kImageSize*4];
+
+  unsigned char* px = data;
+  for (i = 0; i < kImageSize; i++) {
+    for (j = 0; j < kImageSize; j++) {
+      px[0] = 255;
+      px[1] = 128;
+      px[2] = 255;
+      px[3] = 0;
+      px += 4;
+    }
+  }
+  nvg_ = nvg;
+  id = nvgCreateImageRGBA(nvg, kImageSize, kImageSize, 0, data);
+
+}
+
+ml::Image::~Image()
+{
+  if((id >= 0) && (nvg_))
+  {
+    nvgDeleteImage(nvg_, id);
+  }
+}
+
 
 namespace math {
 
