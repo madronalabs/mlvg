@@ -390,7 +390,7 @@ target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 # "other linker flags" in XCode and not in its file browser
 if(APPLE)
     target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
-      "-framework CoreAudio" "-framework CoreServices" "-framework UniformTypeIdentifiers" 
+      "-framework CoreAudio" "-framework CoreServices" 
       "-framework AppKit" "-framework SDL2" )
 elseif(WIN32)
     find_package(OpenGL REQUIRED)
