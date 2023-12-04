@@ -125,8 +125,6 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  
  endfunction()
  
- create_resources (resource build/resources)
- 
  #--------------------------------------------------------------------
  # gather nanovg and nanosvg sources
  #--------------------------------------------------------------------
@@ -166,54 +164,30 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
           PROPERTIES COMPILE_FLAGS /wd4055)
       endif()
   endif()
-  
+ 
  #--------------------------------------------------------------------
- # gather juce-core sources
+ # gather osdialog sources
  #--------------------------------------------------------------------
  
- if(APPLE)
-     set(juce_core_sources
-         ${MLVG_SOURCE_DIR}/external/juce_core/juce_core.mm
-         ${MLVG_SOURCE_DIR}/external/juce_core/JuceCoreConfig.h
-     )
-     set(juce_core_include_dirs
-     ${MLVG_SOURCE_DIR}/external/juce_core
-     ${MLVG_SOURCE_DIR}
-     )
- else()
-     set(juce_core_sources
-         ${MLVG_SOURCE_DIR}/external/juce_core/juce_core.cpp
-         ${MLVG_SOURCE_DIR}/external/juce_core/JuceCoreConfig.h
-     )
-     set(juce_core_include_dirs
-     ${MLVG_SOURCE_DIR}/external/juce_core
-     ${MLVG_SOURCE_DIR}
-     )
+ set(osdialog_sources
+    ${MLVG_SOURCE_DIR}/external/osdialog/osdialog.c
+ )
+  
+ if(WIN32)
+   set(osdialog_sources_native
+       ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_win.c
+   )
+ elseif(APPLE)
+   set(osdialog_sources_native
+      ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_mac.m
+   )
+ elseif(UNIX AND NOT APPLE)
+   set(osdialog_sources_native
+       ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_gtk3.c
+   )
  endif()
  
-   #--------------------------------------------------------------------
-   # gather osdialog sources
-   #--------------------------------------------------------------------
-   
-   set(osdialog_sources
-      ${MLVG_SOURCE_DIR}/external/osdialog/osdialog.c
-   )
-    
-   if(WIN32)
-     set(osdialog_sources_native
-         ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_win.c
-     )
-   elseif(APPLE)
-     set(osdialog_sources_native
-        ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_mac.m
-     )
-   elseif(UNIX AND NOT APPLE)
-     set(osdialog_sources_native
-         ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_gtk3.c
-     )
-   endif()
-   
-   list(APPEND osdialog_sources ${osdialog_sources_native} )
+ list(APPEND osdialog_sources ${osdialog_sources_native} )
  
  #--------------------------------------------------------------------
  # gather cJSON sources
@@ -241,14 +215,16 @@ set(MLVG_INCLUDE_DIRS
 )
  
  if(APPLE)
-     set(MLVG_SOURCES_NATIVE
-         ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
-         ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
+    set(MLVG_SOURCES_NATIVE
+      ${MLVG_SOURCE_DIR}/native/MLFilesMac.mm
+      ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
+      ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
          
      )
  elseif(WIN32)
-     set(MLVG_SOURCES_NATIVE
-         ${MLVG_SOURCE_DIR}/native/NanoVGViewWindowsGL.cpp
+    set(MLVG_SOURCES_NATIVE
+      ${MLVG_SOURCE_DIR}/native/MLFilesWin.cpp
+      ${MLVG_SOURCE_DIR}/native/NanoVGViewWindowsGL.cpp
      )
  endif()
  
@@ -258,18 +234,14 @@ list(APPEND mlvg_sources ${MLVG_SOURCES_WIDGETS} )
 list(APPEND mlvg_sources ${MLVG_HEADERS_WIDGETS} )
 list(APPEND mlvg_sources ${NANOVG_SOURCES} )
 list(APPEND mlvg_sources ${MLVG_SOURCES_NATIVE} )
-list(APPEND mlvg_sources ${juce_core_sources} )
-list(APPEND mlvg_sources ${cjson_sources} )
 
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/common")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
-list(APPEND MLVG_INCLUDE_DIRS ${NANOVG_INCLUDE_DIRS})
+list(APPEND MLVG_INCLUDE_DIRS "${NANOVG_INCLUDE_DIRS}")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/include")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_SOURCE_DIR}")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}")
-list(APPEND MLVG_INCLUDE_DIRS "${juce_core_include_dirs}")
 list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
-
 
 #--------------------------------------------------------------------
 # make and install mlvg library and headers
@@ -278,6 +250,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 set(target mlvg)
 
 # Define the library
+#add_library(${target} STATIC ${mlvg_sources} ${juce_core_sources} ${osdialog_sources} ${cjson_sources})
 add_library(${target} STATIC ${mlvg_sources} ${osdialog_sources} ${cjson_sources})
 
 set_target_properties(${target} PROPERTIES
@@ -289,12 +262,7 @@ set_target_properties(${target} PROPERTIES
 
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 
-# set juce-core configurations for this target
-target_compile_definitions(${target} PRIVATE JUCE_APP_CONFIG_HEADER="external/juce_core/JuceCoreConfig.h")
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:JUCE_DEBUG=1>")
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:JUCE_DEBUG=0>")
+target_compile_options(${target} PRIVATE "-fobjc-arc")
 
 install(
     TARGETS ${target}
@@ -366,7 +334,7 @@ target_link_libraries(${target} PRIVATE mlvg)
 
 if(APPLE)
     # ARC must be off for juce
-    #target_compile_options(${target} PRIVATE "-fno-objc-arc")
+    # target_compile_options(${target} PRIVATE "-fno-objc-arc")
     
     # build only active arch for Debug builds
     set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
@@ -402,10 +370,13 @@ endif()
 # set source groups for some source above
 #--------------------------------------------------------------------
 
-source_group(vstsdk REGULAR_EXPRESSION "vst3sdk+")
-source_group(mlvg-native REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/vg/native.*")
 source_group(nanovg REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/external/nanovg/src.*|${MLVG_SOURCE_DIR}/external/MetalNanoVG/src.*")
 source_group(nanosvg REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/external/nanosvg/src.*")
+set(NATIVE1 "${MLVG_SOURCE_DIR}/native/*.*")
+set(NATIVE2 "${MLVG_SOURCE_DIR}/external/osdialog/osdialog_mac.m")
+set(NATIVE3 "${MLVG_SOURCE_DIR}/external/MetalNanoVG/src/*.*")
+source_group(native REGULAR_EXPRESSION "${NATIVE1}|${NATIVE2}|${NATIVE3}")
+# source_group(native REGULAR_EXPRESSION "*.m")
 
 
 

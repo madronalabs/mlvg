@@ -186,8 +186,6 @@ public:
   {
     if(!m.address) return;
     
-    std::cout << "TestAppController::onMessage:" << m.address << " " << m.value << " \n ";
-    
     bool messageHandled{false};
     
     Path addr = m.address;

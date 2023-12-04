@@ -47,11 +47,8 @@ NativeImageHandle getNativeImageHandle(const Layer& layer)
 
 // Layer
 
-ml::Layer::Layer(NativeDrawContext* nvg, int w, int h)
+ml::Layer::Layer(NativeDrawContext* nvg, int w, int h) : _nvg(nvg), width(w), height(h)
 {
-  width = w;
-  height = h;
-  _nvg = nvg;
   _buf = nvgCreateFramebuffer(nvg, w, h, 0);
 }
 
