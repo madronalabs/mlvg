@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "SDL.h"
-#include "SDL_syswm.h"
+//#include "SDL.h"
+//#include "SDL_syswm.h"
 #include "MLAppController.h"
 #include "mldsp.h"
 #include "mlvg.h"
@@ -16,7 +16,7 @@
 #include "testApp.h"
 #include "testAppView.h"
 
-#include "MLSDLUtils.h"
+//#include "MLSDLUtils.h"
 
 constexpr int kInputChannels = 0;
 constexpr int kOutputChannels = 2;

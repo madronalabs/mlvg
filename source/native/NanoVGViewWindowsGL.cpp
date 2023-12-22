@@ -19,7 +19,7 @@
 
 #include "MLAppView.h"
 #include "MLPlatformView.h"
-#include "MLDebug.h"
+// #include "MLDebug.h"
 
 // needs to be a little higher than actual preferred rate
 // because of window sync
@@ -271,7 +271,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
   
   if(!pR)
   {
-    DBGMSG("PlatformView: null view!");
+    // DBGMSG("PlatformView: null view!");
      return;
   }
 
@@ -450,7 +450,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         nvgBeginFrame(nvg, w, h, 1.0f);
 
         // render the App view
-        pView->renderView(nvg, pGraphics->_pImpl->_nvgBackingLayer.get());
+        pView->render(nvg, pGraphics->_pImpl->_nvgBackingLayer.get());
 
         // end backing layer update
         nvgEndFrame(nvg);
