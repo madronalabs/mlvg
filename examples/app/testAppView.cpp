@@ -63,7 +63,6 @@ void TestAppView::layoutView(DrawContext dc)
   
   _view->_widgets["open"]->setRectProperty("bounds", alignCenterToPoint(textButtonRect, {centerX, buttonsY1}));
   
-  
   // resize widgets
   forEach< Widget >
   (_view->_widgets, [&](Widget& w)
@@ -83,17 +82,17 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
   // fonts
   int font1 = nvgCreateFontMem(nvg, "MLVG_sans", (unsigned char*)resources::D_DIN_otf, resources::D_DIN_otf_size, 0);
   const unsigned char* pFont1 = reinterpret_cast<const unsigned char *>(&font1);
-  _resources["d_din"] = ml::make_unique< Resource >(pFont1, pFont1 + sizeof(int));
+  _resources["d_din"] = std::make_unique< Resource >(pFont1, pFont1 + sizeof(int));
 
   int font2 = nvgCreateFontMem(nvg, "MLVG_italic", (unsigned char *)resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
   const unsigned char* pFont2 = reinterpret_cast<const unsigned char *>(&font2);
-  _resources["d_din_italic"] = ml::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
+  _resources["d_din_italic"] = std::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
   
   // raster images
   int flags = 0;
   int img1 = nvgCreateImageMem(nvg, flags, (unsigned char *)resources::vignette_jpg, resources::vignette_jpg_size);
   const unsigned char* pImg1 = reinterpret_cast<const unsigned char *>(&img1);
-  //_resources["background"] = ml::make_unique< Resource >(pImg1, pImg1 + sizeof(int));
+  //_resources["background"] = std::make_unique< Resource >(pImg1, pImg1 + sizeof(int));
   
   // SVG images
   ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);

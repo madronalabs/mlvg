@@ -170,18 +170,17 @@ endif()
           ${MLVG_SOURCE_DIR}/external/nanosvg/src/nanosvg.h
           ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl.h
           ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl_utils.h
-          ${MLVG_SOURCE_DIR}/external/glad/src/glad.c
-          ${MLVG_SOURCE_DIR}/external/glad/include/glad/glad.h
-          ${MLVG_SOURCE_DIR}/external/glad/include/KHR/khrplatform.h
+          ${MLVG_SOURCE_DIR}/external/glad/glad.c
+          ${MLVG_SOURCE_DIR}/external/glad/glad.h
+          ${MLVG_SOURCE_DIR}/external/glad/khrplatform.h
       )
       set(NANOVG_INCLUDE_DIRS
           ${MLVG_SOURCE_DIR}/external/nanovg/src
           ${MLVG_SOURCE_DIR}/external/nanosvg/src
-          ${MLVG_SOURCE_DIR}/external/glad/include
-          ${MLVG_SOURCE_DIR}/external/glad/include/glad
+          ${MLVG_SOURCE_DIR}/external/glad
       )
       if (MSVC)
-          set_source_files_properties(source/external/glad/src/glad.c
+          set_source_files_properties(source/external/glad/glad.c
           PROPERTIES COMPILE_FLAGS /wd4055)
       endif()
   endif()
@@ -222,15 +221,6 @@ endif()
      set(osdialog_sources_native
          ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_win.c
      )
-
-message("osdialog_sources_native: " ${osdialog_sources_native} )
-    if(EXISTS "${osdialog_sources_native}")
-
-    message("YES" )
-
-
-    endif()
-
    elseif(APPLE)
      set(osdialog_sources_native
         ${MLVG_SOURCE_DIR}/external/osdialog/osdialog_mac.m
@@ -242,7 +232,16 @@ message("osdialog_sources_native: " ${osdialog_sources_native} )
    endif()
    
    list(APPEND osdialog_sources ${osdialog_sources_native} )
- 
+
+#--------------------------------------------------------------------
+# gather glad sources
+#--------------------------------------------------------------------
+   
+   set(glad_sources
+      ${MLVG_SOURCE_DIR}/external/glad/glad.c
+   )
+    
+
  #--------------------------------------------------------------------
  # gather cJSON sources
  #--------------------------------------------------------------------
@@ -288,10 +287,12 @@ list(APPEND mlvg_sources ${NANOVG_SOURCES} )
 list(APPEND mlvg_sources ${MLVG_SOURCES_NATIVE} )
 list(APPEND mlvg_sources ${juce_core_sources} )
 list(APPEND mlvg_sources ${cjson_sources} )
+list(APPEND mlvg_sources ${osdialog_sources} )
+list(APPEND mlvg_sources ${glad_sources} )
 
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/common")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
-list(APPEND MLVG_INCLUDE_DIRS ${NANOVG_INCLUDE_DIRS})
+list(APPEND MLVG_INCLUDE_DIRS "${NANOVG_INCLUDE_DIRS}")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/include")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_SOURCE_DIR}")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}")
@@ -306,7 +307,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 set(target mlvg)
 
 # Define the library
-add_library(${target} STATIC ${mlvg_sources} ${osdialog_sources} ${cjson_sources})
+add_library(${target} STATIC ${mlvg_sources})
 
 set_target_properties(${target} PROPERTIES
   OUTPUT_NAME "${mlvg_NAME}"
@@ -353,6 +354,7 @@ file(GLOB NATIVE_HEADERS_HACK2 "source/external/nanovg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK3 "source/external/nanosvg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK4 "source/external/miniz/*.h")
 file(GLOB NATIVE_HEADERS_HACK5 "source/external/osdialog/*.h")
+file(GLOB NATIVE_HEADERS_HACK6 "source/external/glad/*.h")
 
 
 install(FILES
@@ -365,6 +367,7 @@ install(FILES
     ${NATIVE_HEADERS_HACK3}
     ${NATIVE_HEADERS_HACK4}
     ${NATIVE_HEADERS_HACK5}
+    ${NATIVE_HEADERS_HACK6}
     DESTINATION
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
     include
@@ -379,8 +382,6 @@ if(BUILD_SDL2_APP)
      
     set(target testapp)
 
- set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
     file(GLOB LOCAL_SOURCES "${CMAKE_SOURCE_DIR}/examples/app/*.cpp")
     file(GLOB LOCAL_INCLUDES "${CMAKE_SOURCE_DIR}/examples/app/*.h")
 
@@ -393,19 +394,16 @@ if(BUILD_SDL2_APP)
     if(APPLE)
         # to use the SDL2 framework in /Library/Frameworks, do this:
         find_package(SDL2 REQUIRED COMPONENTS SDL2)
-        
     elseif(WIN32)
         # it seems like there's no standard place to put the SDL dev tools on Windows.
         # we put them in an SDL dir alongside the main project directory.
         set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../SDL/include")
-
         # Support both 32 and 64 bit builds
         if (${CMAKE_SIZEOF_VOID_P} MATCHES 8)
           set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/lib/x64")
         else ()
           set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/lib/x86")
         endif ()
-        
     endif()
     message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
     message("SDL2 libraries should be in: " ${SDL2_LIBRARIES_DIR} )
@@ -443,7 +441,8 @@ if(BUILD_SDL2_APP)
         target_compile_options(${target} PRIVATE "/wd4068") # silence unknown pragma warning
         target_compile_options(${target} PRIVATE "/EHa") # standard C++ stack unwinding
     endif()
-
+    
+    target_compile_definitions(${target} PUBLIC ML_INCLUDE_SDL=1)
     target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
     target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 

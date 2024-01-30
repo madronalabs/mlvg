@@ -222,7 +222,7 @@ void FileTree::scan()
       Symbol shortName = last(relativePath);
       if(shortName.endsWith(_extension))
       {
-        add(relativePath, ml::make_unique< File >(fullPath));
+        add(relativePath, std::make_unique< File >(fullPath));
       }
     }
   }

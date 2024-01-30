@@ -28,7 +28,7 @@ constexpr float kFreqLo = 40, kFreqHi = 4000;
 void readParameterDescriptions(ParameterDescriptionList& params)
 {
   // Processor parameters
-  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+  params.push_back( std::make_unique< ParameterDescription >(WithValues{
     { "name", "freq1" },
     { "range", { kFreqLo, kFreqHi } },
     { "log", true },
@@ -36,7 +36,7 @@ void readParameterDescriptions(ParameterDescriptionList& params)
     { "default", 0.75 }
   } ) );
   
-  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+  params.push_back( std::make_unique< ParameterDescription >(WithValues{
     { "name", "freq2" },
     { "range", { kFreqLo, kFreqHi } },
     { "log", true },
@@ -44,14 +44,14 @@ void readParameterDescriptions(ParameterDescriptionList& params)
     // no default here means the normalized default will be 0.5 (400 Hz)
   } ) );
   
-  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+  params.push_back( std::make_unique< ParameterDescription >(WithValues{
     { "name", "gain" },
     { "range", {0, kMaxGain} },
     { "plaindefault", kDefaultGain }
   } ) );
   
   // Controller parameters
-  params.push_back( ml::make_unique< ParameterDescription >(WithValues{
+  params.push_back( std::make_unique< ParameterDescription >(WithValues{
     { "name", "view_size" },
     { "save_in_controller", true }
   } ) );

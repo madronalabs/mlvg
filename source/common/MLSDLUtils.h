@@ -5,6 +5,8 @@
 
 #pragma once
 
+#if ML_INCLUDE_SDL
+
 #include "SDL.h"
 #include "SDL_syswm.h"
 #include "MLPlatform.h"
@@ -199,3 +201,5 @@ namespace ml {
     }
 
 }
+
+#endif
