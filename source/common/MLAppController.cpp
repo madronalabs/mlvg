@@ -19,6 +19,13 @@ using namespace ml;
 //-----------------------------------------------------------------------------
 // AppController implementation
 
+#ifdef DEBUG
+#ifdef ML_WINDOWS
+#include <Windows.h>
+#endif
+#endif
+
+
 AppController::AppController(TextFragment appName, const ParameterDescriptionList& pdl)
 {
 #ifdef DEBUG

@@ -32,6 +32,8 @@ set(VERSION_MINOR "1")
 set(VERSION_PATCH "0")
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
+option(BUILD_SDL2_APP "Build SDL2 example app" ON)
+
  #--------------------------------------------------------------------
  # Compiler flags
  #--------------------------------------------------------------------
@@ -43,11 +45,22 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
    # For now, explicitly disable C++17 alignment feature
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-aligned-new")
  elseif(WIN32)
-   #untested
+   # no unknown pragma warning
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4068")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:alignedNew-")
  endif()
 
- 
+if(MSVC)
+    # arcane thing about setting runtime library flags
+    cmake_policy(SET CMP0091 NEW)
+
+    add_compile_options(
+        $<$<CONFIG:>:/MT>
+        $<$<CONFIG:Debug>:/MTd>
+        $<$<CONFIG:Release>:/MT>
+    )
+endif()
+
  #--------------------------------------------------------------------
  # Choose library output name
  #--------------------------------------------------------------------
@@ -55,19 +68,25 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  # creates the library mlvg-debug in debug configuration
  set(mlvg_NAME mlvg$<$<CONFIG:Debug>:-debug>)
 
- #--------------------------------------------------------------------
- # find madronalib
- #--------------------------------------------------------------------
  
- if(APPLE)
-     include(GNUInstallDirs)
-     set (MADRONALIB_INCLUDE_DIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}/madronalib")
-     set (MADRONALIB_LIBRARY_DIR "${CMAKE_INSTALL_FULL_LIBDIR}")
- elseif(WIN32)
-     set (MADRONALIB_INCLUDE_DIR "C:/Program Files/madronalib/include")
-     set (MADRONALIB_LIBRARY_DIR "C:/Program Files/madronalib/lib")
- else()
- endif()
+#--------------------------------------------------------------------
+# find madronalib
+#--------------------------------------------------------------------
+
+if(APPLE)
+    include(GNUInstallDirs)
+    set (MADRONALIB_INCLUDE_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+    set (MADRONALIB_LIBRARY_DIR ${CMAKE_INSTALL_FULL_LIBDIR})
+elseif(WIN32)
+    if(EXISTS "C:/Program Files/madronalib/lib/madrona.lib")
+        set (MADRONALIB_INCLUDE_DIR "C:/Program Files/madronalib/include")
+        set (MADRONALIB_LIBRARY_DIR "C:/Program Files/madronalib/lib")
+    else()
+        set (MADRONALIB_INCLUDE_DIR "C:/Program Files (x86)/madronalib/include")
+        set (MADRONALIB_LIBRARY_DIR "C:/Program Files (x86)/madronalib/lib")
+    endif()
+else()
+endif()
  
  # add -debug suffix to link debug madronalib for debug builds
  set(madronalib_NAME madrona$<$<CONFIG:Debug>:-debug>)
@@ -79,7 +98,7 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  # find mlvg sources including our juce-core subset 
  #--------------------------------------------------------------------
  
- set (MLVG_SOURCE_DIR "source")
+ set (MLVG_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/source")
  
  #--------------------------------------------------------------------
  # compile binary resources
@@ -149,18 +168,17 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
           ${MLVG_SOURCE_DIR}/external/nanosvg/src/nanosvg.h
           ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl.h
           ${MLVG_SOURCE_DIR}/external/nanovg/src/nanovg_gl_utils.h
-          ${MLVG_SOURCE_DIR}/external/glad/src/glad.c
-          ${MLVG_SOURCE_DIR}/external/glad/include/glad/glad.h
-          ${MLVG_SOURCE_DIR}/external/glad/include/KHR/khrplatform.h
+          ${MLVG_SOURCE_DIR}/external/glad/glad.c
+          ${MLVG_SOURCE_DIR}/external/glad/glad.h
+          ${MLVG_SOURCE_DIR}/external/glad/khrplatform.h
       )
       set(NANOVG_INCLUDE_DIRS
           ${MLVG_SOURCE_DIR}/external/nanovg/src
           ${MLVG_SOURCE_DIR}/external/nanosvg/src
-          ${MLVG_SOURCE_DIR}/external/glad/include
-          ${MLVG_SOURCE_DIR}/external/glad/include/glad
+          ${MLVG_SOURCE_DIR}/external/glad
       )
       if (MSVC)
-          set_source_files_properties(source/external/glad/src/glad.c
+          set_source_files_properties(source/external/glad/glad.c
           PROPERTIES COMPILE_FLAGS /wd4055)
       endif()
   endif()
@@ -188,7 +206,7 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  endif()
  
  list(APPEND osdialog_sources ${osdialog_sources_native} )
- 
+
 #--------------------------------------------------------------------
 # gather cJSON sources
 #--------------------------------------------------------------------
@@ -246,7 +264,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
 list(APPEND MLVG_INCLUDE_DIRS "${NANOVG_INCLUDE_DIRS}")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/include")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_SOURCE_DIR}")
-list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}")
+list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}/madronalib")
 list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 
 #--------------------------------------------------------------------
@@ -256,7 +274,6 @@ list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 set(target mlvg)
 
 # Define the library
-#add_library(${target} STATIC ${mlvg_sources} ${juce_core_sources} ${osdialog_sources} ${cjson_sources})
 add_library(${target} STATIC ${mlvg_sources} ${osdialog_sources} ${cjson_sources})
 
 set_target_properties(${target} PROPERTIES
@@ -271,6 +288,16 @@ target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 target_compile_options(${target} PRIVATE "-fobjc-arc")
 
 target_link_libraries(${target} ghc_filesystem)
+
+include(GNUInstallDirs)
+
+if(WIN32)
+    set(CMAKE_INSTALL_LIBDIR "C:/Program Files/mlvg/lib")
+
+    if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+      set(CMAKE_INSTALL_PREFIX "C:/Program Files/mlvg" CACHE PATH "..." FORCE)
+    endif()
+endif()
 
 install(
     TARGETS ${target}
@@ -291,6 +318,8 @@ file(GLOB NATIVE_HEADERS_HACK2 "source/external/nanovg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK3 "source/external/nanosvg/src/*.h")
 file(GLOB NATIVE_HEADERS_HACK4 "source/external/miniz/*.h")
 file(GLOB NATIVE_HEADERS_HACK5 "source/external/osdialog/*.h")
+file(GLOB NATIVE_HEADERS_HACK6 "source/external/glad/*.h")
+
 
 install(FILES
     source/include/mlvg.h
@@ -302,77 +331,89 @@ install(FILES
     ${NATIVE_HEADERS_HACK3}
     ${NATIVE_HEADERS_HACK4}
     ${NATIVE_HEADERS_HACK5}
+    ${NATIVE_HEADERS_HACK6}
     DESTINATION
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
-    include/mlvg
+    include
   )
+
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #--------------------------------------------------------------------
 # make SDL2 application target
 #--------------------------------------------------------------------
 
-create_resources (examples/app/resources build/resources/testapp)
- 
-set(target testapp)
+if(BUILD_SDL2_APP)
+    create_resources (examples/app/resources build/resources/testapp)
+     
+    set(target testapp)
 
-file(GLOB LOCAL_SOURCES "${CMAKE_SOURCE_DIR}/examples/app/*.cpp")
-file(GLOB LOCAL_INCLUDES "${CMAKE_SOURCE_DIR}/examples/app/*.h")
+    file(GLOB LOCAL_SOURCES "${CMAKE_SOURCE_DIR}/examples/app/*.cpp")
+    file(GLOB LOCAL_INCLUDES "${CMAKE_SOURCE_DIR}/examples/app/*.h")
 
-list(APPEND test_app_sources ${LOCAL_SOURCES} )
-list(APPEND test_app_sources ${LOCAL_INCLUDES} )
+    list(APPEND test_app_sources ${LOCAL_SOURCES} )
+    list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 
-add_executable(${target} ${test_app_sources})
+    add_executable(${target} ${test_app_sources})
 
-# to use the SDL2 framework in /Library/Frameworks, do this:
-find_package(SDL2 REQUIRED COMPONENTS SDL2)
-target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})
-message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
-
-# add madronalib
-target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
-if(APPLE)
-    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")
-elseif(WIN32)
-    target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
-endif()
-
-# add mlvg library
-target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
-target_link_libraries(${target} PRIVATE mlvg)
-
-if(APPLE)
-    # ARC must be off for juce
-    # target_compile_options(${target} PRIVATE "-fno-objc-arc")
+    # find SDL headers and libraries
+    if(APPLE)
+        # to use the SDL2 framework in /Library/Frameworks, do this:
+        find_package(SDL2 REQUIRED COMPONENTS SDL2)
+    elseif(WIN32)
+        # it seems like there's no standard place to put the SDL dev tools on Windows.
+        # we put them in an SDL dir alongside the main project directory.
+        set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../SDL/include")
+        # Support both 32 and 64 bit builds
+        if (${CMAKE_SIZEOF_VOID_P} MATCHES 8)
+          set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/lib/x64")
+        else ()
+          set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/lib/x86")
+        endif ()
+        target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2.lib")
+        target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2main.lib")
+    endif()
     
-    # build only active arch for Debug builds
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES")
-    
-    # set debug info format
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
-endif()
- 
-# set compiler options
-if(APPLE)
-    target_compile_options(${target} PRIVATE "-Werror=return-type")
-elseif(WIN32)
-    target_compile_options(${target} PRIVATE "/wd4068") # silence unknown pragma warning
-    target_compile_options(${target} PRIVATE "/EHa") # standard C++ stack unwinding
-endif()
+    message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
+    message("SDL2 libraries should be in: " ${SDL2_LIBRARIES_DIR} )
+    target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})
 
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
-target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 
-# add UI libs and frameworks- note that these appear under
-# "other linker flags" in XCode and not in its file browser
-if(APPLE)
-    target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
-      "-framework CoreAudio" "-framework CoreServices" 
-      "-framework AppKit" "-framework SDL2" )
-elseif(WIN32)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
+    # add madronalib
+    target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
+    if(APPLE)
+        target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")
+    elseif(WIN32)
+        target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
+    endif()
+
+    # add mlvg library
+    target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+    target_link_libraries(${target} PRIVATE "mlvg")
+
+
+    if(APPLE)
+        # ARC must be off for juce
+        # target_compile_options(${target} PRIVATE "-fno-objc-arc")
+
+        target_compile_definitions(${target} PUBLIC ML_INCLUDE_SDL=1)
+        target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
+        target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+
+        # add UI libs and frameworks- note that these appear under
+        # "other linker flags" in XCode and not in its file browser
+        if(APPLE)
+            target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+              "-framework CoreAudio" "-framework CoreServices"
+              "-framework AppKit" "-framework SDL2" )
+        elseif(WIN32)
+            find_package(OpenGL REQUIRED)
+            target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
+        endif()
+    endif()
 endif()
-
 
 #--------------------------------------------------------------------
 # set source groups for some source above

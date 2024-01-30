@@ -19,7 +19,7 @@
 
 #include "MLAppView.h"
 #include "MLPlatformView.h"
-#include "MLDebug.h"
+// #include "MLDebug.h"
 
 // needs to be a little higher than actual preferred rate
 // because of window sync
@@ -128,32 +128,37 @@ void PlatformView::Impl::destroyWindowClass()
 
 bool PlatformView::Impl::setPixelFormat(HDC dc)
 {
-  if (dc)
-  {
-    PIXELFORMATDESCRIPTOR pfd =
+    bool status = false;
+    if (dc)
     {
-      sizeof(PIXELFORMATDESCRIPTOR),
-      1,
-      PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER, //Flags
-      PFD_TYPE_RGBA, // The kind of framebuffer. RGBA or palette.
-      24, // Colordepth of the framebuffer.
-      0, 0, 0, 0, 0, 0,
-      0,
-      0,
-      0,
-      0, 0, 0, 0,
-      24, // Number of bits for the depthbuffer
-      8, // Number of bits for the stencilbuffer
-      0, // Number of Aux buffers in the framebuffer.
-      PFD_MAIN_PLANE,
-      0,
-      0, 0, 0
-    };
+        PIXELFORMATDESCRIPTOR pfd = {
+            sizeof(PIXELFORMATDESCRIPTOR),    // size of this pfd  
+            1,                                // version number  
+            PFD_DRAW_TO_WINDOW |              // support window  
+            PFD_SUPPORT_OPENGL |              // support OpenGL  
+            PFD_DOUBLEBUFFER,                 // double buffered  
+            PFD_TYPE_RGBA,                    // RGBA type  
+            24,                               // 24-bit color depth  
+            0, 0, 0, 0, 0, 0,                 // color bits ignored  
+            0,                                // no alpha buffer  
+            0,                                // shift bit ignored  
+            0,                                // no accumulation buffer  
+            0, 0, 0, 0,                       // accum bits ignored  
+            32,                               // 32-bit z-buffer      
+            8,                                // no stencil buffer  
+            0,                                // no auxiliary buffer  
+            PFD_MAIN_PLANE,                   // main layer  
+            0,                                // reserved  
+            0, 0, 0                           // layer masks ignored  
+        };
 
-    int fmt = ChoosePixelFormat(dc, &pfd);
-    return SetPixelFormat(dc, fmt, &pfd);
-  }
-  return false;
+        // get the device context's best, available pixel format match  
+        auto format = ChoosePixelFormat(dc, &pfd);
+
+        // make that match the device context's current pixel format  
+        status = SetPixelFormat(dc, format, &pfd);
+    }
+  return status;
 }
 
 bool PlatformView::Impl::createWindow(HWND parentWindow, void* userData, void* platformHandle, ml::Rect bounds)
@@ -271,7 +276,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
   
   if(!pR)
   {
-    DBGMSG("PlatformView: null view!");
+    // DBGMSG("PlatformView: null view!");
      return;
   }
 
@@ -323,7 +328,7 @@ void PlatformView::resizePlatformView(int w, int h)
     if (_pImpl->_windowHandle)
     {
       long flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE;
-      flags != (SWP_NOCOPYBITS | SWP_DEFERERASE);
+      flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
 
       _pImpl->lockContext();
       _pImpl->makeContextCurrent();
@@ -332,7 +337,8 @@ void PlatformView::resizePlatformView(int w, int h)
       // resize main backing layer
       if (_pImpl->_nvg)
       {
-        _pImpl->_nvgBackingLayer = ml::make_unique< Layer >(_pImpl->_nvg, w, h);
+        _pImpl->_nvgBackingLayer = std::make_unique< Layer >(_pImpl->_nvg, w, h);
+      //  std::cout << " PlatformView::resizePlatformView: new Layer " << (void*)_pImpl->_nvgBackingLayer.get() << std::endl;
       }
       _pImpl->unlockContext();
     }
@@ -432,54 +438,67 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     case WM_PAINT:
     {
       PAINTSTRUCT ps;
-      BeginPaint(hWnd, &ps);
+
       if (pGraphics->_pImpl->makeContextCurrent())
       {
-        pGraphics->_pImpl->_frameCounter++;
-        
-        auto nativeImage = getNativeImageHandle(*pGraphics->_pImpl->_nvgBackingLayer);
-        if (!nativeImage) return 0;
         if ((!nvg) || (!pView)) return 0;
+        {
+            // allow Widgets to animate. 
+            // note: this might change the backing layer!
+            pView->animate(nvg);
 
-        int w = pGraphics->_pImpl->_width;
-        int h = pGraphics->_pImpl->_height;
-        
-        // draw to backing layer, which retains previous frame's image
-        drawToLayer(pGraphics->_pImpl->_nvgBackingLayer.get());
-        glViewport(0, 0, w, h);
-        nvgBeginFrame(nvg, w, h, 1.0f);
+            BeginPaint(hWnd, &ps);
+            pGraphics->_pImpl->_frameCounter++;
 
-        // render the App view
-        pView->renderView(nvg, pGraphics->_pImpl->_nvgBackingLayer.get());
+            int w = pGraphics->_pImpl->_width;
+            int h = pGraphics->_pImpl->_height;
 
-        // end backing layer update
-        nvgEndFrame(nvg);
-        drawToLayer(nullptr);
-           
-        // begin gl frame
-        glViewport(0, 0, w, h);
-        glClearColor(0.f, 0.f, 0.f, 0.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            // draw to backing layer, which retains previous frame's image
+            if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
+            auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
+            auto nativeImage = getNativeImageHandle(*pBackingLayer);
+            if (!nativeImage) return 0;
 
-        // blit backing layer to main layer
-        nvgBeginFrame(nvg, w, h, 1.0f);
-        NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, nativeImage, 1.0f);
-        nvgSave(nvg);
-        nvgResetTransform(nvg);
-        nvgBeginPath(nvg);
-        nvgRect(nvg, 0, 0, w, h);
-        nvgFillPaint(nvg, img);
-        nvgFill(nvg);
-        nvgRestore(nvg);
- 
-        // end main update
-        nvgEndFrame(nvg);
+            drawToLayer(pBackingLayer);
+            glViewport(0, 0, w, h);
+            nvgBeginFrame(nvg, w, h, 1.0f);
 
-        // finish platform GL drawing
-        pGraphics->_pImpl->swapBuffers();
+            // render the App view
+            pView->render(nvg);
+
+            // end backing layer update
+            nvgEndFrame(nvg);
+
+            /*
+            glViewport(0, 0, w, h);
+            glClearColor(0.f, 0.f, 0.f, 0.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            */
+
+            // blit backing layer to main layer
+            drawToLayer(nullptr);
+            glViewport(0, 0, w, h);
+            nvgBeginFrame(nvg, w, h, 1.0f);
+            NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, nativeImage, 1.0f);
+            nvgSave(nvg);
+            nvgResetTransform(nvg);
+            nvgBeginPath(nvg);
+            nvgRect(nvg, 0, 0, w, h);
+            nvgFillPaint(nvg, img);
+            nvgFill(nvg);
+            nvgRestore(nvg);
+            
+
+            // end main update
+            nvgEndFrame(nvg);
+
+            // finish platform GL drawing
+            pGraphics->_pImpl->swapBuffers();
+            EndPaint(hWnd, &ps);
+        }
       }
 
-      EndPaint(hWnd, &ps);
+
       return 0;
     }
 

@@ -181,7 +181,8 @@ void View::draw(ml::DrawContext dc)
   
   // if the View itself is dirty, all the Widgets in it must be redrawn.
   // otherwise, only the dirty Widgets need to be redrawn.
-  if(_dirty)
+ if(_dirty)
+ // if(1)
   {
     if(getBoolPropertyWithDefault("draw_background", true))
     {
@@ -528,7 +529,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     
     if(drawGrid)
     {
-      auto markColor = multiplyAlpha(getColor(dc, "mark"), 0.125f);
+      auto markColor = getColor(dc, "mark");
       
       const int gx = std::ceilf(getFloatProperty("grid_units_x"));
       const int gy = std::ceilf(getFloatProperty("grid_units_y"));

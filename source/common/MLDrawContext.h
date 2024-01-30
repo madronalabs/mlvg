@@ -442,6 +442,7 @@ inline NVGcolor multiplyAlpha(const NVGcolor& c, float p)
 using HSVAcolor = std::array<float, 4>;
 
 // untested
+/*
 inline HSVAcolor rgb2hsv(NVGcolor c)
 {
   auto hi = std::max(c.r, std::max(c.g, c.b));
@@ -473,6 +474,7 @@ inline HSVAcolor rgb2hsv(NVGcolor c)
 
   return HSVAcolor{ hue, sat, val, c.a };
 }
+*/
 
 inline NVGcolor colorWithAlpha(NVGcolor c, float alpha)
 {

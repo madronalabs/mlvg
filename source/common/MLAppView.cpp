@@ -12,7 +12,7 @@ namespace ml {
 AppView::AppView(TextFragment appName, size_t instanceNum)
 {
   // build View, pointing at root Widgets
-  _view = ml::make_unique< View > (_rootWidgets, WithValues{});
+  _view = std::make_unique< View > (_rootWidgets, WithValues{});
   
   // get names of other Actors we might communicate with
   _controllerName = TextFragment(appName, "controller", ml::textUtils::naturalNumberToText(instanceNum));
@@ -137,7 +137,7 @@ void AppView::createVectorImage(Path newImageName, const unsigned char* dataStar
   if(tempData)
   {
     memcpy(tempData, dataStart, dataSize);
-    _vectorImages[newImageName] = ml::make_unique< VectorImage >(static_cast< char* >(tempData));
+    _vectorImages[newImageName] = std::make_unique< VectorImage >(static_cast< char* >(tempData));
   }
   else
   {
@@ -362,24 +362,26 @@ size_t AppView::_getElapsedTime()
   return elapsedTime;
 }
 
-void AppView::render(NativeDrawContext* nvg, Layer* backingLayer)
+void AppView::animate(NativeDrawContext* nvg)
 {
-  if(!backingLayer) return;
+    // Allow Widgets to draw any needed animations outside of main nvgBeginFrame().
+    // Do animations and handle any resulting messages immediately.
+    DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates };
+    MessageList ml = _view->animate(_getElapsedTime(), dc);
+    enqueueMessageList(ml);
+    handleMessagesInQueue();
+}
 
+void AppView::render(NativeDrawContext* nvg)
+{
   // TODO move resource types into Renderer, DrawContext points to Renderer
   DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
-  
-  // first, allow Widgets to draw any needed animations outside of main nvgBeginFrame().
-  // Do animations and handle any resulting messages immediately.
-  MessageList ml = _view->animate(_getElapsedTime(), dc);
-  enqueueMessageList(ml);
-  handleMessagesInQueue();
-  
-  // begin the frame on the backing layer
-  drawToLayer(backingLayer);
-  nvgBeginFrame(nvg, backingLayer->width, backingLayer->height, 1.0f);
-  
+
+  auto layerSize = _GUICoordinates.viewSizeInPixels;
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
+
+  // begin the frame on the backing layer
+  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0f);
 
   // if top level view is dirty, clear entire window
   if(_view->isDirty())
@@ -425,7 +427,7 @@ void AppView::createPlatformView(void* pParent, int flags)
   if(pParent != _parent)
   {
     _parent = pParent;
-    _platformView = ml::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
+    _platformView = std::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
   }
 }
 
@@ -447,6 +449,8 @@ void AppView::stopTimersAndActor()
 // set new editor size in system coordinates.
 void AppView::doResize(Vec2 newSize)
 {
+    std::cout << "doResize: " << newSize[0] << " x " << newSize[1] << std::endl;
+
   int width = newSize[0];
   int height = newSize[1];
   float scale = _GUICoordinates.displayScale;
