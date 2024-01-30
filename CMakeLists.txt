@@ -16,7 +16,7 @@
   
  IF(APPLE)
   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
-  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE STRING "Minimum OS X deployment version")
+  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
  ENDIF(APPLE)
 
 #--------------------------------------------------------------------
@@ -189,16 +189,22 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
  
  list(APPEND osdialog_sources ${osdialog_sources_native} )
  
- #--------------------------------------------------------------------
- # gather cJSON sources
- #--------------------------------------------------------------------
- 
- set(cjson_sources
- ${MLVG_SOURCE_DIR}/external/cJSON/cJSON.c
- ${MLVG_SOURCE_DIR}/external/cJSON/cJSON.h)
- 
- set(cjson_include_dirs ${MLVG_SOURCE_DIR}/external/cJSON)
- 
+#--------------------------------------------------------------------
+# gather cJSON sources
+#--------------------------------------------------------------------
+
+set(cjson_sources
+${MLVG_SOURCE_DIR}/external/cJSON/cJSON.c
+${MLVG_SOURCE_DIR}/external/cJSON/cJSON.h)
+
+set(cjson_include_dirs ${MLVG_SOURCE_DIR}/external/cJSON)
+
+#--------------------------------------------------------------------
+# add filesystem library
+#--------------------------------------------------------------------
+
+add_subdirectory(${MLVG_SOURCE_DIR}/external/filesystem)
+
 #--------------------------------------------------------------------
 # gather mlvg sources
 #--------------------------------------------------------------------
@@ -263,6 +269,8 @@ set_target_properties(${target} PROPERTIES
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 
 target_compile_options(${target} PRIVATE "-fobjc-arc")
+
+target_link_libraries(${target} ghc_filesystem)
 
 install(
     TARGETS ${target}

@@ -5,231 +5,180 @@
 // See LICENSE.txt for details.
 
 
+#include <filesystem>
+#include <iostream>
+#include <fstream>
+
 #include "MLFiles.h"
 
 #include "external/osdialog/osdialog.h"
+#include "external/filesystem/include/ghc/filesystem.hpp"
 
 using namespace ml;
+namespace fs = ghc::filesystem;
 
-/*
-// use juce_core for implementation.
-#define JUCE_APP_CONFIG_HEADER "external/juce_core/JuceCoreConfig.h"
-#include "external/juce_core/juce_core.h"
-*/
+// NOTE: this is the beginning of a rewrite using ghc::filesystem, because we needed to ditch our previous
+// library. Tests and error handling are needed!
 
-// TEMP
-namespace juce
-{
-struct File{
-  File(char* p) { path = p; }
-  TextFragment getFullPathName() { return "test"; }
-  TextFragment getRelativePathFrom(File b) { return "test"; }
-  bool isDirectory(){ return false; }
-  bool exists(){ return false; }
-  bool create(){ return false; }
-  bool hasWriteAccess(){ return false; }
-
-  int replaceWithData(const void*, size_t sizeInBytes) { return 0; }
-  int replaceWithText(TextFragment) { return 0; }
-  
-  Path path;
-};
-
-using CharPointer_UTF8 = char*;
-using String = TextFragment;
-using MemoryBlock = Value;
-
-}
-
-TextFragment fullPathToText(Path p)
-{
-  char separator;
-
-#if JUCE_MAC || JUCE_IOS
-  separator = '/';
-  TextFragment tf(separator, pathToText(p, separator));
-#elif JUCE_LINUX || JUCE_ANDROID
-  separator = '/';
-  TextFragment tf(separator, pathToText(p, separator));
-#elif JUCE_WINDOWS
-  separator = '\\';
-  TextFragment tf(pathToText(p, separator));
-#else
-  TextFragment tf{};
-#endif
-  
-  
-  return tf;
-}
 
 // File
 
-File::File(Path p)
-{
-  char separator;
-  TextFragment tf(fullPathToText(p));
-  juce::File jf(juce::CharPointer_UTF8(tf.getText()));
-  auto fullPathName = jf.getFullPathName();
-  _fullPath = textToPath(TextFragment(fullPathName));
-  _isDirectory = jf.isDirectory();
-}
-
-File::~File(){}
-
-Path File::getFullPath() const
-{
-  return _fullPath;
-}
-
-TextFragment File::getFullPathAsText() const
-{
-
-#if JUCE_MAC || JUCE_IOS
-  char separator = '/';
-  TextFragment tf(separator, pathToText(_fullPath));
-#elif JUCE_LINUX || JUCE_ANDROID
-  char separator = '/';
-  TextFragment tf(separator, pathToText(_fullPath));
-#elif JUCE_WINDOWS
-  TextFragment tf(pathToText(_fullPath));
-#else
-  TextFragment tf{};
-#endif
-
-  return tf;
-}
-
 TextFragment File::getShortName() const
 {
-  Symbol nameSym = last(_fullPath);
+  Symbol nameSym = last(fullPath_);
   return nameSym.getTextFragment();
-}
-
-Path File::getRelativePathFrom(const File& other) const
-{
-  auto pathText = getFullPathAsText();
-  juce::File thisFile(juce::CharPointer_UTF8(pathText.getText()));
-  
-  auto otherPathText = other.getFullPathAsText();
-  juce::File otherFile(juce::CharPointer_UTF8(otherPathText.getText()));
-  
-  auto relativePathStr = thisFile.getRelativePathFrom(otherFile);
-  return textToPath(TextFragment(relativePathStr));
 }
 
 bool File::exists() const
 {
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  return jf.exists();
+  auto pathText = rootPathToText(fullPath_);
+  return fs::exists(fs::status(pathText.getText()));
 }
 
 bool File::create() const
 {
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  return jf.create();
+  auto pathText = rootPathToText(fullPath_);
+  fs::path p{pathText.getText()};
+  fs::create_directories(p.parent_path());
+  std::ofstream ofs;
+  ofs.open(p);
+  ofs.close();
+  return exists();
 }
 
-bool File::hasWriteAccess() const
-{ 
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  return jf.hasWriteAccess();
-}
-
-bool File::replaceWithData(const BinaryVector& dataVec) const
+bool File::replaceWithData(const CharVector& dataVec) const
 {
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  const void* pData = static_cast< const void* > (dataVec.data());
-  return jf.replaceWithData(pData, dataVec.size());
+  auto pathText = rootPathToText(fullPath_);
+  fs::path p{pathText.getText()};
+  std::ofstream ofs;
+  ofs.open(p, std::ios::trunc | std::ios::binary);
+  ofs.write(reinterpret_cast<const char*>(dataVec.data()), dataVec.size());
+  ofs.close();
+  
+  // TODO catch error
+  return true;
 }
 
 bool File::replaceWithText(const TextFragment& text) const
 {
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  juce::String juceStr(juce::CharPointer_UTF8(text.getText()));
-  return jf.replaceWithText(juceStr);
+  auto pathText = rootPathToText(fullPath_);
+  fs::path p{pathText.getText()};
+  std::ofstream ofs;
+  ofs.open(p, std::ios::trunc);
+  ofs.write(text.getText(), text.lengthInBytes());
+  ofs.close();
+  
+  // TODO catch error
+  return true;
 }
 
-bool File::load(BinaryVector& dataVec) const
+bool File::load(CharVector& dataVec) const
 {
-  bool r{false};
-  constexpr size_t kMaxFileBlock{ 1000*1000*256 }; // TODO
-
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  if(!jf.exists()) { return r; }
-
-  return false;
+  if(!exists()) return false;
   
-  /*
-  juce::MemoryBlock jmb;
-  if(jf.loadFileAsData(jmb))
+  std::cout << "load: \n";
+  std::cout << "      fullPath_: " << fullPath_ << "\n";
+  auto pathText = rootPathToText(fullPath_);
+  
+  
+  std::cout << "      pathText: " << pathText << "\n";
+  
+  fs::path p{pathText.getText()};
+  size_t size = fs::file_size(p);
+  dataVec.resize(size);
+  
+  std::ifstream ifs;
+  ifs.open(p, std::ios::in | std::ios::binary);
+  if(ifs.is_open())
   {
-    auto newSize = jmb.getSize();
-    if(within(newSize, size_t(0), kMaxFileBlock))
-    {
-      dataVec.resize(newSize);
-      std::memcpy(dataVec.data(), jmb.getData(), newSize);
-      r = true;
-    }
+    ifs.read(reinterpret_cast<char*>(dataVec.data()), size);
   }
-  return r;
-   */
+  // TODO catch error
+  return true;
 }
 
 bool File::loadAsText(TextFragment& fileAsText) const
 {
-  bool r{false};
-  constexpr size_t kMaxFileBlock{ 1000*1000*256 }; // TODO
-
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  if(!jf.exists()) { return r; }
+  if(!exists()) return false;
   
-  /*
-  juce::String juceFileStr = jf.loadFileAsString();
-  
-  if(juceFileStr != juce::String())
+  auto pathText = rootPathToText(fullPath_);
+  std::ifstream file(pathText.getText());
+  if(file.is_open())
   {
-    juce::CharPointer_UTF8 utfStr = juceFileStr.toUTF8();
-    fileAsText = TextFragment(utfStr);
-    r = true;
+    std::string contents((std::istreambuf_iterator<char>(file)),
+                         std::istreambuf_iterator<char>());
+    fileAsText = TextFragment(contents.c_str(), contents.size());
   }
-  return r;
-   */
-  return false;
+  
+  // TODO catch error
+  return true;
 }
 
-Symbol File::createDirectory()
+bool File::createDirectory()
 {
-  return "false";
-  /*
-  auto pathText = getFullPathAsText();
-  juce::File jf(juce::CharPointer_UTF8(pathText.getText()));
-  auto r = jf.createDirectory();
-  if(r == juce::Result::ok())
+  auto pathText = rootPathToText(fullPath_);
+  fs::path p{pathText.getText()};
+  fs::create_directories(p);
+  return exists();
+}
+
+
+// functions on Files
+
+TextFragment getFullPathAsText(const File& f)
+{
+  Path p = f.getFullPath();
+  return rootPathToText(p);
+}
+
+bool isDirectory(const File& f)
+{
+  auto pathText = getFullPathAsText(f);
+  return fs::is_directory(fs::status(pathText.getText()));
+}
+
+
+// functions on Paths
+
+Path ml::getRelativePath(const Path& root, const Path& child)
+{
+  Path relPath;
+  
+  if (root == child)
   {
-    return "OK";
+    relPath = Path();
+  }
+  
+  if(child.beginsWith(root))
+  {
+    relPath = lastN(child, child.getSize() - root.getSize());
   }
   else
   {
-    return Symbol(r.getErrorMessage().toUTF8());
-  }*/
+    // child is not in root
+    relPath = child;
+  }
+  
+  return relPath;
 }
 
+bool isHidden(const fs::path &p)
+{
+  fs::path::string_type name = p.filename();
+  if(name != ".." &&
+     name != "."  &&
+     name[0] == '.')
+  {
+    return true;
+  }
+  
+  return false;
+}
+
+
+  
+          
 // FileTree
-
-FileTree::FileTree(Path p, Symbol e) : _rootPath(p), _extension(e)
-{
-}
-
-FileTree::~FileTree()
-{
-}
 
 // scan the files in our root directory and build a current leaf index.
 void FileTree::scan()
@@ -237,42 +186,23 @@ void FileTree::scan()
   clear();
   _relativePathIndex.clear();
   
-  TextFragment t = fullPathToText(_rootPath);
-  juce::File root (juce::CharPointer_UTF8(t.getText()));
-  bool recurse = true;
-  const juce::String& wildCard = "*";
+  TextFragment t = rootPathToText(_rootPath);
   
-  // TEMP
-//  const int whatToLookFor = juce::File::findFilesAndDirectories | juce::File::ignoreHiddenFiles;
-//  juce::RangedDirectoryIterator di (root, recurse, wildCard, whatToLookFor);
-  
-  return;
-  
-  /*
-  
-  for(auto dirEntry : di)
+  for(auto const& entry : fs::recursive_directory_iterator(t.getText()))
   {
-    auto f = dirEntry.getFile();
-    // TODO clean up
-    juce::String relPath = f.getRelativePathFrom(root);
-    juce::CharPointer_UTF8 relUTF8Path = relPath.toUTF8();
-    ml::Path relativePath (relUTF8Path);
-    
-    juce::String fullPathStr = f.getFullPathName();
-    juce::CharPointer_UTF8 UTF8Path = fullPathStr.toUTF8();
-    ml::Path fullPath (UTF8Path);
-    
     // if file matches our search type, make a new file and add it to the tree
-    if(!f.isDirectory())
+    if(!isHidden(entry.path()) && entry.is_regular_file())
     {
-      Symbol shortName = last(relativePath);
-      if(shortName.endsWith(_extension))
+      TextFragment filePathAsText(entry.path().c_str());
+      auto filePath = textToPath(filePathAsText);
+      if(last(filePath).endsWith(_extension))
       {
-        add(relativePath, ml::make_unique< File >(fullPath));
+        Path relPath = getRelativePath(_rootPath, filePath);
+        add(relPath, ml::make_unique< File >(filePath));
       }
     }
   }
-
+  
   // add all leaves to the index in sorted order
   for (auto it = begin(); it != end(); ++it)
   {
@@ -280,9 +210,7 @@ void FileTree::scan()
     auto relPath = it.getCurrentNodePath();
     _relativePathIndex.push_back(removeExtensionFromPath(relPath));
   }
-   
-   */
-  
+  return;
 }
 
 Path FileTree::getRelativePathByIndex(size_t i) const
@@ -327,78 +255,12 @@ int FileTree::findIndexOfLeaf(Path p) const
 
 // helper functions
 
+using namespace FileUtils;
 
-
-
-
-// TODO generalize these for user types!
-
-
-// BLEAH
-
-
-
-Path ml::getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type)
-{
-  Path dataRoot, typeRoot;
-  char separator;
-  
-#if JUCE_MAC || JUCE_IOS
-  // everything is now in ~/Music/Madrona Labs on Mac
-  auto pt = pathToText(Path("~/Music", maker, app));
-  juce::File rootDir(juce::CharPointer_UTF8(pt.getText()));
-  separator = '/';
-#elif JUCE_LINUX || JUCE_ANDROID
-  auto pt = pathToText(ath("~/", ".", maker, app));
-  juce::File rootDir(juce::CharPointer_UTF8(pt.getText()));
-  separator = '/';
-#elif JUCE_WINDOWS
-  juce::File appDataDir = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory);
-  juce::File makerDir = appDataDir.getChildFile(juce::CharPointer_UTF8(maker.getText()));
-  juce::File rootDir = makerDir.getChildFile(juce::CharPointer_UTF8(app.getText()));
-  separator = '\\';
-#endif
-  
-//  const juce::String& fullName = rootDir.getFullPathName();
-//  dataRoot = textToPath(TextFragment(fullName.toUTF8()), separator);
-  
-  return ("test");
-  
-  if(dataRoot)
-  {
-    if(type == "patches")
-    {
-      typeRoot = dataRoot;
-    }
-    else if(type == "scales")
-    {
-      typeRoot = Path(dataRoot, "..", "Scales");
-    }
-    else if(type == "samples")
-    {
-      typeRoot = Path(dataRoot, "Samples");
-    }
-    else if(type == "partials")
-    {
-      typeRoot = Path(dataRoot, "Partials");
-    }
-    else if(type == "licenses")
-    {
-      typeRoot = Path(dataRoot, "..", "Licenses");
-    }
-    else
-    {
-      typeRoot = Path(dataRoot); // default to app dir
-    }
-  }
-    
-  return typeRoot;
-}
-
-File ml::getApplicationDataFile(TextFragment maker, TextFragment app, Symbol type, Path relativeName)
+File ml::FileUtils::getApplicationDataFile(TextFragment maker, TextFragment app, Symbol type, Path relativeName)
 {
   File ret;
-  Path rootPath = getApplicationDataRoot(maker, app, type);
+  Path rootPath = getApplicationDataPath(maker, app, type);
   Path typePath, fullPath;
   
   TextFragment extension;
@@ -444,8 +306,7 @@ File ml::getApplicationDataFile(TextFragment maker, TextFragment app, Symbol typ
 Path FileDialog::getFolderForLoad(Path startPath, TextFragment filters)
 {
   Path r;
-  auto pathText = pathToText(startPath);
-  pathText = TextFragment("/", pathText);
+  auto pathText = rootPathToText(startPath);
   
   char* filename = osdialog_file(OSDIALOG_OPEN_DIR, pathText.getText(), nullptr, nullptr);
   
@@ -458,8 +319,7 @@ Path FileDialog::getFilePathForLoad(Path startPath, TextFragment filtersFrag)
 {
   Path r;
   osdialog_filters* filters = osdialog_filters_parse(filtersFrag.getText());
-  auto pathText = pathToText(startPath);
-  pathText = TextFragment("/", pathText);
+  auto pathText = rootPathToText(startPath);
   
   char* filename = osdialog_file(OSDIALOG_OPEN, pathText.getText(), nullptr, filters);
   
@@ -472,8 +332,7 @@ Path FileDialog::getFilePathForLoad(Path startPath, TextFragment filtersFrag)
 Path FileDialog::getFilePathForSave(Path startPath, TextFragment defaultName)
 {
   Path r;
-  auto pathText = pathToText(startPath);
-  pathText = TextFragment("/", pathText);
+  auto pathText = rootPathToText(startPath);
   
   char* filename = osdialog_file(OSDIALOG_SAVE, pathText.getText(), defaultName.getText(), nullptr);
   
@@ -481,4 +340,60 @@ Path FileDialog::getFilePathForSave(Path startPath, TextFragment defaultName)
   free(filename);
   return r;
 }
+using namespace FileUtils;
+
+bool FileUtils::setCurrentPath(Path p)
+{
+  bool r{true};
+  TextFragment t = rootPathToText(p);
+  try
+  {
+    std::cout << "setCurrentPath: " << t << "\n";
+    fs::current_path(t.getText());
+  }
+  catch (fs::filesystem_error)
+  {
+    std::cout << "could not set current path " << t << "\n";
+    r = false;
+  }
+  return r;
+}
+
+
+
+void FileUtils::test()
+{
+  std::cout << "Current path is " << fs::current_path() << '\n'; // (1)
+  
+//  Path p(getUserDirectory("music"));
+//  if(!p) return;
+  
+  Path p(getApplicationDataPath("Madrona Labs", "Sumu", "patches"));
+  FileTree t(p, "mlpreset");
+  
+  std::cout << "getApplicationDataPath path is " << p << "\n";
+  
+  t.scan();
+  
+  setCurrentPath(p);
+  std::cout << "Current path is " << fs::current_path() << '\n'; // (1)
+
+  Path p2(p, "test007.txt");
+  
+  std::string testStr = {u8"Федор"};
+  File p2File(p2);
+  
+  
+//  TextFragment testText("this is a test\n not of a broadast system \n but three lines\n");
+  p2File.replaceWithText(testStr.c_str());
+  
+  TextFragment p2TextIn;
+  auto r = p2File.loadAsText(p2TextIn);
+  
+  std::cout << p2TextIn << "\n";
+
+  //std::cout << "exists? " << testFile.create() << "\n";
+}
+
+
 

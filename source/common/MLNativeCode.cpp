@@ -8,12 +8,9 @@
 #include "madronalib.h"
 #include "MLMath2D.h"
 
-namespace ml
-{
+
 #if ML_MAC
   #include "native/MLFilesMac.mm"
 #elif ML_WINDOWS
   #include "native/MLFilesWin.cpp"
 #endif
-
-} // namespace ml

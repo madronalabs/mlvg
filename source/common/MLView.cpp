@@ -459,6 +459,23 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
 {
 
   NativeDrawContext* nvg = getNativeContext(dc);
+  
+  // black background for testing / promo
+  if(0)
+  {
+    nvgSave(nvg);
+    nvgIntersectScissor(nvg, nativeRect);
+    
+    // draw image or gradient
+    nvgBeginPath(nvg);
+    nvgRect(nvg, nativeRect);
+    nvgFillColor(nvg, colors::black);
+    nvgFill(nvg);
+    
+    nvgRestore(nvg);
+    return;
+  }
+  
   //auto white = nvgRGBAf(1, 1, 1, 0.25);
   auto bgColorA = nvgRGBA(131, 162, 199, 255);
   auto bgColorB = nvgRGBA(115, 149, 185, 255);

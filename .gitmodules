@@ -1,3 +1,6 @@
 [submodule "source/external/osdialog"]
 	path = source/external/osdialog
 	url = git@github.com:AndrewBelt/osdialog.git
+[submodule "source/external/filesystem"]
+	path = source/external/filesystem
+	url = git@github.com:gulrak/filesystem.git
