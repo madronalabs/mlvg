@@ -68,14 +68,15 @@ endif()
  # creates the library mlvg-debug in debug configuration
  set(mlvg_NAME mlvg$<$<CONFIG:Debug>:-debug>)
 
- 
 #--------------------------------------------------------------------
 # find madronalib
+# MacOS: /usr/local/include/madronalib
+# Windows: C:/Program Files/madronalib/include
 #--------------------------------------------------------------------
 
 if(APPLE)
     include(GNUInstallDirs)
-    set (MADRONALIB_INCLUDE_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+    set (MADRONALIB_INCLUDE_DIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}/madronalib")
     set (MADRONALIB_LIBRARY_DIR ${CMAKE_INSTALL_FULL_LIBDIR})
 elseif(WIN32)
     if(EXISTS "C:/Program Files/madronalib/lib/madrona.lib")
@@ -87,13 +88,14 @@ elseif(WIN32)
     endif()
 else()
 endif()
- 
+
  # add -debug suffix to link debug madronalib for debug builds
- set(madronalib_NAME madrona$<$<CONFIG:Debug>:-debug>)
- 
- message("madronalib headers should be in: " ${MADRONALIB_INCLUDE_DIR} )
- message("madronalib library should be at: " ${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME} )
- 
+set(madronalib_NAME madrona$<$<CONFIG:Debug>:-debug>)
+
+message("madronalib headers should be in: " ${MADRONALIB_INCLUDE_DIR} )
+message("madronalib library should be in: " ${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME} )
+
+
  #--------------------------------------------------------------------
  # find mlvg sources including our juce-core subset 
  #--------------------------------------------------------------------
@@ -264,6 +266,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/widgets")
 list(APPEND MLVG_INCLUDE_DIRS "${NANOVG_INCLUDE_DIRS}")
 list(APPEND MLVG_INCLUDE_DIRS "${MLVG_SOURCE_DIR}/include")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_SOURCE_DIR}")
+list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}")
 list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}/madronalib")
 list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 
@@ -382,6 +385,7 @@ if(BUILD_SDL2_APP)
 
 
     # add madronalib
+    target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR})
     target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
     if(APPLE)
         target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")

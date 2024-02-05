@@ -165,9 +165,7 @@ Path ml::getRelativePath(const Path& root, const Path& child)
 bool isHidden(const fs::path &p)
 {
   fs::path::string_type name = p.filename();
-  if(name != ".." &&
-     name != "."  &&
-     name[0] == '.')
+  if(name[0] == '.')
   {
     return true;
   }
@@ -193,12 +191,13 @@ void FileTree::scan()
     // if file matches our search type, make a new file and add it to the tree
     if(!isHidden(entry.path()) && entry.is_regular_file())
     {
-      TextFragment filePathAsText(entry.path().c_str());
+      std::string pathStr(entry.path().string());
+      TextFragment filePathAsText(pathStr.c_str());
       auto filePath = textToPath(filePathAsText);
       if(last(filePath).endsWith(_extension))
       {
         Path relPath = getRelativePath(_rootPath, filePath);
-        add(relPath, ml::make_unique< File >(filePath));
+        add(relPath, std::make_unique< File >(filePath));
       }
     }
   }
