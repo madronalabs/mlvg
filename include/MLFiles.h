@@ -45,10 +45,13 @@ public:
   bool createDirectory();
 };
 
+
+//Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type);
+
 Path getRelativePath(const Path& root, const Path& child);
+
 bool exists(const File& f);
 bool isDirectory(const File& f);
-bool isWriteable(const File& f);
 
 
 class FileTree : public Tree< std::unique_ptr< File >, textUtils::SymbolCollator >
@@ -83,14 +86,13 @@ namespace FileDialog
   Path getFilePathForSave(Path startPath, TextFragment defaultName);
 };
 
+
 namespace FileUtils
 {
 
 void test();
 
 Path getUserPath(Symbol name);
-
-Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type);
 Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type);
 File getApplicationDataFile(TextFragment maker, TextFragment app, Symbol type, Path relativeName);
 bool setCurrentPath(Path p);

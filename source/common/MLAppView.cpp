@@ -20,6 +20,9 @@ AppView::AppView(TextFragment appName, size_t instanceNum)
   // register ourself
   auto myName = TextFragment(appName, "view", ml::textUtils::naturalNumberToText(instanceNum));
   registerActor(myName, this);
+
+  // stash in object
+  appName_ = appName;
 }
 
 AppView::~AppView()
@@ -491,11 +494,22 @@ bool AppView::willHandleEvent(GUIEvent g)
 
 bool AppView::pushEvent(GUIEvent g)
 {
+    // TEMP check queue
+    if (queueSize != _inputQueue.size())
+    {
+        std::cout << "wow  "  << appName_ << " AppView: queue size xchange! " << queueSize << " -> " << _inputQueue.size() << " \n";
+    }
+
+
   bool willHandle = willHandleEvent(g);
   if(willHandle)
   {
     _inputQueue.push(g);
   }
+
+  // TEMP check queue
+  queueSize = _inputQueue.size();
+
   return willHandle;
 }
 

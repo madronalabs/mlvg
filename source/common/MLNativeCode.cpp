@@ -10,7 +10,11 @@
 
 
 #if ML_MAC
-  #include "native/MLFilesMac.mm"
+#include "native/MLFilesMac.mm"
+#include "native/NanoVGViewMacGL.mm"
+#include "native/NanoVGViewMacMetal.mm"
 #elif ML_WINDOWS
-  #include "native/MLFilesWin.cpp"
+#include "native/MLFilesWin.cpp"
+#include "native/NanoVGViewWindowsGL.cpp"
 #endif
+

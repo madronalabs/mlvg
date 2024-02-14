@@ -239,21 +239,7 @@ set(MLVG_INCLUDE_DIRS
    ${MLVG_SOURCE_DIR}
    ${MLVG_SOURCE_DIR}/external
 )
- 
- if(APPLE)
-    set(MLVG_SOURCES_NATIVE
-      ${MLVG_SOURCE_DIR}/native/MLFilesMac.mm
-      ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
-      ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
-         
-     )
- elseif(WIN32)
-    set(MLVG_SOURCES_NATIVE
-      ${MLVG_SOURCE_DIR}/native/MLFilesWin.cpp
-      ${MLVG_SOURCE_DIR}/native/NanoVGViewWindowsGL.cpp
-     )
- endif()
- 
+
 list(APPEND mlvg_sources ${MLVG_SOURCES_COMMON} )
 list(APPEND mlvg_sources ${MLVG_HEADERS_COMMON} )
 list(APPEND mlvg_sources ${MLVG_SOURCES_WIDGETS} )
@@ -288,7 +274,11 @@ set_target_properties(${target} PROPERTIES
 
 target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 
-target_compile_options(${target} PRIVATE "-fobjc-arc")
+if(APPLE)
+    target_compile_options(${target} PRIVATE "-fobjc-arc")
+elseif(WIN32)
+endif()
+
 
 target_link_libraries(${target} ghc_filesystem)
 
@@ -340,7 +330,7 @@ install(FILES
     include
   )
 
-set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR})
+#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
@@ -360,6 +350,7 @@ if(BUILD_SDL2_APP)
     list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 
     add_executable(${target} ${test_app_sources})
+    target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
 
     # find SDL headers and libraries
     if(APPLE)
@@ -378,7 +369,6 @@ if(BUILD_SDL2_APP)
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2.lib")
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2main.lib")
     endif()
-    
     message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
     message("SDL2 libraries should be in: " ${SDL2_LIBRARIES_DIR} )
     target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})

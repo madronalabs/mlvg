@@ -389,6 +389,7 @@ void FileUtils::test()
   TextFragment p2TextIn;
   auto r = p2File.loadAsText(p2TextIn);
   
+  // TEMP prints weirdness
   std::cout << p2TextIn << "\n";
 
   //std::cout << "exists? " << testFile.create() << "\n";

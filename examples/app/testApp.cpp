@@ -16,6 +16,7 @@
 #include "testApp.h"
 #include "testAppView.h"
 
+#define ML_INCLUDE_SDL 1
 #include "MLSDLUtils.h"
 
 constexpr int kInputChannels = 0;
@@ -286,7 +287,7 @@ int main(int argc, char *argv[])
     registerActor(Path(processorName), &appProcessor);
       
     // attach app view to window, make UI and resize
-    ParentWindowInfo windowInfo = getParentWindowInfo(window);
+    ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
     appView.makeWidgets(pdl);
     appView.createPlatformView(windowInfo.windowPtr, windowInfo.flags);
     appView.startTimersAndActor();

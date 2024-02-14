@@ -76,8 +76,6 @@ public:
   bool pushEvent(GUIEvent g);
   
 protected:
-
-    TextFragment appName_;
   
   // the top level View.
   std::unique_ptr< View > _view;
@@ -131,7 +129,6 @@ protected:
   Vec2 _clickAndHoldStartPosition;
   Vec2 _doubleClickStartPosition;
   
-  // why underscores?! TODO clean up.
   void _deleteWidgets();
   void _setupWidgets(const ParameterDescriptionList& pdl);
   void _updateParameterDescription(const ParameterDescriptionList& pdl, Path pname);
@@ -147,9 +144,6 @@ private:
   // here is where all the Widgets are stored. Other instances of Collection < Widget >
   // may reference this.
   CollectionRoot< Widget > _rootWidgets;
-
-  // temp
-  int queueSize{ 0 };
 };
 
 }
