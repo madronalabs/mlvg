@@ -240,6 +240,19 @@ set(MLVG_INCLUDE_DIRS
    ${MLVG_SOURCE_DIR}/external
 )
 
+if(APPLE)
+  set(MLVG_SOURCES_NATIVE
+    ${MLVG_SOURCE_DIR}/native/MLFilesMac.mm
+    ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
+    ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
+   )
+elseif(WIN32)
+  set(MLVG_SOURCES_NATIVE
+    ${MLVG_SOURCE_DIR}/native/MLFilesWin.cpp
+    ${MLVG_SOURCE_DIR}/native/NanoVGViewWindowsGL.cpp
+   )
+endif()
+ 
 list(APPEND mlvg_sources ${MLVG_SOURCES_COMMON} )
 list(APPEND mlvg_sources ${MLVG_HEADERS_COMMON} )
 list(APPEND mlvg_sources ${MLVG_SOURCES_WIDGETS} )
