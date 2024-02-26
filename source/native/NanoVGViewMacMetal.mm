@@ -401,7 +401,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if((viewSizeInPixels != _nativeSize) || (!_backingLayer.get()))
   {
     _nativeSize = viewSizeInPixels;
-    _backingLayer = ml::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
+    _backingLayer = std::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
     _appView->viewResized(_nvg, systemSize);
   }
 }
@@ -489,7 +489,7 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   // add the new view to our parent view supplied by the host.
   [parentView addSubview: view];
 
-  _pImpl = ml::make_unique< Impl >();
+  _pImpl = std::make_unique< Impl >();
   _pImpl->_mtkView = view;
   _pImpl->_renderer = renderer;
 }

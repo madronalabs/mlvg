@@ -270,7 +270,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}/madronalib")
 list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 
 #--------------------------------------------------------------------
-# make and install mlvg library and headers
+# make and install mlvg library
 #--------------------------------------------------------------------
   
 set(target mlvg)
@@ -314,6 +314,21 @@ install(
 
 message("mlvg destination: " ${CMAKE_INSTALL_LIBDIR} )
 
+#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+#--------------------------------------------------------------------
+# install headers
+#--------------------------------------------------------------------
+
+if(APPLE)
+    set(HEADERS_INCLUDE_DIR "include/mlvg")
+elseif(WIN32)
+    set(HEADERS_INCLUDE_DIR "include")
+endif()
+
+
 file(GLOB COMMON_HEADERS "source/common/*.h")
 file(GLOB WIDGETS_HEADERS "source/widgets/*.h")
 
@@ -340,12 +355,8 @@ install(FILES
     ${NATIVE_HEADERS_HACK6}
     DESTINATION
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
-    include
+    ${HEADERS_INCLUDE_DIR}
   )
-
-#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
-set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
-install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #--------------------------------------------------------------------
 # make SDL2 application target
