@@ -12,10 +12,11 @@
  # debugging / command arguments: C:\Users\Randy\dev\mlvg\build\VST3\Debug\aaltoverb.vst3\Contents\x86_64-win\aaltoverb.vst3
  
  cmake_minimum_required (VERSION 3.16)
+
   
  IF(APPLE)
   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
-  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
+  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
  ENDIF(APPLE)
 
 #--------------------------------------------------------------------
@@ -227,6 +228,23 @@ set(cjson_include_dirs ${MLVG_SOURCE_DIR}/external/cJSON)
 add_subdirectory(${MLVG_SOURCE_DIR}/external/filesystem)
 
 #--------------------------------------------------------------------
+# add native sources
+#--------------------------------------------------------------------
+
+if(APPLE)
+  set(MLVG_SOURCES_NATIVE
+    ${MLVG_SOURCE_DIR}/native/MLFilesMac.mm
+    ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
+    ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
+   )
+elseif(WIN32)
+  set(MLVG_SOURCES_NATIVE
+    ${MLVG_SOURCE_DIR}/native/MLFilesWin.cpp
+    ${MLVG_SOURCE_DIR}/native/NanoVGViewWindowsGL.cpp
+   )
+endif()
+
+#--------------------------------------------------------------------
 # gather mlvg sources
 #--------------------------------------------------------------------
 
@@ -241,19 +259,6 @@ set(MLVG_INCLUDE_DIRS
    ${MLVG_SOURCE_DIR}/external
 )
 
-if(APPLE)
-  set(MLVG_SOURCES_NATIVE
-    ${MLVG_SOURCE_DIR}/native/MLFilesMac.mm
-    ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
-    ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
-   )
-elseif(WIN32)
-  set(MLVG_SOURCES_NATIVE
-    ${MLVG_SOURCE_DIR}/native/MLFilesWin.cpp
-    ${MLVG_SOURCE_DIR}/native/NanoVGViewWindowsGL.cpp
-   )
-endif()
- 
 list(APPEND mlvg_sources ${MLVG_SOURCES_COMMON} )
 list(APPEND mlvg_sources ${MLVG_HEADERS_COMMON} )
 list(APPEND mlvg_sources ${MLVG_SOURCES_WIDGETS} )
@@ -271,7 +276,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${MADRONALIB_INCLUDE_DIR}/madronalib")
 list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 
 #--------------------------------------------------------------------
-# make and install mlvg library
+# make and install mlvg library and headers
 #--------------------------------------------------------------------
   
 set(target mlvg)
@@ -315,21 +320,6 @@ install(
 
 message("mlvg destination: " ${CMAKE_INSTALL_LIBDIR} )
 
-#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
-set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
-install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-#--------------------------------------------------------------------
-# install headers
-#--------------------------------------------------------------------
-
-if(APPLE)
-    set(HEADERS_INCLUDE_DIR "include/mlvg")
-elseif(WIN32)
-    set(HEADERS_INCLUDE_DIR "include")
-endif()
-
-
 file(GLOB COMMON_HEADERS "source/common/*.h")
 file(GLOB WIDGETS_HEADERS "source/widgets/*.h")
 
@@ -356,8 +346,12 @@ install(FILES
     ${NATIVE_HEADERS_HACK6}
     DESTINATION
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
-    ${HEADERS_INCLUDE_DIR}
+    include
   )
+
+#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #--------------------------------------------------------------------
 # make SDL2 application target
@@ -421,17 +415,19 @@ if(BUILD_SDL2_APP)
         target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
         target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
 
-        # add UI libs and frameworks- note that these appear under
-        # "other linker flags" in XCode and not in its file browser
-        if(APPLE)
-            target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
-              "-framework CoreAudio" "-framework CoreServices"
-              "-framework AppKit" "-framework SDL2" )
-        elseif(WIN32)
-            find_package(OpenGL REQUIRED)
-            target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
-        endif()
     endif()
+    
+    # add UI libs and frameworks- note that these appear under
+    # "other linker flags" in XCode and not in its file browser
+    if(APPLE)
+        target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+            "-framework CoreAudio" "-framework CoreServices"
+            "-framework AppKit" "-framework SDL2" )
+    elseif(WIN32)
+        find_package(OpenGL REQUIRED)
+        target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
+    endif()
+
 endif()
 
 #--------------------------------------------------------------------

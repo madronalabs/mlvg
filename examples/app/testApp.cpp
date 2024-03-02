@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
   //appView.setFixedRatioSize(true);
   
   // TEMP
-  FileUtils::test();
+  // FileUtils::test();
 
   SDL_Window *window = ml::initSDLWindow(appView, "mlvg test");
   if(window)
