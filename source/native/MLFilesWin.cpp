@@ -85,7 +85,6 @@ Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type)
       std::wstring_convert<std::codecvt_utf8<wchar_t>> conv1;
       std::string str = conv1.to_bytes(wstr);
 
-      std::cout << "got path! " << appDataPath << "\n";
       CoTaskMemFree(ppszPath);
 
       TextFragment frag(str.c_str());
