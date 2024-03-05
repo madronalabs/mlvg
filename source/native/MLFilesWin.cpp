@@ -65,7 +65,6 @@ Path getUserPath(Symbol name)
   return p;
 }
 
-
 Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type)
 {
     return Path();
@@ -75,7 +74,9 @@ Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type)
 {
   Path appDataPath;
   PWSTR ppszPath = nullptr;
-  HRESULT hr = SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &ppszPath);
+
+  // everything is somewhere in (home)/AppData/Roaming on Windows
+  HRESULT hr = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &ppszPath);
 
   if (SUCCEEDED(hr)) {
       std::wstring wstr(ppszPath);
@@ -84,57 +85,45 @@ Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type)
       std::wstring_convert<std::codecvt_utf8<wchar_t>> conv1;
       std::string str = conv1.to_bytes(wstr);
 
-      TextFragment frag(str.c_str());
-      appDataPath = textToPath(frag);
-
       std::cout << "got path! " << appDataPath << "\n";
       CoTaskMemFree(ppszPath);
+
+      TextFragment frag(str.c_str());
+      appDataPath = textToPath(frag, '\\');
+  }
+
+  Path resultPath;
+  if (appDataPath)
+  {
+	  Path makerPath(appDataPath, maker);
+	  Path appPath(appDataPath, maker, app);
+
+	  switch (hash(type)) {
+	      case(hash("patches")): {
+              resultPath = Path(appPath);
+		      break;
+	      }
+	      case(hash("scales")): {
+              resultPath = Path(makerPath, "Scales");
+		      break;
+	      }
+	      case(hash("licenses")): {
+              resultPath = Path(makerPath, "Licenses");
+		      break;
+	      }
+	      case(hash("samples")): {
+              resultPath = Path(appPath, "Samples");
+		      break;
+	      }
+	      case(hash("partials")): {
+              resultPath = Path(appPath, "Partials");
+		      break;
+	      }
+	  }
   }
 
 
-
-
-  /*
-  // everything is now in ~/Music/Madrona Labs on Mac
-
-  Path musicPath = getUserPath("music");
-  
-  if(musicPath)
-  {
-    Path makerPath (musicPath, maker);
-    Path appPath (musicPath, maker, app);
-    switch(hash(type))
-    {
-      case(hash("patches")):
-      {
-        // patches are directly in for example .../Madrona Labs/Aalto
-        result = Path(appPath);
-        break;
-      }
-      case(hash("scales")):
-      {
-        result = Path(makerPath, "Scales");
-        break;
-      }
-      case(hash("licenses")):
-      {
-        result = Path(makerPath, "Licenses");
-        break;
-      }
-      case(hash("samples")):
-      {
-        result = Path(appPath, "Samples");
-        break;
-      }
-      case(hash("partials")):
-      {
-        result = Path(appPath, "Partials");
-        break;
-      }
-    }
-  
-  }*/
-  return appDataPath;
+  return resultPath;
 }
 
 

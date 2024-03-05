@@ -21,6 +21,30 @@ namespace fs = ghc::filesystem;
 // library. Tests and error handling are needed!
 
 
+// TODO move to native code
+ml::Path fsToMLPath(const fs::path& p)
+{
+
+#if ML_MAC
+    char separator{ '/' };
+#elif ML_WINDOWS
+    char separator{ '\\' };
+#endif
+    std::string pathStr(p.string());
+    TextFragment filePathAsText(pathStr.c_str());
+    return textToPath(filePathAsText, separator);
+}
+
+
+// TODO move to native code
+fs::path mlToFSPath(const ml::Path& p)
+{
+    TextFragment pathTxt = pathToText(p);
+    return fs::path(pathTxt.getText());
+}
+
+
+
 // File
 
 TextFragment File::getShortName() const
@@ -31,14 +55,12 @@ TextFragment File::getShortName() const
 
 bool File::exists() const
 {
-  auto pathText = rootPathToText(fullPath_);
-  return fs::exists(fs::status(pathText.getText()));
+  return fs::exists(fs::status(mlToFSPath(fullPath_)));
 }
 
 bool File::create() const
 {
-  auto pathText = rootPathToText(fullPath_);
-  fs::path p{pathText.getText()};
+    fs::path p(mlToFSPath(fullPath_));
   fs::create_directories(p.parent_path());
   std::ofstream ofs;
   ofs.open(p);
@@ -48,8 +70,7 @@ bool File::create() const
 
 bool File::replaceWithData(const CharVector& dataVec) const
 {
-  auto pathText = rootPathToText(fullPath_);
-  fs::path p{pathText.getText()};
+  fs::path p(mlToFSPath(fullPath_));
   std::ofstream ofs;
   ofs.open(p, std::ios::trunc | std::ios::binary);
   ofs.write(reinterpret_cast<const char*>(dataVec.data()), dataVec.size());
@@ -61,8 +82,7 @@ bool File::replaceWithData(const CharVector& dataVec) const
 
 bool File::replaceWithText(const TextFragment& text) const
 {
-  auto pathText = rootPathToText(fullPath_);
-  fs::path p{pathText.getText()};
+  fs::path p(mlToFSPath(fullPath_));
   std::ofstream ofs;
   ofs.open(p, std::ios::trunc);
   ofs.write(text.getText(), text.lengthInBytes());
@@ -76,14 +96,7 @@ bool File::load(CharVector& dataVec) const
 {
   if(!exists()) return false;
   
-  std::cout << "load: \n";
-  std::cout << "      fullPath_: " << fullPath_ << "\n";
-  auto pathText = rootPathToText(fullPath_);
-  
-  
-  std::cout << "      pathText: " << pathText << "\n";
-  
-  fs::path p{pathText.getText()};
+  fs::path p(mlToFSPath(fullPath_));
   size_t size = fs::file_size(p);
   dataVec.resize(size);
   
@@ -101,8 +114,7 @@ bool File::loadAsText(TextFragment& fileAsText) const
 {
   if(!exists()) return false;
   
-  auto pathText = rootPathToText(fullPath_);
-  std::ifstream file(pathText.getText());
+  std::ifstream file(mlToFSPath(fullPath_));
   if(file.is_open())
   {
     std::string contents((std::istreambuf_iterator<char>(file)),
@@ -116,8 +128,7 @@ bool File::loadAsText(TextFragment& fileAsText) const
 
 bool File::createDirectory()
 {
-  auto pathText = rootPathToText(fullPath_);
-  fs::path p{pathText.getText()};
+    fs::path p(mlToFSPath(fullPath_));
   fs::create_directories(p);
   return exists();
 }
@@ -138,7 +149,7 @@ bool isDirectory(const File& f)
 }
 
 
-// functions on Paths
+// functions on ml::Path and fs::path
 
 Path ml::getRelativePath(const Path& root, const Path& child)
 {
@@ -173,8 +184,6 @@ bool isHidden(const fs::path &p)
   return false;
 }
 
-
-  
           
 // FileTree
 
@@ -183,25 +192,22 @@ void FileTree::scan()
 {
   clear();
   _relativePathIndex.clear();
+  auto rootPath(mlToFSPath(_rootPath));
   
-  TextFragment t = rootPathToText(_rootPath);
-  
-  for(auto const& entry : fs::recursive_directory_iterator(t.getText()))
+  for(const fs::directory_entry& entry : fs::recursive_directory_iterator(rootPath))
   {
     // if file matches our search type, make a new file and add it to the tree
     if(!isHidden(entry.path()) && entry.is_regular_file())
     {
-      std::string pathStr(entry.path().string());
-      TextFragment filePathAsText(pathStr.c_str());
-      auto filePath = textToPath(filePathAsText);
+      auto filePath = fsToMLPath(entry.path());
       if(last(filePath).endsWith(_extension))
       {
-        Path relPath = getRelativePath(_rootPath, filePath);
-        add(relPath, std::make_unique< File >(filePath));
+          Path relPath = getRelativePath(_rootPath, filePath);
+          add(relPath, std::make_unique< File >(filePath));
       }
     }
   }
-  
+
   // add all leaves to the index in sorted order
   for (auto it = begin(); it != end(); ++it)
   {
@@ -209,6 +215,8 @@ void FileTree::scan()
     auto relPath = it.getCurrentNodePath();
     _relativePathIndex.push_back(removeExtensionFromPath(relPath));
   }
+
+  dump();
   return;
 }
 
@@ -344,15 +352,13 @@ using namespace FileUtils;
 bool FileUtils::setCurrentPath(Path p)
 {
   bool r{true};
-  TextFragment t = rootPathToText(p);
   try
   {
-    std::cout << "setCurrentPath: " << t << "\n";
-    fs::current_path(t.getText());
+    fs::current_path(mlToFSPath(p));
   }
   catch (fs::filesystem_error)
   {
-    std::cout << "could not set current path " << t << "\n";
+    std::cout << "could not set current path " << p << "\n";
     r = false;
   }
   return r;
@@ -364,15 +370,11 @@ void FileUtils::test()
 {
   std::cout << "Current path is " << fs::current_path() << '\n'; // (1)
   
-//  Path p(getUserDirectory("music"));
-//  if(!p) return;
-  
   Path p(getApplicationDataPath("Madrona Labs", "Sumu", "patches"));
   FileTree t(p, "mlpreset");
   
-  std::cout << "getApplicationDataPath path is " << p << "\n";
-  
-  t.scan();
+  std::cout << "Sumu patches path is " << p << "\n";
+
   
   setCurrentPath(p);
   std::cout << "Current path is " << fs::current_path() << '\n'; // (1)
@@ -383,8 +385,8 @@ void FileUtils::test()
   File p2File(p2);
   
   
-//  TextFragment testText("this is a test\n not of a broadast system \n but three lines\n");
-  p2File.replaceWithText(testStr.c_str());
+  TextFragment testText("this is a test\n not of a broadcast system \n but three lines\n");
+  p2File.replaceWithText(testText.getText());
   
   TextFragment p2TextIn;
   auto r = p2File.loadAsText(p2TextIn);
@@ -392,7 +394,7 @@ void FileUtils::test()
   // TEMP prints weirdness
   std::cout << p2TextIn << "\n";
 
-  //std::cout << "exists? " << testFile.create() << "\n";
+  std::cout << "exists? " << p2File.exists() << "\n";
 }
 
 
