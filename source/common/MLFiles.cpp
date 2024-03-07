@@ -36,11 +36,16 @@ ml::Path fsToMLPath(const fs::path& p)
 }
 
 
-// TODO move to native code
+// TODO move to native code, clean up
 fs::path mlToFSPath(const ml::Path& p)
 {
-    TextFragment pathTxt = pathToText(p);
-    return fs::path(pathTxt.getText());
+#if ML_MAC
+  TextFragment pathTxt = rootPathToText(p);
+#elif ML_WINDOWS
+  TextFragment pathTxt = pathToText(p);
+#endif
+  
+  return fs::path(pathTxt.getText());
 }
 
 
@@ -362,8 +367,6 @@ bool FileUtils::setCurrentPath(Path p)
   }
   return r;
 }
-
-
 
 void FileUtils::test()
 {
