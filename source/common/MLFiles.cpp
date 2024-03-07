@@ -47,6 +47,12 @@ fs::path mlToFSPath(const ml::Path& p)
 
 // File
 
+TextFragment File::getFullPathAsText() const
+{
+  Path p = getFullPath();
+  return rootPathToText(p);
+}
+
 TextFragment File::getShortName() const
 {
   Symbol nameSym = last(fullPath_);
@@ -136,15 +142,9 @@ bool File::createDirectory()
 
 // functions on Files
 
-TextFragment getFullPathAsText(const File& f)
+bool ml::isDirectory(const File& f)
 {
-  Path p = f.getFullPath();
-  return rootPathToText(p);
-}
-
-bool isDirectory(const File& f)
-{
-  auto pathText = getFullPathAsText(f);
+  auto pathText = f.getFullPathAsText();
   return fs::is_directory(fs::status(pathText.getText()));
 }
 
@@ -184,7 +184,6 @@ bool isHidden(const fs::path &p)
   return false;
 }
 
-          
 // FileTree
 
 // scan the files in our root directory and build a current leaf index.
