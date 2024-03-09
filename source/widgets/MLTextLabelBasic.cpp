@@ -17,8 +17,8 @@ void TextLabelBasic::draw(ml::DrawContext dc)
   auto fontFace = getTextPropertyWithDefault("font", "d_din");
   auto text = getTextProperty("text");
   
-  NativeFontHandle fontHandle = getImageHandleResource(dc, Path(fontFace));
-  if(!isValid(fontHandle)) return;
+  auto font = getFontResource(dc, Path(fontFace));
+  if(!font) return;
   
   float textSize = gridSizeInPixels*getFloatPropertyWithDefault("text_size", 0.25f);
   float spacing = getFloatPropertyWithDefault("text_spacing", 0.f);
@@ -57,7 +57,7 @@ void TextLabelBasic::draw(ml::DrawContext dc)
     textY = bounds.bottom();
   }
 
-  nvgFontFaceId(nvg, fontHandle);
+  nvgFontFaceId(nvg, font->handle);
   nvgFontSize(nvg, textSize);
   nvgTextLetterSpacing(nvg, textSize*spacing);
   nvgFillColor(nvg, textColor);

@@ -435,10 +435,10 @@ void DialBasic::draw(ml::DrawContext dc)
       numText = textUtils::formatNumber(currentPlainValue, digits, precision, doSign);
       
       auto fontFace = getTextPropertyWithDefault("font", "d_din");
-      NativeFontHandle fontHandle = getImageHandleResource(dc, Path(fontFace));
-      if(isValid(fontHandle))
+      auto font = getFontResource(dc, Path(fontFace));
+      if(font)
       {
-        nvgFontFaceId(nvg, fontHandle);
+        nvgFontFaceId(nvg, font->handle);
         nvgFontSize(nvg, textSize);
         nvgTextLetterSpacing(nvg, 1.0f);
         nvgTextAlign(nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP);

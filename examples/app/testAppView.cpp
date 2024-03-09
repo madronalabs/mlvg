@@ -78,24 +78,29 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
   _drawingProperties.setProperty("background", colorToMatrix({0.8, 0.8, 0.8, 1.0}));
   _drawingProperties.setProperty("draw_background_grid", true);
   _drawingProperties.setProperty("common_stroke_width", 1/32.f);
+
+  // _drawingProperties.setProperty("draw_widget_bounds", true);
+   _drawingProperties.setProperty("draw_dirty_widgets", true);
   
   // fonts
-  int font1 = nvgCreateFontMem(nvg, "MLVG_sans", (unsigned char*)resources::D_DIN_otf, resources::D_DIN_otf_size, 0);
-  const unsigned char* pFont1 = reinterpret_cast<const unsigned char *>(&font1);
-  _resources["d_din"] = std::make_unique< Resource >(pFont1, pFont1 + sizeof(int));
+   _resources.fonts["d_din"] = std::make_unique< FontResource >(nvg, "MLVG_sans", resources::D_DIN_otf, resources::D_DIN_otf_size);
+   _resources.fonts["d_din_italic"] = std::make_unique< FontResource >(nvg, "MLVG_italic", resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size);
 
-  int font2 = nvgCreateFontMem(nvg, "MLVG_italic", (unsigned char *)resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
-  const unsigned char* pFont2 = reinterpret_cast<const unsigned char *>(&font2);
-  _resources["d_din_italic"] = std::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
+
+ // int font2 = nvgCreateFontMem(nvg, "MLVG_italic", (unsigned char *)resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
+ // const unsigned char* pFont2 = reinterpret_cast<const unsigned char *>(&font2);
+ // _resources["d_din_italic"] = std::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
   
   // raster images
-  int flags = 0;
-  int img1 = nvgCreateImageMem(nvg, flags, (unsigned char *)resources::vignette_jpg, resources::vignette_jpg_size);
-  const unsigned char* pImg1 = reinterpret_cast<const unsigned char *>(&img1);
-  //_resources["background"] = std::make_unique< Resource >(pImg1, pImg1 + sizeof(int));
+  _resources.rasterImages["vignette"] = std::make_unique< RasterImage >(nvg, resources::vignette_jpg, resources::vignette_jpg_size);
   
   // SVG images
-  ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
+
+ // ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
+
+  _resources.vectorImages["tesseract"] = std::make_unique< VectorImage >(nvg, resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
+
+
 }
 
 void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)

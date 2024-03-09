@@ -100,7 +100,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     
     layoutFixedSizeWidgets_(newSize);
     
-    DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
+    DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
     layoutView(dc);
     
     _view->setDirty(true);
@@ -130,25 +130,6 @@ void AppView::layoutFixedSizeWidgets_(Vec2 newSize)
     }
   }
    );
-}
-
-void AppView::createVectorImage(Path newImageName, const unsigned char* dataStart, size_t dataSize)
-{
-  // horribly, nsvgParse will clobber the data it reads! So let's copy that data before parsing.
-  auto tempData = malloc(dataSize);
-  
-  if(tempData)
-  {
-    memcpy(tempData, dataStart, dataSize);
-    _vectorImages[newImageName] = std::make_unique< VectorImage >(static_cast< char* >(tempData));
-  }
-  else
-  {
-    std::cout << "createVectorImage: alloc failed! " << newImageName << ", " << dataSize << " bytes \n";
-    return;
-  }
-  
-  free(tempData);
 }
 
 
@@ -369,7 +350,7 @@ void AppView::animate(NativeDrawContext* nvg)
 {
     // Allow Widgets to draw any needed animations outside of main nvgBeginFrame().
     // Do animations and handle any resulting messages immediately.
-    DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates };
+    DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates };
     MessageList ml = _view->animate(_getElapsedTime(), dc);
     enqueueMessageList(ml);
     handleMessagesInQueue();
@@ -378,7 +359,7 @@ void AppView::animate(NativeDrawContext* nvg)
 void AppView::render(NativeDrawContext* nvg)
 {
   // TODO move resource types into Renderer, DrawContext points to Renderer
-  DrawContext dc{nvg, &_resources, &_drawingProperties, &_vectorImages, _GUICoordinates};
+  DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
 
   auto layerSize = _GUICoordinates.viewSizeInPixels;
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());

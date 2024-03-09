@@ -99,10 +99,10 @@ void SVGButtonBasic::draw(ml::DrawContext dc)
   }
   else
   {
-    NativeFontHandle fontHandle = getImageHandleResource(dc, "d_din");
-    if(!isValid(fontHandle)) return;
+    auto font = getFontResource(dc, "d_din");
+    if(!font) return;
     float textSize = gridSizeInPixels*0.5f;
-    nvgFontFaceId(nvg, fontHandle);
+    nvgFontFaceId(nvg, font->handle);
     nvgFontSize(nvg, textSize);
     nvgFillColor(nvg, getColor(dc, "mark"));
     drawText(nvg, getCenter(bounds), "?", NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);

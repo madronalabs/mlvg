@@ -44,7 +44,8 @@ public:
   void viewResized(NativeDrawContext* nvg, Vec2 newSize);
 
   void createVectorImage(Path newImageName, const unsigned char* dataStart, size_t dataSize);
-  
+  void createDrawableImage(Path newImageName, const int width, const int height);
+
   void setCoords(const GUICoordinates& c) {_GUICoordinates = c;}
   const GUICoordinates& getCoords() { return _GUICoordinates; }
   void setDisplayScale(float scale) {_GUICoordinates.displayScale = scale;}
@@ -98,9 +99,9 @@ protected:
   size_t _defaultGridSize{60};
   size_t _maxGridSize{240};
 
-  // drawing resources
-  VectorImageTree _vectorImages;
-  ResourceTree _resources;
+  // here is where all the drawing resources are owned.
+  DrawingResources _resources;
+
   PropertyTree _drawingProperties;
   
   // windowing

@@ -61,8 +61,8 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   Rect bounds = getLocalBounds(dc, *this);
   int gridSizeInPixels = dc.coords.gridSizeInPixels;
   
-  NativeFontHandle fontHandle = getImageHandleResource(dc, "d_din");
-  if(!isValid(fontHandle)) return;
+  auto font = getFontResource(dc, "d_din");
+  if(!font) return;
 
   float opacity = getFloatPropertyWithDefault("opacity", 1.0f);
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
@@ -100,7 +100,7 @@ void TextButtonBasic::draw(ml::DrawContext dc)
     nvgStroke(nvg);
   }
   
-  nvgFontFaceId(nvg, fontHandle);
+  nvgFontFaceId(nvg, font->handle);
   nvgFontSize(nvg, textSize);
   nvgFillColor(nvg, textColor);
   drawText(nvg, bounds.center() - Vec2(0, gridSizeInPixels/64.f), getTextProperty("text"), NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);

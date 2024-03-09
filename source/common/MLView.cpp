@@ -15,7 +15,7 @@ using namespace ml;
 auto red = nvgRGBA(255, 20, 80, 255);
 auto yellow = nvgRGBA(255, 220, 80, 255);
 
-View::View(ml::Collection< Widget > t, WithValues p) : Widget(p), _widgets(t)
+View::View(Collection< Widget > t, WithValues p) : Widget(p), _widgets(t)
 {
   
 }
@@ -254,10 +254,7 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
     // DEBUG
     size_t x = (_frameCounter&0x3F);
     float omega = x/64.f;
-    static auto fb = projections::linear({-1, 1}, {0.4, 0.8});
-    float b = fb(sinf(omega*ml::kTwoPi));
-    
-    auto flickerColor = rgba(b, b, 0, 1.);
+    auto flickerColor = rgba(1, omega, 0, 1);
     
     nvgBeginPath(nvg);
     nvgStrokeColor(nvg, flickerColor);
@@ -485,19 +482,12 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   // MLTEST
   // std::cout << "view_size: " << dc.coords.viewSizeInPixels << "\n";
   
-  // get image or gradient
+  // get image
   NVGpaint paintPattern;
-  Resource* pr = getResource(dc, "background");
+  auto pr = getRasterImage(dc, "background");
   if(pr)
   {
-    // TODO better cache image handles
-    const int* pImgHandle = reinterpret_cast<const int *>(pr->data());
-    int bgh = pImgHandle[0];
-    int backgroundHandle = bgh;
-    
-    //  int imgw, imgh;
-    //  nvgImageSize(nvg, backgroundHandle, &imgw, &imgh);
-    paintPattern = nvgImagePattern(nvg, -u, -u, dc.coords.viewSizeInPixels.x() + u, dc.coords.viewSizeInPixels.y() + u, 0, backgroundHandle, 1.0f);
+    paintPattern = nvgImagePattern(nvg, -u, -u, dc.coords.viewSizeInPixels.x() + u, dc.coords.viewSizeInPixels.y() + u, 0, pr->handle, 1.0f);
   }
   else
   {

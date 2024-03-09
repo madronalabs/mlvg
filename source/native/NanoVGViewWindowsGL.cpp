@@ -23,7 +23,7 @@
 
 // needs to be a little higher than actual preferred rate
 // because of window sync
-constexpr float preferredFPS{ 66.f };
+constexpr float preferredFPS{ 63.f };
 
 constexpr int kTimerID{ 2 };
 
@@ -52,7 +52,7 @@ struct PlatformView::Impl
   NVGcontext* _nvg{ nullptr };
 
   ml::AppView* _appView{ nullptr };
-  std::unique_ptr< Layer > _nvgBackingLayer;
+  std::unique_ptr< DrawableImage > _nvgBackingLayer;
 
   HWND _windowHandle{ nullptr };
   HDC _deviceContext{ nullptr };
@@ -337,7 +337,7 @@ void PlatformView::resizePlatformView(int w, int h)
       // resize main backing layer
       if (_pImpl->_nvg)
       {
-        _pImpl->_nvgBackingLayer = std::make_unique< Layer >(_pImpl->_nvg, w, h);
+        _pImpl->_nvgBackingLayer = std::make_unique< DrawableImage >(_pImpl->_nvg, w, h);
       //  std::cout << " PlatformView::resizePlatformView: new Layer " << (void*)_pImpl->_nvgBackingLayer.get() << std::endl;
       }
       _pImpl->unlockContext();
@@ -447,7 +447,6 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             // note: this might change the backing layer!
             pView->animate(nvg);
 
-            BeginPaint(hWnd, &ps);
             pGraphics->_pImpl->_frameCounter++;
 
             int w = pGraphics->_pImpl->_width;
@@ -456,11 +455,14 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             // draw to backing layer, which retains previous frame's image
             if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
             auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
-            auto nativeImage = getNativeImageHandle(*pBackingLayer);
-            if (!nativeImage) return 0;
+            if (!pBackingLayer) return 0;
 
-            drawToLayer(pBackingLayer);
+            drawToImage(pBackingLayer);
             glViewport(0, 0, w, h);
+            //glClearColor(0.f, 0.f, 0.f, 0.f);
+            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+
             nvgBeginFrame(nvg, w, h, 1.0f);
 
             // render the App view
@@ -469,17 +471,18 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             // end backing layer update
             nvgEndFrame(nvg);
 
-            /*
+
+            BeginPaint(hWnd, &ps);
+
+            // blit backing layer to main layer
+            drawToImage(nullptr);
+
+
             glViewport(0, 0, w, h);
             glClearColor(0.f, 0.f, 0.f, 0.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            */
-
-            // blit backing layer to main layer
-            drawToLayer(nullptr);
-            glViewport(0, 0, w, h);
             nvgBeginFrame(nvg, w, h, 1.0f);
-            NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, nativeImage, 1.0f);
+            NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
             nvgSave(nvg);
             nvgResetTransform(nvg);
             nvgBeginPath(nvg);
@@ -487,7 +490,6 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             nvgFillPaint(nvg, img);
             nvgFill(nvg);
             nvgRestore(nvg);
-            
 
             // end main update
             nvgEndFrame(nvg);
