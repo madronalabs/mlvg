@@ -288,6 +288,20 @@ namespace ml {
         }
     }
 
+    inline DrawableImage* getDrawableImage(const DrawContext& dc, Path name)
+    {
+        const auto& t = (dc.pResources->drawableImages);
+        auto& res(t[name]);
+        if (res)
+        {
+            return res.get();
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
 
     // nanovg + mlvg helpers
 

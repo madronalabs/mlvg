@@ -21,6 +21,7 @@
 #include "MLDialBasic.h"
 #include "MLResizer.h"
 #include "MLSVGImage.h"
+#include "MLDrawableImageView.h"
 #include "MLTextLabelBasic.h"
 #include "MLPanel.h"
 #include "MLSVGButtonBasic.h"

@@ -126,6 +126,8 @@ void PlatformView::Impl::destroyWindowClass()
   }
 }
 
+// https://building.enlyze.com/posts/writing-win32-apps-like-its-2020-part-3/ // TEMP
+
 bool PlatformView::Impl::setPixelFormat(HDC dc)
 {
     bool status = false;

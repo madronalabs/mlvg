@@ -36,9 +36,10 @@ void TestAppView::layoutView(DrawContext dc)
   _view->_widgets["freq2b"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 3.f, 1}));
   _view->_widgets["gain"]->setBounds(alignCenterToPoint(largeDialRect, {gx - 1.f, gy - 1.f}));
   
-  // layout test image
-  _view->_widgets["tess"]->setBounds(alignCenterToPoint(largeDialRect, {1, gy - 1.f}));
-  
+  // layout test images
+  _view->_widgets["tess"]->setBounds(alignCenterToPoint(largeDialRect, { 1, gy - 1.f }));
+  _view->_widgets["view1"]->setBounds(alignCenterToPoint(largeDialRect, { 3, gy - 1.f }));
+
   // layout labels
   auto positionLabelUnderDial = [&](Path dialName)
   {
@@ -91,6 +92,9 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
 
     // SVG images
     _resources.vectorImages["tesseract"] = std::make_unique< VectorImage >(nvg, resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
+
+    // drawable images
+    _resources.drawableImages["screen1"] = std::make_unique< DrawableImage >(nvg, 320, 240);
 }
 
 void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
@@ -133,11 +137,15 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"size", largeDialSize },
     {"param", "gain" }
   } );
-  
+
   _view->_widgets.add_unique< SVGImage >("tess", WithValues{
     {"image_name", "tesseract" }
-  } );
-  
+      });
+
+  _view->_widgets.add_unique< DrawableImageView >("view1", WithValues{
+    {"image_name", "screen1" }
+      });
+
   // buttons
   _view->_widgets.add_unique< TextButtonBasic >("open", WithValues{
     {"text", "open" },

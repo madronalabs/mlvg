@@ -455,7 +455,6 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
 // draw a rectangle of the background.
 void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
 {
-
   NativeDrawContext* nvg = getNativeContext(dc);
   
   // black background for testing / promo
