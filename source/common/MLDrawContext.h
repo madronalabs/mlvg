@@ -207,7 +207,17 @@ namespace ml {
         Tree< std::unique_ptr< DrawableImage > > drawableImages;
         Tree< std::unique_ptr< RasterImage > > rasterImages;
         Tree< std::unique_ptr< FontResource > > fonts;
+
+        void clear()
+        {
+            blobs.clear();
+            vectorImages.clear();
+            drawableImages.clear();
+            rasterImages.clear();
+            fonts.clear();
+        }
     };
+
 
 
     // To draw a frame, animate a frame, or layout the view, views create a DrawContext that is passed to

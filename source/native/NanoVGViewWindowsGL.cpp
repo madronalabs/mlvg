@@ -298,23 +298,27 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
 
 PlatformView::~PlatformView()
 {
-  if (!_pImpl) return;
+    if (!_pImpl) return;
 
-  if (_pImpl->_windowHandle)
-  {
-    if (_pImpl->_nvg)
+    if (_pImpl->_windowHandle)
     {
-      // delete nanovg
-      _pImpl->lockContext();
-      _pImpl->makeContextCurrent();
-      _pImpl->_nvgBackingLayer = nullptr;
-      nvgDeleteGL3(_pImpl->_nvg);
-      _pImpl->_nvg = 0;
-      _pImpl->unlockContext();
+        if (_pImpl->_appView)
+        {
+            _pImpl->_appView->clearResources();
+        }
+        if (_pImpl->_nvg)
+        {
+            // delete nanovg
+            _pImpl->lockContext();
+            _pImpl->makeContextCurrent();
+            _pImpl->_nvgBackingLayer = nullptr;
+            nvgDeleteGL3(_pImpl->_nvg);
+            _pImpl->_nvg = 0;
+            _pImpl->unlockContext();
+        }
+        // delete GL, window
+        _pImpl->destroyWindow();
     }
-     // delete GL, window
-    _pImpl->destroyWindow();
-  }
 }
 
 void PlatformView::resizePlatformView(int w, int h)

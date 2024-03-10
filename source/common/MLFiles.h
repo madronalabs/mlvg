@@ -88,8 +88,6 @@ namespace FileUtils
 
 void test();
 
-Path getUserPath(Symbol name);
-
 Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type);
 Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type);
 File getApplicationDataFile(TextFragment maker, TextFragment app, Symbol type, Path relativeName);

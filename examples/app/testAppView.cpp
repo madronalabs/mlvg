@@ -73,34 +73,24 @@ void TestAppView::layoutView(DrawContext dc)
 
 void TestAppView::initializeResources(NativeDrawContext* nvg)
 {
-  // initialize drawing properties before controls are made
-  _drawingProperties.setProperty("mark", colorToMatrix({0.01, 0.01, 0.01, 1.0}));
-  _drawingProperties.setProperty("background", colorToMatrix({0.8, 0.8, 0.8, 1.0}));
-  _drawingProperties.setProperty("draw_background_grid", true);
-  _drawingProperties.setProperty("common_stroke_width", 1/32.f);
+    // initialize drawing properties before controls are made
+    _drawingProperties.setProperty("mark", colorToMatrix({ 0.01, 0.01, 0.01, 1.0 }));
+    _drawingProperties.setProperty("background", colorToMatrix({ 0.8, 0.8, 0.8, 1.0 }));
+    _drawingProperties.setProperty("draw_background_grid", true);
+    _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
 
-  // _drawingProperties.setProperty("draw_widget_bounds", true);
-   _drawingProperties.setProperty("draw_dirty_widgets", true);
-  
-  // fonts
-   _resources.fonts["d_din"] = std::make_unique< FontResource >(nvg, "MLVG_sans", resources::D_DIN_otf, resources::D_DIN_otf_size);
-   _resources.fonts["d_din_italic"] = std::make_unique< FontResource >(nvg, "MLVG_italic", resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size);
+    // _drawingProperties.setProperty("draw_widget_bounds", true);
+    _drawingProperties.setProperty("draw_dirty_widgets", true);
 
+    // fonts
+    _resources.fonts["d_din"] = std::make_unique< FontResource >(nvg, "MLVG_sans", resources::D_DIN_otf, resources::D_DIN_otf_size);
+    _resources.fonts["d_din_italic"] = std::make_unique< FontResource >(nvg, "MLVG_italic", resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size);
 
- // int font2 = nvgCreateFontMem(nvg, "MLVG_italic", (unsigned char *)resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size, 0);
- // const unsigned char* pFont2 = reinterpret_cast<const unsigned char *>(&font2);
- // _resources["d_din_italic"] = std::make_unique< Resource >(pFont2, pFont2 + sizeof(int));
-  
-  // raster images
-  _resources.rasterImages["vignette"] = std::make_unique< RasterImage >(nvg, resources::vignette_jpg, resources::vignette_jpg_size);
-  
-  // SVG images
+    // raster images
+    _resources.rasterImages["vignette"] = std::make_unique< RasterImage >(nvg, resources::vignette_jpg, resources::vignette_jpg_size);
 
- // ml::AppView::createVectorImage("tesseract", resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
-
-  _resources.vectorImages["tesseract"] = std::make_unique< VectorImage >(nvg, resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
-
-
+    // SVG images
+    _resources.vectorImages["tesseract"] = std::make_unique< VectorImage >(nvg, resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
 }
 
 void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)

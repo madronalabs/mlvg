@@ -31,6 +31,7 @@ AppView::~AppView()
   removeActor(this);
 }
 
+
 // called when native view size changes in the PlatformView callback.
 // newSize is in system coordinates.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)

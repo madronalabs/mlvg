@@ -14,56 +14,11 @@
 namespace ml
 {
 
-    TextFragment File::getFullPathAsText() const
-    {
-        return "hello";
-    }
-
-    bool isWriteable(const File& f)
-    {
-        // TEMP
-        return false;
-    }
-
-    bool isDirectory(const File& f)
-    {
-        // TEMP
-        return false;
-    }
 
 
 namespace FileUtils
 {
 
-Path getUserPath(Symbol name)
-{
-    Path p;
-    /*
-  NSString *filePath{nullptr};
-
-  
-  switch(hash(name))
-  {
-    case(hash("music")):
-    {
-      filePath = [NSSearchPathForDirectoriesInDomains(NSMusicDirectory, NSUserDomainMask, YES) objectAtIndex:0] ;
-      break;
-    }
-    default:
-    {
-      break;
-    }
-  }
-  
-  if(filePath)
-  {
-    const char* pStr = [filePath UTF8String];
-    p = textToPath(TextFragment(pStr));
-  }
-  */
-
-  return p;
-}
 
 Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type)
 {
