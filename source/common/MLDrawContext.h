@@ -207,15 +207,6 @@ namespace ml {
         Tree< std::unique_ptr< DrawableImage > > drawableImages;
         Tree< std::unique_ptr< RasterImage > > rasterImages;
         Tree< std::unique_ptr< FontResource > > fonts;
-
-        void clear()
-        {
-            blobs.clear();
-            vectorImages.clear();
-            drawableImages.clear();
-            rasterImages.clear();
-            fonts.clear();
-        }
     };
 
 
@@ -230,8 +221,6 @@ namespace ml {
         GUICoordinates coords;
     };
 
-
-    // TODO every DrawContext list init needs to be fixed.
 
     inline NativeDrawContext* getNativeContext(const DrawContext& dc) { return static_cast<NativeDrawContext*>(dc.pNativeContext); }
 

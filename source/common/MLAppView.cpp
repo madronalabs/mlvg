@@ -27,10 +27,8 @@ AppView::AppView(TextFragment appName, size_t instanceNum)
 
 AppView::~AppView()
 {
-  
   removeActor(this);
 }
-
 
 // called when native view size changes in the PlatformView callback.
 // newSize is in system coordinates.

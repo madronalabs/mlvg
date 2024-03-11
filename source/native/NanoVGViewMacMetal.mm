@@ -301,7 +301,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   id<MTLDevice> _device;
   NVGcontext* _nvg;
   AppView* _appView;
-  std::unique_ptr< Layer > _backingLayer;
+  std::unique_ptr< DrawableImage > _backingLayer;
   Vec2 _nativeSize;
 }
 
@@ -364,14 +364,13 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     _appView->animate(_nvg);
     
     // draw the AppView to the backing layer
-    drawToLayer(_backingLayer.get());
+    drawToImage(_backingLayer.get());
     _appView->render(_nvg);
 
     // blit backing layer to main layer
-    drawToLayer(nullptr);
+    drawToImage(nullptr);
     nvgBeginFrame(_nvg, w, h, 1.0f);
-    auto nativeImage = getNativeImageHandle(*_backingLayer);
-    NVGpaint img = nvgImagePattern(_nvg, 0, 0, w, h, 0, nativeImage, 1.0f);
+    NVGpaint img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
     nvgSave(_nvg);
     nvgResetTransform(_nvg);
     nvgBeginPath(_nvg);
@@ -401,7 +400,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if((viewSizeInPixels != _nativeSize) || (!_backingLayer.get()))
   {
     _nativeSize = viewSizeInPixels;
-    _backingLayer = std::make_unique< Layer >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
+    _backingLayer = std::make_unique< DrawableImage >(_nvg, viewSizeInPixels.x(), viewSizeInPixels.y());
     _appView->viewResized(_nvg, systemSize);
   }
 }

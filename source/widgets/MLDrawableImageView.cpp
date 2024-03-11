@@ -87,11 +87,18 @@ void DrawableImageView::draw(ml::DrawContext dc)
         float iw = pImage->width;
         float ih = pImage->height;
 
+      float xform[6];
+      nvgCurrentTransform(nvg, xform);
+      std::cout << "current xform: " ;
+      for(int i=0; i<6; ++i)
+      {
+        std::cout << xform[i] << " ";
+      }
+      std::cout << "\n";
 
         NVGpaint img = nvgImagePattern(nvg, 0, 0, bw, bh, 0, pImage->_buf->image, 1.0f);
-
         nvgBeginPath(nvg);
-        nvgScale(nvg, bw/iw, bh/ih);
+  
         nvgRect(nvg, 0, 0, bw, bh);
         nvgFillPaint(nvg, img);
         nvgFill(nvg);

@@ -38,7 +38,7 @@ void TestAppView::layoutView(DrawContext dc)
   
   // layout test images
   _view->_widgets["tess"]->setBounds(alignCenterToPoint(largeDialRect, { 1, gy - 1.f }));
-  _view->_widgets["view1"]->setBounds(alignCenterToPoint(largeDialRect, { 3, gy - 1.f }));
+  _view->_widgets["view1"]->setBounds(alignCenterToPoint({0, 0, 1.5, 1.5}, { 3, gy - 1.f }));
 
   // layout labels
   auto positionLabelUnderDial = [&](Path dialName)

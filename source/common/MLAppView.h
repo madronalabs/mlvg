@@ -24,9 +24,7 @@ namespace ml {
         //
         // initialize resources such as images, needed to draw the View.
         virtual void initializeResources(NativeDrawContext* nvg) = 0;
-        void clearResources() { _resources.clear(); }
 
-        //
         // set the bounds of all the Widgets.
         virtual void layoutView(DrawContext dc) = 0;
         //
@@ -77,20 +75,16 @@ namespace ml {
 
     protected:
 
-        TextFragment appName_;
-
-        // the top level View.
+        // platform and top-level things.
+        // order is important for default destructor!
+        std::unique_ptr< PlatformView > _platformView;
         std::unique_ptr< View > _view;
-
-        // here is where all the drawing resources are owned.
         DrawingResources _resources;
-
         PropertyTree _drawingProperties;
-
-        // all parameters we are viewing
         ParameterTree _params;
 
         // Actors
+        TextFragment appName_;
         Path _controllerName;
 
         // dimensions
@@ -106,7 +100,6 @@ namespace ml {
         // windowing
         void* _platformHandle{ nullptr };
         void* _parent{ nullptr };
-        std::unique_ptr< PlatformView > _platformView;
 
         // Widgets
         Tree< std::vector< Widget* > > _widgetsByParameter;
