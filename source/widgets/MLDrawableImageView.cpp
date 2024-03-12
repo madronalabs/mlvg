@@ -20,18 +20,25 @@ MessageList DrawableImageView::animate(int elapsedTimeInMs, ml::DrawContext dc)
         Rect bounds = getLocalBounds(dc, *this);
         auto pImage = getDrawableImage(dc, Path(getTextProperty("image_name")));
 
+
         if (pImage)
         {
-            int w = pImage->width;
-            int h = pImage->height;
+            int fboWidth, fboHeight;
+            int w, h;
+            
+            float pxRatio{ 1.f };
 
-            int qw, qh;
-            nvgImageSize(nvg, pImage->_buf->image, &qw, &qh);
+            nvgImageSize(nvg, pImage->_buf->image, &fboWidth, &fboHeight);
+            w = (int)(fboWidth / pxRatio);
+            h = (int)(fboHeight / pxRatio);
 
-            std::cout << "img" << qw << " " << qh << "\n";
+            std::cout << "img" << w << " x " << h << ", ratio = " << pxRatio << "\n";
 
             drawToImage(pImage);
-            nvgBeginFrame(nvg, w, h, 1.0f);
+
+            nvgBeginFrame(nvg, w, h, pxRatio);
+
+            int strokeWidth = w / 20;
 
             // draw background
             nvgSave(nvg);
@@ -43,7 +50,7 @@ MessageList DrawableImageView::animate(int elapsedTimeInMs, ml::DrawContext dc)
             nvgRestore(nvg);
 
             // draw X
-            nvgStrokeWidth(nvg, 8);
+            nvgStrokeWidth(nvg, strokeWidth);
             nvgStrokeColor(nvg, colors::red);
             nvgBeginPath(nvg);
             nvgMoveTo(nvg, 0, 0);
@@ -55,13 +62,13 @@ MessageList DrawableImageView::animate(int elapsedTimeInMs, ml::DrawContext dc)
             // draw dot
             nvgBeginPath(nvg);
             nvgFillColor(nvg, colors::blue);
-            nvgCircle(nvg, w / 8, h - h / 4, 16);
+            nvgCircle(nvg, w / 8, h - h / 4, strokeWidth);
             nvgFill(nvg);
 
             // draw dot
             nvgBeginPath(nvg);
             nvgFillColor(nvg, colors::green);
-            nvgCircle(nvg, w / 2, h /2, 16);
+            nvgCircle(nvg, w / 2, h /2, strokeWidth);
             nvgFill(nvg);
 
             nvgEndFrame(nvg);

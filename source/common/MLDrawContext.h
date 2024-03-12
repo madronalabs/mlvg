@@ -134,6 +134,7 @@ namespace ml {
         if (pImg)
         {
             nvgBindFramebuffer(pImg->_buf);
+            glViewport(0, 0, pImg->width, pImg->height);
         }
         else
         {

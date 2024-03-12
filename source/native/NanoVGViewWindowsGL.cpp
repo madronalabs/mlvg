@@ -304,10 +304,6 @@ PlatformView::~PlatformView()
 
     if (_pImpl->_windowHandle)
     {
-        if (_pImpl->_appView)
-        {
-            _pImpl->_appView->clearResources();
-        }
         if (_pImpl->_nvg)
         {
             // delete nanovg

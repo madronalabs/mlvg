@@ -49,7 +49,7 @@ namespace ml {
     inline uint32_t getPlatformWindowCreateFlags()
     {
 #if ML_WINDOWS
-        return SDL_WINDOW_OPENGL;
+        return SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
 #elif ML_LINUX
         return 0;
 #elif ML_IOS
