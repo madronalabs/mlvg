@@ -48,7 +48,8 @@ public:
 Path getRelativePath(const Path& root, const Path& child);
 bool exists(const File& f);
 bool isDirectory(const File& f);
-bool isWriteable(const File& f);
+
+TextFragment filePathToText(const ml::Path& p);
 
 
 class FileTree : public Tree< std::unique_ptr< File >, textUtils::SymbolCollator >

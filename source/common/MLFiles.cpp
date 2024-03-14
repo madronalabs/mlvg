@@ -35,7 +35,6 @@ ml::Path fsToMLPath(const fs::path& p)
     return textToPath(filePathAsText, separator);
 }
 
-
 // TODO move to native code, clean up
 fs::path mlToFSPath(const ml::Path& p)
 {
@@ -48,14 +47,21 @@ fs::path mlToFSPath(const ml::Path& p)
   return fs::path(pathTxt.getText());
 }
 
-
+TextFragment ml::filePathToText(const ml::Path& p)
+{
+#if ML_MAC
+    return rootPathToText(p);
+#elif ML_WINDOWS
+    return pathToText(p);
+#endif
+}
 
 // File
 
+
 TextFragment File::getFullPathAsText() const
 {
-  Path p = getFullPath();
-  return rootPathToText(p);
+    return filePathToText(getFullPath());
 }
 
 TextFragment File::getShortName() const
@@ -139,7 +145,7 @@ bool File::loadAsText(TextFragment& fileAsText) const
 
 bool File::createDirectory()
 {
-    fs::path p(mlToFSPath(fullPath_));
+  fs::path p(mlToFSPath(fullPath_));
   fs::create_directories(p);
   return exists();
 }
@@ -317,7 +323,7 @@ File ml::FileUtils::getApplicationDataFile(TextFragment maker, TextFragment app,
 Path FileDialog::getFolderForLoad(Path startPath, TextFragment filters)
 {
   Path r;
-  auto pathText = rootPathToText(startPath);
+  auto pathText = filePathToText(startPath);
   
   char* filename = osdialog_file(OSDIALOG_OPEN_DIR, pathText.getText(), nullptr, nullptr);
   
@@ -330,7 +336,7 @@ Path FileDialog::getFilePathForLoad(Path startPath, TextFragment filtersFrag)
 {
   Path r;
   osdialog_filters* filters = osdialog_filters_parse(filtersFrag.getText());
-  auto pathText = rootPathToText(startPath);
+  auto pathText = filePathToText(startPath);
   
   char* filename = osdialog_file(OSDIALOG_OPEN, pathText.getText(), nullptr, filters);
   
@@ -343,7 +349,7 @@ Path FileDialog::getFilePathForLoad(Path startPath, TextFragment filtersFrag)
 Path FileDialog::getFilePathForSave(Path startPath, TextFragment defaultName)
 {
   Path r;
-  auto pathText = rootPathToText(startPath);
+  auto pathText = filePathToText(startPath);
   
   char* filename = osdialog_file(OSDIALOG_SAVE, pathText.getText(), defaultName.getText(), nullptr);
   

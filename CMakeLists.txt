@@ -368,6 +368,12 @@ if(BUILD_SDL2_APP)
     list(APPEND test_app_sources ${LOCAL_SOURCES} )
     list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 
+    if(APPLE)
+    elseif(WIN32)
+        list(APPEND test_app_sources "${MLVG_SOURCE_DIR}/native/hidpi.manifest" )
+    endif()
+    
+
     add_executable(${target} ${test_app_sources})
     target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
 

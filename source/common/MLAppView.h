@@ -94,7 +94,7 @@ namespace ml {
         ml::Rect _borderRect;
         bool _fixedRatioSize{ false };
         size_t _minGridSize{ 30 };
-        size_t _defaultGridSize{ 60 };
+        size_t _defaultGridSize{ 96 };
         size_t _maxGridSize{ 240 };
 
         // windowing

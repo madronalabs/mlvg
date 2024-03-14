@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
   
   // set initial size.
   appView.setSizeInGridUnits({16, 9});
-  appView.setGridSizeDefault(60);
+  appView.setGridSizeDefault(96);
   
   //appView.setFixedRatioSize(true);
   
