@@ -119,6 +119,9 @@ namespace ml {
             _nvg(nvg), width(w), height(h)
         {
             _buf = nvgCreateFramebuffer(nvg, w, h, 0);
+            nvgBindFramebuffer(_buf);
+            glClearColor(0.f, 0.f, 0.f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         }
 
         ~DrawableImage()

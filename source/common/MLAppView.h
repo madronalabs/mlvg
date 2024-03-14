@@ -54,11 +54,22 @@ namespace ml {
         bool getFixedRatioSize() const { return _fixedRatioSize; }
         void setFixedRatioSize(bool b) { _fixedRatioSize = b; }
 
-        Vec2 getMinDims() const { return _sizeInGridUnits * _minGridSize; }
+        Vec2 getMinDims() const { 
+            if (_fixedRatioSize)
+            {
+                return _sizeInGridUnits * _minGridSize;
+            }
+            else
+            {
+                return _minSizeInGridUnits * _defaultGridSize;
+            }
+        }
         Vec2 getDefaultDims() const { return _sizeInGridUnits * _defaultGridSize; }
         Vec2 getMaxDims() const { return _sizeInGridUnits * _maxGridSize; }
         void setGridSizeDefault(int b) { _defaultGridSize = b; }
         void setGridSizeLimits(int a, int c) { _minGridSize = a; _maxGridSize = c; }
+
+        void setMinSizeInGridUnits(Vec2 g) { _minSizeInGridUnits = g; }
 
         void createPlatformView(void* pParent, int flags);
 
@@ -91,9 +102,10 @@ namespace ml {
         Vec2 viewSize_;
         GUICoordinates _GUICoordinates;
         Vec2 _sizeInGridUnits;
+        Vec2 _minSizeInGridUnits{ 12, 9 };
         ml::Rect _borderRect;
         bool _fixedRatioSize{ false };
-        size_t _minGridSize{ 30 };
+        size_t _minGridSize{ 96 };
         size_t _defaultGridSize{ 96 };
         size_t _maxGridSize{ 240 };
 

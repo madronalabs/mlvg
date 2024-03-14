@@ -28,6 +28,9 @@ MessageList DrawableImageView::animate(int elapsedTimeInMs, ml::DrawContext dc)
             
             float pxRatio{ 1.f };
 
+
+            // DRAW SOME JUNK FOR TESTING!
+
             nvgImageSize(nvg, pImage->_buf->image, &fboWidth, &fboHeight);
             w = (int)(fboWidth / pxRatio);
             h = (int)(fboHeight / pxRatio);
@@ -41,13 +44,16 @@ MessageList DrawableImageView::animate(int elapsedTimeInMs, ml::DrawContext dc)
             int strokeWidth = w / 20;
 
             // draw background
-            nvgSave(nvg);
+            //nvgSave(nvg);
             // nvgGlobalCompositeBlendFunc(nvg, NVG_ONE, NVG_ZERO);
+            /*
             nvgBeginPath(nvg);
             nvgRect(nvg, 0, 0, w, h);
             nvgFillColor(nvg, rgba(0, 0, 0, 1));
             nvgFill(nvg);
             nvgRestore(nvg);
+            */
+
 
             // draw X
             nvgStrokeWidth(nvg, strokeWidth);
@@ -58,12 +64,6 @@ MessageList DrawableImageView::animate(int elapsedTimeInMs, ml::DrawContext dc)
             nvgMoveTo(nvg, w, 0);
             nvgLineTo(nvg, 0, h);
             nvgStroke(nvg);
-
-            // draw dot
-            nvgBeginPath(nvg);
-            nvgFillColor(nvg, colors::blue);
-            nvgCircle(nvg, w / 8, h - h / 4, strokeWidth);
-            nvgFill(nvg);
 
             // draw dot
             nvgBeginPath(nvg);
@@ -93,15 +93,6 @@ void DrawableImageView::draw(ml::DrawContext dc)
         float bh = bounds.height();
         float iw = pImage->width;
         float ih = pImage->height;
-
-      float xform[6];
-      nvgCurrentTransform(nvg, xform);
-      std::cout << "current xform: " ;
-      for(int i=0; i<6; ++i)
-      {
-        std::cout << xform[i] << " ";
-      }
-      std::cout << "\n";
 
         NVGpaint img = nvgImagePattern(nvg, 0, 0, bw, bh, 0, pImage->_buf->image, 1.0f);
         nvgBeginPath(nvg);

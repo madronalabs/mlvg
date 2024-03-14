@@ -432,8 +432,6 @@ void AppView::stopTimersAndActor()
 // set new editor size in system coordinates.
 void AppView::doResize(Vec2 newSize)
 {
-    std::cout << "doResize: " << newSize[0] << " x " << newSize[1] << std::endl;
-
   int width = newSize[0];
   int height = newSize[1];
   float scale = _GUICoordinates.displayScale;

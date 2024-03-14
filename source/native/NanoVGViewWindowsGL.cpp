@@ -459,11 +459,8 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
             if (!pBackingLayer) return 0;
 
+            // switch to persistent backing layer. do not clear.
             drawToImage(pBackingLayer);
-            glViewport(0, 0, w, h);
-            //glClearColor(0.f, 0.f, 0.f, 0.f);
-            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
 
             nvgBeginFrame(nvg, w, h, 1.0f);
 
