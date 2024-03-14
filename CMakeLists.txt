@@ -332,6 +332,11 @@ file(GLOB NATIVE_HEADERS_HACK4 "source/external/miniz/*.h")
 file(GLOB NATIVE_HEADERS_HACK5 "source/external/osdialog/*.h")
 file(GLOB NATIVE_HEADERS_HACK6 "source/external/glad/*.h")
 
+if(APPLE)
+    set(INCLUDES_INSTALL_DIR "include/mlvg")
+elseif(WIN32)
+    set(INCLUDES_INSTALL_DIR "include")
+endif()
 
 install(FILES
     source/include/mlvg.h
@@ -346,7 +351,7 @@ install(FILES
     ${NATIVE_HEADERS_HACK6}
     DESTINATION
     # PERMISSIONS OWNER_READ GROUP_READ WORLD_READ
-    include/mlvg
+    ${INCLUDES_INSTALL_DIR}
   )
 
 #set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
