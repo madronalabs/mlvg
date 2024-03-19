@@ -23,7 +23,7 @@
 
 // needs to be a little higher than actual preferred rate
 // because of window sync
-constexpr float preferredFPS{ 63.f };
+constexpr float preferredFPS{ 66.f };
 
 constexpr int kTimerID{ 2 };
 

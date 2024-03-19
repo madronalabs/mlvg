@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "MLFiles.h"
+#include "external/miniz/miniz.h"
 
 #include "external/osdialog/osdialog.h"
 #include "external/filesystem/include/ghc/filesystem.hpp"
@@ -19,6 +20,14 @@ namespace fs = ghc::filesystem;
 
 // NOTE: this is the beginning of a rewrite using ghc::filesystem, because we needed to ditch our previous
 // library. Tests and error handling are needed!
+
+const char kPlatformFileSeparator{
+    #if ML_MAC
+         '/'
+#elif ML_WINDOWS
+        '\\'
+#endif
+};
 
 
 // TODO move to native code
@@ -52,7 +61,7 @@ TextFragment ml::filePathToText(const ml::Path& p)
 #if ML_MAC
     return rootPathToText(p);
 #elif ML_WINDOWS
-    return pathToText(p);
+    return pathToText(p, kPlatformFileSeparator);
 #endif
 }
 
@@ -77,7 +86,7 @@ bool File::exists() const
 
 bool File::create() const
 {
-    fs::path p(mlToFSPath(fullPath_));
+  fs::path p(mlToFSPath(fullPath_));
   fs::create_directories(p.parent_path());
   std::ofstream ofs;
   ofs.open(p);
@@ -95,6 +104,24 @@ bool File::replaceWithData(const CharVector& dataVec) const
   
   // TODO catch error
   return true;
+}
+
+bool File::replaceWithDataCompressed(const CharVector& uncompressedData) const
+{
+    // compress
+    size_t uncompressedSize = uncompressedData.size();
+    size_t compressedSizeEstimate = compressBound(uncompressedSize);
+    mz_ulong compressedSize = compressedSizeEstimate;
+    CharVector compressedData;
+    compressedData.resize(compressedSizeEstimate);
+
+    int compressResult = compress(compressedData.data(), &compressedSize, uncompressedData.data(), uncompressedSize);
+
+    printf("Compressed from %u to %u bytes\n", (mz_uint32)uncompressedSize, (mz_uint32)compressedSize); // TEMP
+    compressedData.resize(compressedSize);
+
+    // replace
+    return replaceWithData(compressedData);
 }
 
 bool File::replaceWithText(const TextFragment& text) const
@@ -125,6 +152,49 @@ bool File::load(CharVector& dataVec) const
   }
   // TODO catch error
   return true;
+}
+
+bool File::loadCompressed(CharVector& uncompressedData) const
+{
+    // arbitrary, TODO something real
+    constexpr size_t kMaxUncompressedSize{ 20 * 1024 * 1024 };
+
+    // load
+    CharVector compressedInput;
+    load(compressedInput);
+
+    if (!compressedInput.size())
+    {
+        return false;
+    }
+ 
+    // uncompress
+    const unsigned char* pData{ compressedInput.data() };
+    mz_ulong uncompSize = compressedInput.size();
+
+    // with our best guess of buffer size, try to uncompress. if the result doesn't
+    // fit, double the buffer size and try again.
+    int cmpResult{ MZ_BUF_ERROR };
+    while ((MZ_BUF_ERROR == cmpResult) && (uncompSize < kMaxUncompressedSize))
+    {
+        uncompSize *= 2;
+        uncompressedData.resize(uncompSize);
+
+        std::cout << "trying uncompress to " << uncompSize <<  " bytes \n";
+
+        cmpResult = uncompress(uncompressedData.data(), &uncompSize, compressedInput.data(), compressedInput.size());
+    }
+
+    if (MZ_BUF_ERROR == cmpResult)
+    {
+        // TODO something real
+        std::cout << "loadCompressed: decompress failed!\n";
+        return false;
+    }
+
+    std::cout << "uncompSize: " << uncompSize << " bytes\n"; // TEMP
+    uncompressedData.resize(uncompSize);
+    return true;
 }
 
 bool File::loadAsText(TextFragment& fileAsText) const
@@ -226,7 +296,6 @@ void FileTree::scan()
     _relativePathIndex.push_back(removeExtensionFromPath(relPath));
   }
 
-  dump();
   return;
 }
 
@@ -259,7 +328,7 @@ File* FileTree::getLeafByIndex(size_t i) const
 
 int FileTree::findIndexOfLeaf(Path p) const
 {
-  int n = size();
+  size_t n = size();
   for(int i = 0; i < n; ++i)
   {
     if(_relativePathIndex[i] == p)
@@ -303,11 +372,11 @@ File ml::FileUtils::getApplicationDataFile(TextFragment maker, TextFragment app,
     TextFragment nameWithExtension;
     if(extension)
     {
-      nameWithExtension = TextFragment(pathToText(relativeName), ".", extension);
+      nameWithExtension = TextFragment(pathToText(relativeName, kPlatformFileSeparator), ".", extension);
     }
     else
     {
-      nameWithExtension = pathToText(relativeName);
+      nameWithExtension = pathToText(relativeName, kPlatformFileSeparator);
     }
     
     fullPath = Path(rootPath, nameWithExtension);
@@ -325,11 +394,12 @@ Path FileDialog::getFolderForLoad(Path startPath, TextFragment filters)
   Path r;
   auto pathText = filePathToText(startPath);
   
-  char* filename = osdialog_file(OSDIALOG_OPEN_DIR, pathText.getText(), nullptr, nullptr);
-  
-  r = textToPath(filename);
-  free(filename);
-  return r;
+  if (char* filename = osdialog_file(OSDIALOG_OPEN_DIR, pathText.getText(), nullptr, nullptr))
+  {
+      r = textToPath(filename, kPlatformFileSeparator);
+      free(filename);
+      return r;
+  }
 }
 
 Path FileDialog::getFilePathForLoad(Path startPath, TextFragment filtersFrag)
@@ -338,25 +408,81 @@ Path FileDialog::getFilePathForLoad(Path startPath, TextFragment filtersFrag)
   osdialog_filters* filters = osdialog_filters_parse(filtersFrag.getText());
   auto pathText = filePathToText(startPath);
   
-  char* filename = osdialog_file(OSDIALOG_OPEN, pathText.getText(), nullptr, filters);
-  
-  r = textToPath(filename);
-  free(filename);
-  osdialog_filters_free(filters);
+  if (char* filename = osdialog_file(OSDIALOG_OPEN, pathText.getText(), nullptr, filters))
+  {
+      r = textToPath(filename, kPlatformFileSeparator);
+      free(filename);
+      osdialog_filters_free(filters);
+  }
   return r;
 }
 
-Path FileDialog::getFilePathForSave(Path startPath, TextFragment defaultName)
+Path FileDialog::getFilePathForSave(Path startPath, TextFragment defaultName, TextFragment userFilters)
 {
-  Path r;
-  auto pathText = filePathToText(startPath);
-  
-  char* filename = osdialog_file(OSDIALOG_SAVE, pathText.getText(), defaultName.getText(), nullptr);
-  
-  r = textToPath(filename);
-  free(filename);
-  return r;
+    using namespace textUtils;
+    Path returnPath;
+    osdialog_filters* filters{ nullptr };
+    TextFragment pathText = filePathToText(startPath);
+    TextFragment defaultExtension = textUtils::getExtension(defaultName);
+
+    TextFragment filtersFrag;
+    if (userFilters)
+    {
+        // use filters param
+        filtersFrag == userFilters;
+    }
+    else
+    {
+        // determine filters from file extension
+        std::vector< TextFragment > knownFilters
+            { "WAV audio:wav", "Vutu partials:utu" };
+        for (auto filter : knownFilters)
+        {
+            auto extIdx = findLast(filter, ':');
+            auto ext = subText(filter, extIdx + 1, filter.lengthInCodePoints());
+
+            if (defaultExtension == ext)
+            {
+                filtersFrag = filter;
+                break;
+            }
+        }
+    }
+
+    if (filtersFrag)
+    {
+        filters = osdialog_filters_parse(filtersFrag.getText());
+    }
+ 
+    const char* dialogStartPath = pathText.getText();
+
+    if (char* filename = osdialog_file(OSDIALOG_SAVE, dialogStartPath, defaultName.getText(), filters))
+    {
+        returnPath = textToPath(filename, kPlatformFileSeparator);
+        free(filename);
+    }
+    
+    if (returnPath)
+    {
+        // attach extension if there is none
+        TextFragment shortName = (last(returnPath).getTextFragment());
+        auto newExtension = (textUtils::getExtension(shortName));
+        if (!newExtension)
+        {
+            shortName = TextFragment(shortName, ".", defaultExtension);
+        }
+
+        returnPath = Path(butLast(returnPath), shortName);
+    }
+
+    if(filters)
+    {
+        osdialog_filters_free(filters);
+    }
+
+    return returnPath;
 }
+
 using namespace FileUtils;
 
 bool FileUtils::setCurrentPath(Path p)
@@ -373,37 +499,3 @@ bool FileUtils::setCurrentPath(Path p)
   }
   return r;
 }
-
-void FileUtils::test()
-{
-  std::cout << "Current path is " << fs::current_path() << '\n'; // (1)
-  
-  Path p(getApplicationDataPath("Madrona Labs", "Sumu", "patches"));
-  FileTree t(p, "mlpreset");
-  
-  std::cout << "Sumu patches path is " << p << "\n";
-
-  
-  setCurrentPath(p);
-  std::cout << "Current path is " << fs::current_path() << '\n'; // (1)
-
-  Path p2(p, "test007.txt");
-  
-  std::string testStr = {u8"Федор"};
-  File p2File(p2);
-  
-  
-  TextFragment testText("this is a test\n not of a broadcast system \n but three lines\n");
-  p2File.replaceWithText(testText.getText());
-  
-  TextFragment p2TextIn;
-  auto r = p2File.loadAsText(p2TextIn);
-  
-  // TEMP prints weirdness
-  std::cout << p2TextIn << "\n";
-
-  std::cout << "exists? " << p2File.exists() << "\n";
-}
-
-
-

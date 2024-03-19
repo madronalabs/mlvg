@@ -33,6 +33,7 @@ set(VERSION_PATCH "0")
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 option(BUILD_SDL2_APP "Build SDL2 example app" ON)
+option(BUILD_TESTS "Build the tests" ON)
 
  #--------------------------------------------------------------------
  # Compiler flags
@@ -210,7 +211,7 @@ message("madronalib library should be in: " ${MADRONALIB_LIBRARY_DIR}/${madronal
  endif()
  
  list(APPEND osdialog_sources ${osdialog_sources_native} )
-
+ 
 #--------------------------------------------------------------------
 # gather cJSON sources
 #--------------------------------------------------------------------
@@ -220,6 +221,13 @@ ${MLVG_SOURCE_DIR}/external/cJSON/cJSON.c
 ${MLVG_SOURCE_DIR}/external/cJSON/cJSON.h)
 
 set(cjson_include_dirs ${MLVG_SOURCE_DIR}/external/cJSON)
+
+#--------------------------------------------------------------------
+# gather miniz sources
+#--------------------------------------------------------------------
+
+set(miniz_sources ${MLVG_SOURCE_DIR}/external/miniz/miniz.c)
+
 
 #--------------------------------------------------------------------
 # add filesystem library
@@ -282,7 +290,7 @@ list(APPEND MLVG_INCLUDE_DIRS "${cjson_include_dirs}")
 set(target mlvg)
 
 # Define the library
-add_library(${target} STATIC ${mlvg_sources} ${osdialog_sources} ${cjson_sources})
+add_library(${target} STATIC ${mlvg_sources} ${osdialog_sources} ${cjson_sources} ${miniz_sources})
 
 set_target_properties(${target} PROPERTIES
   OUTPUT_NAME "${mlvg_NAME}"
@@ -297,7 +305,6 @@ if(APPLE)
     target_compile_options(${target} PRIVATE "-fobjc-arc")
 elseif(WIN32)
 endif()
-
 
 target_link_libraries(${target} ghc_filesystem)
 
@@ -357,6 +364,36 @@ install(FILES
 #set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+#--------------------------------------------------------------------
+# build tests
+#--------------------------------------------------------------------
+
+if(BUILD_TESTS)
+
+    set(target tests)
+    file(GLOB TEST_SOURCES "tests/*.*")
+
+    add_executable(${target} ${TEST_SOURCES})
+    set_target_properties(${target} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+    target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+    
+    # add madronalib
+    target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR})
+    target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
+    if(APPLE)
+        target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")
+    elseif(WIN32)
+        target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
+    endif()
+
+    # add mlvg library
+    target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+    target_link_libraries(${target} PRIVATE "mlvg")
+
+
+endif()
 
 #--------------------------------------------------------------------
 # make SDL2 application target

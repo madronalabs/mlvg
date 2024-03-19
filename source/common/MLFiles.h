@@ -37,9 +37,11 @@ public:
   bool create() const;
   
   bool replaceWithData(const CharVector&) const;
+  bool replaceWithDataCompressed(const CharVector&) const;
   bool replaceWithText(const TextFragment&) const;
 
   bool load(CharVector&) const;
+  bool loadCompressed(CharVector&) const;
   bool loadAsText(TextFragment&) const;
 
   bool createDirectory();
@@ -81,7 +83,7 @@ namespace FileDialog
 {
   Path getFolderForLoad(Path startPath, TextFragment filters);
   Path getFilePathForLoad(Path startPath, TextFragment filtersFrag);
-  Path getFilePathForSave(Path startPath, TextFragment defaultName);
+  Path getFilePathForSave(Path startPath, TextFragment defaultName, TextFragment filtersFrag = TextFragment());
 };
 
 namespace FileUtils
@@ -89,7 +91,7 @@ namespace FileUtils
 
 void test();
 
-Path getApplicationDataRoot(TextFragment maker, TextFragment app, Symbol type);
+Path getUserDataPath();
 Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type);
 File getApplicationDataFile(TextFragment maker, TextFragment app, Symbol type, Path relativeName);
 bool setCurrentPath(Path p);

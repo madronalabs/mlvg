@@ -270,9 +270,8 @@ int main(int argc, char *argv[])
   appView.setGridSizeDefault(96);
   
   //appView.setFixedRatioSize(true);
-  
-  // TEMP
-  //FileUtils::test();
+
+
 
   SDL_Window *window = ml::initSDLWindow(appView, "mlvg test");
   if(window)
