@@ -273,6 +273,10 @@ void FileTree::scan()
   clear();
   _relativePathIndex.clear();
   auto rootPath(mlToFSPath(_rootPath));
+  if (!fs::exists(fs::status(rootPath)))
+  {
+      return;
+  }
   
   for(const fs::directory_entry& entry : fs::recursive_directory_iterator(rootPath))
   {
