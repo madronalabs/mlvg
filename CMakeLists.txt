@@ -427,19 +427,17 @@ if(BUILD_SDL2_APP)
         # it seems like there's no standard place to put the SDL dev tools on Windows.
         # we put them in an SDL dir alongside the main project directory.
         set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../SDL/include")
-        # Support both 32 and 64 bit builds
-        if (${CMAKE_SIZEOF_VOID_P} MATCHES 8)
-          set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/lib/x64")
-        else ()
-          set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/lib/x86")
-        endif ()
+
+        # Support 64 bit builds
+        set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/VisualC/x64/Release")
+
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2.lib")
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2main.lib")
+
     endif()
     message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
     message("SDL2 libraries should be in: " ${SDL2_LIBRARIES_DIR} )
     target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})
-
 
     # add madronalib
     target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR})
@@ -453,7 +451,6 @@ if(BUILD_SDL2_APP)
     # add mlvg library
     target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
     target_link_libraries(${target} PRIVATE "mlvg")
-
 
     if(APPLE)
         # ARC must be off for juce
@@ -474,6 +471,14 @@ if(BUILD_SDL2_APP)
     elseif(WIN32)
         find_package(OpenGL REQUIRED)
         target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
+        target_link_libraries(${target} PRIVATE "Shcore.lib")
+        target_link_libraries(${target} PRIVATE "winmm.lib")
+        target_link_libraries(${target} PRIVATE "setupapi.lib")
+        target_link_libraries(${target} PRIVATE "version.lib")
+        target_link_libraries(${target} PRIVATE "Imm32.lib")
+    target_link_libraries(${target} PRIVATE "msvcrt.lib")
+
+    
     endif()
 
 endif()

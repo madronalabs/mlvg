@@ -16,6 +16,7 @@
 #include "nanovg.h"
 #include "nanovg_gl.h"
 #include "stdio.h"
+#include "shellscalingapi.h"
 
 #include "MLAppView.h"
 #include "MLPlatformView.h"
@@ -85,6 +86,48 @@ public:
   bool unlockContext();
   void swapBuffers();
 };
+
+// static utilities
+
+Vec2 PlatformView::getPrimaryMonitorCenter()
+{
+    float x = GetSystemMetrics(SM_CXSCREEN);
+    float y = GetSystemMetrics(SM_CYSCREEN);
+    return Vec2{ x/2, y/2 };
+}
+
+float PlatformView::getDeviceScaleAtPoint(Vec2 p)
+{
+    POINT winPt{ p.x(), p.y() };
+    HMONITOR hMonitor = MonitorFromPoint(winPt, MONITOR_DEFAULTTONEAREST);
+    DEVICE_SCALE_FACTOR sf;
+    GetScaleFactorForMonitor(hMonitor, &sf);
+    return (float)sf / 100.f;
+}
+
+float PlatformView::getDeviceScaleForWindow(void* parent)
+{
+    HWND parentWindow = static_cast<HWND>(parent);
+    HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
+    DEVICE_SCALE_FACTOR sf;
+    GetScaleFactorForMonitor(hMonitor, &sf);
+
+    return (float)sf / 100.f;
+}
+
+Rect PlatformView::getWindowRect(void* parent)
+{
+    RECT winRect;
+    HWND parentWindow = static_cast<HWND>(parent);
+    GetWindowRect(parentWindow, &winRect);
+    int x = winRect.left;
+    int y = winRect.top;
+    int x2 = winRect.right;
+    int y2 = winRect.bottom;
+    return ml::Rect(x, y, x2 - x, y2 - y);
+}
+
+// PlatformView implementation 
 
 PlatformView::Impl::Impl()
 {
@@ -163,6 +206,7 @@ bool PlatformView::Impl::setPixelFormat(HDC dc)
   return status;
 }
 
+
 bool PlatformView::Impl::createWindow(HWND parentWindow, void* userData, void* platformHandle, ml::Rect bounds)
 {
   if (_windowHandle)
@@ -173,12 +217,19 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* userData, void* p
   int w = bounds.width();
   int h = bounds.height();
 
+  // get monitor device scale
+  auto deviceScale = getDeviceScaleForWindow(parentWindow);
+  std::cout << "DEVICE SCALE: " << deviceScale << "\n:";
+
+
+
+
   auto hInst = static_cast<HINSTANCE>(platformHandle);
 
   // create child window of the parent we are passed
   _windowHandle = CreateWindowEx(0, gWindowClassName, TEXT("MLVG"),
     WS_CHILD | WS_VISIBLE,
-    x, y, w, h,
+    0, 0, w, h,
     parentWindow, nullptr, hInst, nullptr);
 
   if (_windowHandle)
@@ -437,6 +488,10 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
       }
       return 0;
     }
+    case WM_WINDOWPOSCHANGED:
+    {
+        return 0;
+    }
     case WM_PAINT:
     {
       PAINTSTRUCT ps;
@@ -521,7 +576,6 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
       return 0;
     }
 
-    //case WM_MBUTTONDOWN:
     case WM_RBUTTONDOWN:
     {
       SetFocus(hWnd);

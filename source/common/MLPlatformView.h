@@ -18,27 +18,42 @@
 
 namespace ml
 {
-  // forward declaration of a class that has a render() method.
-  class AppView;
+    // forward declaration of a class that has a render() method.
+    class AppView;
 
-  // declare PlatformView, which draws our application into an AppView.
-  // PlatformView is implemented in the platform-specific files in mlvg/source/native.
-  class PlatformView
-  {
-  public:
-    enum platformFlags
+    // declare PlatformView, which draws our application into an AppView.
+    // PlatformView is implemented in the platform-specific files in mlvg/source/native.
+    class PlatformView
     {
-      kParentIsNSWindow = 1
-    };    
+ 
+    public:
+        enum platformFlags
+        {
+            kParentIsNSWindow = 1
+        };
 
-    PlatformView(void* parent, ml::Rect boundsRect, AppView* pR, void* platformHandle, int platformFlags);
-    ~PlatformView();
+        // window / resolution helpers that are here for now 
+        // 
+        // get default point to put the center of a new window
+        static Vec2 getPrimaryMonitorCenter();
+        // 
+        // get the scale at the device covering the given point
+        static float getDeviceScaleAtPoint(Vec2 p);
+        //
+        // get the scale the OS considers the window's device to be at, compared to "usual" DPI
+        static float getDeviceScaleForWindow(void* parent);
+        //
+        //
+        static Rect getWindowRect(void* parent);
 
-    void resizePlatformView(int w, int h);
+        PlatformView(void* parent, ml::Rect boundsRect, AppView* pR, void* platformHandle, int platformFlags);
+        ~PlatformView();
 
-  protected:
-    struct Impl;
-    std::unique_ptr< Impl > _pImpl;
-  };
+        void resizePlatformView(int w, int h);
+
+    protected:
+        struct Impl;
+        std::unique_ptr< Impl > _pImpl;
+    };
 
 } // namespace ml

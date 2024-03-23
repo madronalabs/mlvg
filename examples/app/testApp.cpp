@@ -25,6 +25,8 @@ constexpr int kSampleRate = 48000;
 constexpr float kDefaultGain = 0.1f;
 constexpr float kMaxGain = 0.5f;
 constexpr float kFreqLo = 40, kFreqHi = 4000;
+const ml::Vec2 kDefaultGridUnits{ 16, 9 };
+const int kDefaultGridUnitSize{ 60 };
 
 void readParameterDescriptions(ParameterDescriptionList& params)
 {
@@ -101,81 +103,8 @@ public:
     int OK{ false };
     std::string sourcePath;
     
-    
-    std::cout << FileDialog::getFolderForLoad("/Users", "");
-    /*
     // just a test, show the dialog but don't do anything yet
-    {
-      fprintf(stderr, "file open in cwd\n");
-      osdialog_filters* filters = osdialog_filters_parse("WAV audio:wav;AIFF audio:aiff,aif,aifc");
-      char* filename = osdialog_file(OSDIALOG_OPEN, ".", "こんにちは", filters);
-      if (filename) {
-        fprintf(stderr, "\t%s\n", filename);
-        free(filename);
-      }
-      else {
-        fprintf(stderr, "\tCanceled\n");
-      }
-      osdialog_filters_free(filters);
-    }
-*/
-    /*
-    if(f)
-    {
-      std::cout << "file to load: " << filePath << "\n";
-      std::cout << "init sr: " << _sample.sampleRate << "\n";
-      
-      // load the file
-      
-      SF_INFO fileInfo;
-      auto file = sf_open(sourcePath.c_str(), SFM_READ, &fileInfo);
-      
-      std::cout << "        format: " << fileInfo.format << "\n";
-      std::cout << "        frames: " << fileInfo.frames << "\n";
-      std::cout << "        samplerate: " << fileInfo.samplerate << "\n";
-      std::cout << "        channels: " << fileInfo.channels << "\n";
-      
-      constexpr size_t kMaxSeconds = 32;
-      size_t fileSizeInFrames = fileInfo.frames;
-      size_t kMaxFrames = kMaxSeconds*fileInfo.samplerate;
-      
-      size_t framesToRead = std::min(fileSizeInFrames, kMaxFrames);
-      size_t samplesToRead = framesToRead*fileInfo.channels;
-      
-      _printToConsole(TextFragment("loading ", pathToText(filePath), "..."));
-      
-      _sample.data.resize(samplesToRead);
-      float* pData = _sample.data.data();
-      _sample.sampleRate = fileInfo.samplerate;
-      
-      sf_count_t framesRead = sf_readf_float(file, pData, static_cast<sf_count_t>(framesToRead));
-      
-      TextFragment readStatus;
-      if(framesRead != framesToRead)
-      {
-        readStatus = "file read failed!";
-      }
-      else
-      {
-        TextFragment truncatedMsg = (framesToRead == kMaxFrames) ? "(truncated)" : "";
-        readStatus = (TextFragment(textUtils::naturalNumberToText(framesRead), " frames read ", truncatedMsg ));
-        OK = true;
-      }
-      
-      _printToConsole(readStatus);
-      sf_close(file);
-      
-      // deinterleave to extract first channel if needed
-      if(fileInfo.channels > 1)
-      {
-        for(int i=0; i < framesRead; ++i)
-        {
-          pData[i] = pData[i*fileInfo.channels];
-        }
-        _sample.data.resize(framesRead);
-      }
-      
-    }*/
+    std::cout << FileDialog::getFolderForLoad("/Users", "");
     
     return OK;
   }
@@ -264,21 +193,30 @@ int main(int argc, char *argv[])
 
   // make view
   TestAppView appView(getAppName(), instanceNum);
-  
-  // set initial size.
-  appView.setSizeInGridUnits({16, 9});
-  appView.setGridSizeDefault(96);
-  
-  //appView.setFixedRatioSize(true);
 
 
+  // TODO get persistent window rect if available
 
-  SDL_Window *window = ml::initSDLWindow(appView, "mlvg test");
+
+  // if there is no persistent rect, use default
+  // we have a few utilities in PlatformView that apps can use to make their own default strategies.
+  Vec2 c = PlatformView::getPrimaryMonitorCenter();
+  float devScale = PlatformView::getDeviceScaleAtPoint(c);
+
+
+  // set initial size. This is not a fixed-ratio app, meaning the window sizes
+  // freely and the grid unit size remains constant. 
+  appView.setSizeInGridUnits(kDefaultGridUnits);
+  appView.setGridSizeDefault(kDefaultGridUnitSize* devScale);
+
+  // get default rect 
+  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * devScale;
+  Rect boundsRect(0, 0, defaultSize.x(), defaultSize.y());
+  Rect defaultRect = alignCenterToPoint(boundsRect, c);
+
+  SDL_Window *window = ml::initSDLWindow(appView, defaultRect, "mlvg test");
   if(window)
   {
-    // watch for window resize events during drag
-    ResizingEventWatcherData watcherData{window, &appView};
-    SDL_AddEventWatch( resizingEventWatcher, &watcherData );
 
     // make Processor and register Actor
     TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
@@ -290,6 +228,10 @@ int main(int argc, char *argv[])
     appView.makeWidgets(pdl);
     appView.createPlatformView(windowInfo.windowPtr, windowInfo.flags);
     appView.startTimersAndActor();
+
+    // watch for window resize events during drag
+    ResizingEventWatcherData watcherData{ window, &appView };
+    SDL_AddEventWatch(resizingEventWatcher, &watcherData);
     SdlAppResize(&watcherData);
     
     appController.broadcastParams();

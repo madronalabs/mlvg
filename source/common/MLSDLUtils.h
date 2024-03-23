@@ -60,7 +60,7 @@ namespace ml {
     }
 
 
-    inline SDL_Window* initSDLWindow(const AppView& appView, const char* windowName)
+    inline SDL_Window* initSDLWindow(const AppView& appView, ml::Rect b, const char* windowName)
     {
         // Enable standard application logging
         SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -75,9 +75,21 @@ namespace ml {
         int commonFlags = SDL_WINDOW_RESIZABLE;
 
         // Create window
+        /*
         Vec2 defaultDims = appView.getDefaultDims();
         SDL_Window* newWindow = SDL_CreateWindow(windowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
             defaultDims.x(), defaultDims.y(), commonFlags | getPlatformWindowCreateFlags());
+            */
+
+        int x = b.left();
+        int y = b.top();
+        int w = b.width();
+        int h = b.height();
+
+
+        SDL_Window* newWindow = SDL_CreateWindow(windowName, x, y, w, h,
+            commonFlags | getPlatformWindowCreateFlags());
+        
         if (!newWindow)
         {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Window creation fail : %s\n", SDL_GetError());

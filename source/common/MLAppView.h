@@ -57,14 +57,18 @@ namespace ml {
         Vec2 getMinDims() const { 
             if (_fixedRatioSize)
             {
+                // for a fixed ratio size window, _sizeInGridUnits is fixed.
                 return _sizeInGridUnits * _minGridSize;
             }
             else
             {
+                // for a variable ratio window, _sizeInGridUnits may vary, grid size does not.
                 return _minSizeInGridUnits * _defaultGridSize;
             }
         }
-        Vec2 getDefaultDims() const { return _sizeInGridUnits * _defaultGridSize; }
+        Vec2 getDefaultDims() const { 
+            return _sizeInGridUnits * _defaultGridSize;
+        }
         Vec2 getMaxDims() const { return _sizeInGridUnits * _maxGridSize; }
         void setGridSizeDefault(int b) { _defaultGridSize = b; }
         void setGridSizeLimits(int a, int c) { _minGridSize = a; _maxGridSize = c; }
@@ -83,6 +87,8 @@ namespace ml {
 
         // push event to the input queue and return true if the event will be handled by the View.
         bool pushEvent(GUIEvent g);
+
+        Vec2 constrainSize(Vec2 size) const;
 
     protected:
 
@@ -105,7 +111,7 @@ namespace ml {
         Vec2 _minSizeInGridUnits{ 12, 9 };
         ml::Rect _borderRect;
         bool _fixedRatioSize{ false };
-        size_t _minGridSize{ 96 };
+        size_t _minGridSize{ 48 };
         size_t _defaultGridSize{ 96 };
         size_t _maxGridSize{ 240 };
 
@@ -144,7 +150,7 @@ namespace ml {
         void _debug();
         void _sendParameterMessageToWidgets(const Message& msg);
         GUIEvent _detectDoubleClicks(GUIEvent e);
-        Vec2 _constrainSize(Vec2 size);
+
         size_t _getElapsedTime();
         void layoutFixedSizeWidgets_(Vec2 newSize);
 

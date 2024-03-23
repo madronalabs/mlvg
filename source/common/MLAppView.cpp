@@ -36,6 +36,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
 {
   if(newSize != viewSize_)
   {
+      std::cout << "resizing view: " << viewSize_ << " -> " << newSize << "\n";
     viewSize_ = newSize;
     
     // get dims in system coordinates
@@ -321,18 +322,16 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
   return r;
 }
 
-// given a pointer to a size in system UI coordinates, tweak the size to be a valid window size.
-Vec2 AppView::_constrainSize(Vec2 size)
+// given a size in system UI coordinates, tweak it to be a valid window size.
+Vec2 AppView::constrainSize(Vec2 size) const
 {
-  Vec2 newSize = size;
+  Vec2 newSize;
   
-  if(getFixedRatioSize())
-  {
     Vec2 minDims = getMinDims();
     Vec2 maxDims = getMaxDims();
     newSize = vmax(newSize, minDims);
     newSize = vmin(newSize, maxDims);
-  }
+
   return newSize;
 }
 
@@ -392,25 +391,12 @@ void AppView::render(NativeDrawContext* nvg)
 
 void AppView::createPlatformView(void* pParent, int flags)
 {
-  // get size in system coords
-  Vec2 dims;
-  auto initialSize = _params.getNormalizedValue("view_size").getMatrixValue();
-  if(initialSize.getWidth() == 2)
-  {
-    dims = Vec2(initialSize[0], initialSize[1]);
-  }
-  else
-  {
-    dims = getDefaultDims();
-  }
-  
-  Vec2 cDims = _constrainSize(dims);
-  
   // create the native platform view
   if(pParent != _parent)
   {
     _parent = pParent;
-    _platformView = std::make_unique< PlatformView >(pParent, Vec4(0, 0, cDims.x(), cDims.y()), this, _platformHandle, flags);
+    Rect wSize = PlatformView::getWindowRect(pParent);
+    _platformView = std::make_unique< PlatformView >(pParent, wSize, this, _platformHandle, flags);
   }
 }
 

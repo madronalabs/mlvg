@@ -61,12 +61,6 @@ struct GUICoordinates
   {
     return pixelToSystem(gridToPixel(gc));
   }
-  
-  void setSizeAndScale(Vec2 size, float scale)
-  {
-    viewSizeInPixels = size;
-    displayScale = scale;
-  }
 };
 
 }; // namespace ml
