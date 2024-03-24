@@ -431,6 +431,8 @@ if(BUILD_SDL2_APP)
         # Support 64 bit builds
         set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/VisualC/x64/Release")
 
+        # note: linking with the debug build of the SDL library made an executable that crashed.
+        # So for now we link to the release version always.
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2.lib")
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2main.lib")
 
@@ -476,9 +478,8 @@ if(BUILD_SDL2_APP)
         target_link_libraries(${target} PRIVATE "setupapi.lib")
         target_link_libraries(${target} PRIVATE "version.lib")
         target_link_libraries(${target} PRIVATE "Imm32.lib")
-    target_link_libraries(${target} PRIVATE "msvcrt.lib")
+        target_link_libraries(${target} PRIVATE debug "msvcrtd.lib" optimized "msvcrt.lib")
 
-    
     endif()
 
 endif()
