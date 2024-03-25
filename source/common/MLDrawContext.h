@@ -119,9 +119,13 @@ namespace ml {
             _nvg(nvg), width(w), height(h)
         {
             _buf = nvgCreateFramebuffer(nvg, w, h, 0);
-            nvgBindFramebuffer(_buf);
+          nvgBindFramebuffer(_buf);
+#if ML_WINDOWS // TEMP
+          
             glClearColor(0.f, 0.f, 0.f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+#endif
+          
         }
 
         ~DrawableImage()
@@ -137,7 +141,9 @@ namespace ml {
         if (pImg)
         {
             nvgBindFramebuffer(pImg->_buf);
+#if ML_WINDOWS // TEMP
             glViewport(0, 0, pImg->width, pImg->height);
+#endif
         }
         else
         {

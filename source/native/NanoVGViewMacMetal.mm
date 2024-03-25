@@ -408,7 +408,47 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 @end
 
 
-// PlatformView
+// PlatformView static helpers
+
+// get default point to put the center of a new window
+Vec2 PlatformView::getPrimaryMonitorCenter()
+{
+  NSScreen* screen =[NSScreen mainScreen];
+  NSRect frm = [screen frame];
+  float x = frm.origin.x + frm.size.width/2;
+  float y = frm.origin.y + frm.size.height/2;
+  return Vec2{x, y};
+}
+
+// get the scale at the device covering the given point
+float PlatformView::getDeviceScaleAtPoint(Vec2 p)
+{
+  return 1.0f;
+}
+
+// get the scale the OS considers the window's device to be at, compared to "usual" DPI
+float PlatformView::getDeviceScaleForWindow(void* parent)
+{
+  return 1.0f;
+}
+
+ml::Rect PlatformView::getWindowRect(void* pParent)
+{
+  ml::Rect r{0, 0, 0, 0};
+  if(!pParent) return r;
+  
+  NSView* parentView{nullptr};
+    auto parentWindow = (__bridge NSWindow *)(pParent);
+    parentView = [parentWindow contentView];
+
+  NSRect frm = [parentView frame];
+  
+  return ml::Rect{(float)frm.origin.x, (float)frm.origin.y,
+    (float)frm.size.width, (float)frm.size.height};
+}
+
+
+// PlatformView class
 
 struct PlatformView::Impl
 {
