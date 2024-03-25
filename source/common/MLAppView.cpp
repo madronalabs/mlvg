@@ -395,7 +395,7 @@ void AppView::createPlatformView(void* pParent, int flags)
   if(pParent != _parent)
   {
     _parent = pParent;
-    Rect wSize = PlatformView::getWindowRect(pParent);
+    Rect wSize = PlatformView::getWindowRect(pParent, flags);
     _platformView = std::make_unique< PlatformView >(pParent, wSize, this, _platformHandle, flags);
   }
 }

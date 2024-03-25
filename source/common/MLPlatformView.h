@@ -44,7 +44,7 @@ namespace ml
         static float getDeviceScaleForWindow(void* parent);
         //
         //
-        static Rect getWindowRect(void* parent);
+      static Rect getWindowRect(void* parent, int platformFlags);
 
         PlatformView(void* parent, ml::Rect boundsRect, AppView* pR, void* platformHandle, int platformFlags);
         ~PlatformView();

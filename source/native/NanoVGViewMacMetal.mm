@@ -432,14 +432,23 @@ float PlatformView::getDeviceScaleForWindow(void* parent)
   return 1.0f;
 }
 
-ml::Rect PlatformView::getWindowRect(void* pParent)
+ml::Rect PlatformView::getWindowRect(void* pParent, int platformFlags)
 {
   ml::Rect r{0, 0, 0, 0};
   if(!pParent) return r;
   
+  
+  // get parent view, from either NSWindow or NSView according to flag
   NSView* parentView{nullptr};
+  if(platformFlags & PlatformView::kParentIsNSWindow)
+  {
     auto parentWindow = (__bridge NSWindow *)(pParent);
     parentView = [parentWindow contentView];
+  }
+  else
+  {
+    parentView = (__bridge NSView *)(pParent);
+  }
 
   NSRect frm = [parentView frame];
   
@@ -467,7 +476,6 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
   
   // get parent view, from either NSWindow or NSView according to flag
   NSView* parentView{nullptr};
-  NSView* parentView2{nullptr};
   if(platformFlags & PlatformView::kParentIsNSWindow)
   {
     auto parentWindow = (__bridge NSWindow *)(pParent);
