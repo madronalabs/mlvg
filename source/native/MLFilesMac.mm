@@ -15,24 +15,13 @@ namespace ml
 namespace FileUtils
 {
 
-Path getUserPath(Symbol name)
+Path getUserDataPath()
 {
   NSString *filePath{nullptr};
   Path p;
   
-  switch(hash(name))
-  {
-    case(hash("music")):
-    {
-      filePath = [NSSearchPathForDirectoriesInDomains(NSMusicDirectory, NSUserDomainMask, YES) objectAtIndex:0] ;
-      break;
-    }
-    default:
-    {
-      break;
-    }
-  }
-  
+  filePath = [NSSearchPathForDirectoriesInDomains(NSMusicDirectory, NSUserDomainMask, YES) objectAtIndex:0] ;
+
   if(filePath)
   {
     const char* pStr = [filePath UTF8String];
@@ -48,8 +37,9 @@ Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type)
 {
   Path result;
   
-  // everything is now in ~/Music/Madrona Labs on Mac
-  Path musicPath = getUserPath("music");
+  // everything is now in ~/Music/Madrona Labs on Mac. We can write and read here without entitlements, it seems?
+  // so: used for testing until we look into that more. 
+  Path musicPath = getUserDataPath();
   
   if(musicPath)
   {

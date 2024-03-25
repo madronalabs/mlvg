@@ -9,13 +9,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include "MLFiles.h"
-#include "catch.hpp"
 #include "madronalib.h"
+#include "mlvg.h"
+#include "MLFiles.h"
+
+#include "catch.hpp"
 
 using namespace ml;
 
-TEST_CASE("mlvg/core/files", "[files]")
+TEST_CASE("read and write files", "[files]")
 {
 	bool OK{ false };
 	const int vecSize{ 1000 };

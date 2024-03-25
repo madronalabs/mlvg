@@ -376,8 +376,29 @@ if(BUILD_TESTS)
 
     add_executable(${target} ${TEST_SOURCES})
     set_target_properties(${target} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
     target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+    
+    # find SDL headers and libraries
+    target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
+    if(APPLE)
+        # to use the SDL2 framework in /Library/Frameworks, do this:
+        find_package(SDL2 REQUIRED COMPONENTS SDL2)
+    elseif(WIN32)
+        # it seems like there's no standard place to put the SDL dev tools on Windows.
+        # we put them in an SDL dir alongside the main project directory.
+        set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../SDL/include")
+    
+        # Support 64 bit builds
+        set(SDL2_LIBRARIES_DIR "${CMAKE_CURRENT_LIST_DIR}/../SDL/VisualC/x64/Release")
+    
+        # note: linking with the debug build of the SDL library made an executable that crashed.
+        # So for now we link to the release version always.
+        target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2.lib")
+        target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2main.lib")
+    endif()
+    message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
+    message("SDL2 libraries should be in: " ${SDL2_LIBRARIES_DIR} )
+    target_include_directories(${target} PRIVATE ${SDL2_INCLUDE_DIRS})
     
     # add madronalib
     target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR})
@@ -391,6 +412,29 @@ if(BUILD_TESTS)
     # add mlvg library
     target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
     target_link_libraries(${target} PRIVATE "mlvg")
+
+    if(APPLE)
+        target_compile_definitions(${target} PUBLIC ML_INCLUDE_SDL=1)
+        target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
+        target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
+    endif()
+    
+    # add UI libs and frameworks- note that these appear under
+    # "other linker flags" in XCode and not in its file browser
+    if(APPLE)
+        target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+            "-framework CoreAudio" "-framework CoreServices"
+            "-framework AppKit" "-framework SDL2" )
+    elseif(WIN32)
+        find_package(OpenGL REQUIRED)
+        target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
+        target_link_libraries(${target} PRIVATE "Shcore.lib")
+        target_link_libraries(${target} PRIVATE "winmm.lib")
+        target_link_libraries(${target} PRIVATE "setupapi.lib")
+        target_link_libraries(${target} PRIVATE "version.lib")
+        target_link_libraries(${target} PRIVATE "Imm32.lib")
+        target_link_libraries(${target} PRIVATE debug "msvcrtd.lib" optimized "msvcrt.lib")
+    endif()
 
 
 endif()
@@ -414,12 +458,12 @@ if(BUILD_SDL2_APP)
     elseif(WIN32)
         list(APPEND test_app_sources "${MLVG_SOURCE_DIR}/native/hidpi.manifest" )
     endif()
-    
 
     add_executable(${target} ${test_app_sources})
-    target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
+
 
     # find SDL headers and libraries
+    target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
     if(APPLE)
         # to use the SDL2 framework in /Library/Frameworks, do this:
         find_package(SDL2 REQUIRED COMPONENTS SDL2)
@@ -435,7 +479,6 @@ if(BUILD_SDL2_APP)
         # So for now we link to the release version always.
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2.lib")
         target_link_libraries(${target} PRIVATE "${SDL2_LIBRARIES_DIR}/SDL2main.lib")
-
     endif()
     message("SDL2 headers should be in: " ${SDL2_INCLUDE_DIRS} )
     message("SDL2 libraries should be in: " ${SDL2_LIBRARIES_DIR} )
@@ -455,13 +498,8 @@ if(BUILD_SDL2_APP)
     target_link_libraries(${target} PRIVATE "mlvg")
 
     if(APPLE)
-        # ARC must be off for juce
-        # target_compile_options(${target} PRIVATE "-fno-objc-arc")
-
-        target_compile_definitions(${target} PUBLIC ML_INCLUDE_SDL=1)
         target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
         target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")
-
     endif()
     
     # add UI libs and frameworks- note that these appear under
@@ -479,7 +517,6 @@ if(BUILD_SDL2_APP)
         target_link_libraries(${target} PRIVATE "version.lib")
         target_link_libraries(${target} PRIVATE "Imm32.lib")
         target_link_libraries(${target} PRIVATE debug "msvcrtd.lib" optimized "msvcrt.lib")
-
     endif()
 
 endif()
