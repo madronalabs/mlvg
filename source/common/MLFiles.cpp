@@ -433,7 +433,7 @@ Path FileDialog::getFilePathForSave(Path startPath, TextFragment defaultName, Te
     if (userFilters)
     {
         // use filters param
-        filtersFrag == userFilters;
+        filtersFrag = userFilters;
     }
     else
     {

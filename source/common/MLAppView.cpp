@@ -325,7 +325,7 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
 // given a size in system UI coordinates, tweak it to be a valid window size.
 Vec2 AppView::constrainSize(Vec2 size) const
 {
-  Vec2 newSize;
+  Vec2 newSize = size;
   
     Vec2 minDims = getMinDims();
     Vec2 maxDims = getMaxDims();
