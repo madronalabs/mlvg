@@ -115,7 +115,7 @@ float PlatformView::getDeviceScaleForWindow(void* parent)
     return (float)sf / 100.f;
 }
 
-Rect PlatformView::getWindowRect(void* parent)
+Rect PlatformView::getWindowRect(void* parent, int )
 {
     RECT winRect;
     HWND parentWindow = static_cast<HWND>(parent);
