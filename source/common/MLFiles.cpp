@@ -402,8 +402,9 @@ Path FileDialog::getFolderForLoad(Path startPath, TextFragment filters)
   {
       r = textToPath(filename, kPlatformFileSeparator);
       free(filename);
-      return r;
   }
+
+  return r;
 }
 
 Path FileDialog::getFilePathForLoad(Path startPath, TextFragment filtersFrag)
