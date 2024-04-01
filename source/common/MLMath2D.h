@@ -182,6 +182,31 @@ inline float magnitude(Vec4 v)
 }
 
 
+inline float magnitudeSquared(Vec2 v)
+{
+  float a = v.val[0];
+  float b = v.val[1];
+  return (a*a + b*b);
+}
+
+inline float magnitudeSquared(Vec3 v)
+{
+  float a = v.val[0];
+  float b = v.val[1];
+  float c = v.val[2];
+  return (a*a + b*b + c*c);
+}
+
+inline float magnitudeSquared(Vec4 v)
+{
+  float a = v.val[0];
+  float b = v.val[1];
+  float c = v.val[2];
+  float d = v.val[3];
+  return (a*a + b*b + c*c + d*d);
+}
+
+
 inline MLVec normalize(MLVec a)
 {
   return MLVec(a/magnitude(Vec4(a)));
@@ -439,6 +464,14 @@ std::ostream& operator<< (std::ostream& out, const ml::Rect& r);
 inline Rect roundToInt(const Rect& r)
 {
   return Rect(r.getIntPart());
+}
+
+// very fast sin approx for graphics, not DSP!
+// its period is 1.0 and its amplitude is 0.25.
+inline float sinApprox1(float x)
+{
+  float m = x - floorf(x) - 0.5f;
+  return 2*m*(1.f - fabs(2*m));
 }
 
 } // namespace ml
