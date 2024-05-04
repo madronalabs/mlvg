@@ -323,6 +323,7 @@ public:
   Rect unionWith(const Rect& b) const;
   bool intersects(const Rect& p) const;
   
+  // TODO turn into pure functions
   void setToIntersectionWith(const Rect& b);
   void setToUnionWith(const Rect& b);
   
@@ -340,15 +341,15 @@ public:
   Rect withTopLeft(const Vec2& b) const;
   Rect withTopLeft(const float cx, const float cy);
   
-  Vec2 center() const;
   Vec2 topLeft() const;
-  Vec2 topRight() const;
   Vec2 topCenter() const;
+  Vec2 topRight() const;
   Vec2 middleLeft() const;
+  Vec2 center() const;
   Vec2 middleRight() const;
   Vec2 bottomLeft() const;
-  Vec2 bottomRight() const;
   Vec2 bottomCenter() const;
+  Vec2 bottomRight() const;
   Vec2 dims() const;
   
   inline bool contains(int px, int py) const { return (ml::within(px, (int)left(), (int)right()) && ml::within(py, (int)top(), (int)bottom())); }
@@ -360,15 +361,19 @@ inline Matrix rectToMatrix(Rect r) { return Matrix{r.left(), r.top(), r.width(),
 inline Vec2 matrixToVec2(Matrix m) { return Vec2(m[0], m[1]); }
 inline Matrix vec2ToMatrix(Vec2 v) { return Matrix{ v[0], v[1] }; }
 
-inline Vec2 getTopLeft(Rect r)
-{
-  return Vec2(r.left(), r.top());
-}
+inline Vec2 getTopLeft(Rect r) { return Vec2(r.left(), r.top()); }
+inline Vec2 getTopCenter(Rect r) { return Vec2(r.left() + r.width()*0.5f, r.top()); }
+inline Vec2 getTopRight(Rect r) { return Vec2(r.right(), r.top()); }
 
-inline Vec2 getCenter(Rect r)
-{
-  return Vec2(r.left() + r.width()*0.5f, r.top() + r.height()*0.5f);
-}
+inline Vec2 getMiddleLeft(Rect r) { return Vec2(r.left(), r.top() + r.height()*0.5f); }
+inline Vec2 getCenter(Rect r) { return Vec2(r.left() + r.width()*0.5f, r.top() + r.height()*0.5f);}
+inline Vec2 getMiddleRight(Rect r) { return Vec2(r.right(), r.top() + r.height()*0.5f); }
+
+inline Vec2 getBottomLeft(Rect r) { return Vec2(r.left(), r.bottom()); }
+inline Vec2 getBottomCenter(Rect r) { return Vec2(r.left() + r.width()*0.5f, r.bottom()); }
+inline Vec2 getBottomRight(Rect r) { return Vec2(r.right(), r.bottom()); }
+
+inline Vec2 getDims(Rect r) { return Vec2(r.width(), r.height()); }
 
 inline Vec2 getCenterOffset(Rect r)
 {
@@ -379,7 +384,6 @@ inline Vec2 getSize(Rect r)
 {
   return Vec2(r.width(), r.height());
 }
-
 
 inline Rect translate(Rect r, Vec2 p)
 {
@@ -400,6 +404,8 @@ Rect growHeight(const Rect& a, float amount);
 Rect shrink(const Rect& a, float amount);
 Rect shrinkWidth(const Rect& a, float amount);
 Rect shrinkHeight(const Rect& a, float amount);
+
+Rect constrainInside(Rect a, Rect b);
 
 inline Rect centerOnOrigin(const Rect& a) { return Rect(-a.width()/2, -a.height()/2, a.width(), a.height()); }
 inline Rect alignTopLeftToOrigin(const Rect& a) { return Rect(0, 0, a.width(), a.height()); }

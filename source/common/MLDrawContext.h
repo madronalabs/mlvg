@@ -762,9 +762,10 @@ namespace ml {
 
     void nvgDrawSVG(NVGcontext* vg, NSVGimage* svg);
 
-
     Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWidth, float windowHeight, Symbol side);
 
+    // float rect floatingRect near a side of fixedRect with a margin between them, constrained in the windowRect if possible.
+    Rect floatNearby(Rect floatingRect, Rect fixedRect, Rect windowRect, float margin, Symbol side);
 
     // drawing property helpers
 

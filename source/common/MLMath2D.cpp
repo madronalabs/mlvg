@@ -266,11 +266,6 @@ Vec2 Rect::bottomCenter() const
   return Vec2(left() + width()*0.5f, bottom());
 }
 
-Vec2 Rect::dims() const
-{
-	return Vec2(width(), height());
-}
-
 
 Rect intersectRects(const Rect& a, const Rect& b)
 {
@@ -336,6 +331,17 @@ Rect shrinkWidth(const Rect& a, float m)
 Rect shrinkHeight(const Rect& a, float m)
 {
   return a + Rect(0, m, 0, -2*m);
+}
+
+
+Rect constrainInside(Rect a, Rect b)
+{
+  Rect r{a};
+  r.top() -= max(r.bottom() - b.bottom(), 0.f);
+  r.top() = max(r.top(), b.top());
+  r.left() -= max(r.right() - b.right(), 0.f);
+  r.left() = max(r.left(), b.left());
+  return r;
 }
 
 Rect rectEnclosing(const Rect& a, const Rect& b)

@@ -305,7 +305,6 @@ void nvgDrawSVG(NVGcontext *vg, NSVGimage *svg)
 }
 
 
-  
 Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWidth, float windowHeight, Symbol side)
 {
   Rect result{floatingRect};
@@ -344,6 +343,43 @@ Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWi
   
   return result;
 }
+
+
+Rect floatNearby(Rect floatingRect, Rect fixedRect, Rect windowRect, float margin, Symbol side)
+{
+  Rect result;
+  
+  switch(hash(side))
+  {
+    case(hash("left")):
+    {
+      result = alignMiddleRightToPoint(floatingRect, fixedRect.middleLeft() - Vec2(margin, 0));
+      break;
+    }
+    case(hash("right")):
+    {
+      result = alignMiddleLeftToPoint(floatingRect, fixedRect.middleRight() + Vec2(margin, 0));
+      break;
+    }
+    case(hash("top")):
+    {
+      result = alignBottomCenterToPoint(floatingRect, fixedRect.topCenter() - Vec2(0, margin));
+      break;
+    }
+    case(hash("bottom")):
+    {
+      result = alignTopCenterToPoint(floatingRect, fixedRect.bottomCenter() + Vec2(0, margin));
+      break;
+    }
+  }
+  
+  // if not totally visible in window, bring in
+  result = constrainInside(result, windowRect);
+  
+  return result;
+}
+
+
 
 void drawText(NativeDrawContext* nvg, Vec2 location, ml::Text t, int align)
 {

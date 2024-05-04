@@ -296,7 +296,7 @@ void FileTree::scan()
   for (auto it = begin(); it != end(); ++it)
   {
     auto filePtr = (*it).get();
-    auto relPath = it.getCurrentNodePath();
+    auto relPath = it.getCurrentPath();
     _relativePathIndex.push_back(removeExtensionFromPath(relPath));
   }
 

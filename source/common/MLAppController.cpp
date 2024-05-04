@@ -87,7 +87,7 @@ void AppController::sendAllCollectionsToView()
 {
   for(auto it = _fileTreeIndex.begin(); it != _fileTreeIndex.end(); ++it)
   {
-    const Path p = it.getCurrentNodePath();
+    const Path p = it.getCurrentPath();
     sendMessageToActor(_viewName, {"editor/do/update_collection", pathToText(p)});
   }
 }
