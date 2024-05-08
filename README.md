@@ -8,7 +8,7 @@ MacOS and Windows, VST3 plugins for Mac and Windows, and AU plugins for Mac.
 to build an app:
 ----------------
 
-First, build and install madronalib as a static library using the instructions in the madronalib project.
+First, build and install madronalib as a static library using the instructions in the madronalib project. This should install the madronalib headers and library to where they will be found by other projects on your computer. On MacOS for example, this will be in /usr/local/include/madronalib and /usr/local/lib.
 
 If you haven't already, update the submodules to mlvg:
 - git submodule update --init --recursive
