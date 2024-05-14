@@ -117,7 +117,7 @@ bool File::replaceWithDataCompressed(const CharVector& uncompressedData) const
 
     int compressResult = compress(compressedData.data(), &compressedSize, uncompressedData.data(), uncompressedSize);
 
-    printf("Compressed from %u to %u bytes\n", (mz_uint32)uncompressedSize, (mz_uint32)compressedSize); // TEMP
+    // printf("Compressed from %u to %u bytes\n", (mz_uint32)uncompressedSize, (mz_uint32)compressedSize); // TEMP
     compressedData.resize(compressedSize);
 
     // replace
@@ -179,9 +179,6 @@ bool File::loadCompressed(CharVector& uncompressedData) const
     {
         uncompSize *= 2;
         uncompressedData.resize(uncompSize);
-
-        std::cout << "trying uncompress to " << uncompSize <<  " bytes \n";
-
         cmpResult = uncompress(uncompressedData.data(), &uncompSize, compressedInput.data(), compressedInput.size());
     }
 
@@ -192,7 +189,6 @@ bool File::loadCompressed(CharVector& uncompressedData) const
         return false;
     }
 
-    std::cout << "uncompSize: " << uncompSize << " bytes\n"; // TEMP
     uncompressedData.resize(uncompSize);
     return true;
 }
@@ -297,7 +293,7 @@ void FileTree::scan()
   {
     auto filePtr = (*it).get();
     auto relPath = it.getCurrentPath();
-    _relativePathIndex.push_back(removeExtensionFromPath(relPath));
+    _relativePathIndex.push_back(relPath);
   }
 
   return;

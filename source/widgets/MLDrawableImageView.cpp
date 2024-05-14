@@ -35,7 +35,7 @@ MessageList DrawableImageView::animate(int elapsedTimeInMs, ml::DrawContext dc)
             w = (int)(fboWidth / pxRatio);
             h = (int)(fboHeight / pxRatio);
 
-            std::cout << "img" << w << " x " << h << ", ratio = " << pxRatio << "\n";
+            // std::cout << "img" << w << " x " << h << ", ratio = " << pxRatio << "\n";
 
             drawToImage(pImage);
 

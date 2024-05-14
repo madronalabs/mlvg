@@ -36,7 +36,6 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
 {
   if(newSize != viewSize_)
   {
-      std::cout << "resizing view: " << viewSize_ << " -> " << newSize << "\n";
     viewSize_ = newSize;
     
     // get dims in system coordinates
@@ -455,28 +454,16 @@ bool AppView::willHandleEvent(GUIEvent g)
   return true;
 }
 
-
 bool AppView::pushEvent(GUIEvent g)
 {
-    // TEMP check queue
-    if (queueSize != _inputQueue.size())
-    {
-        std::cout << "wow  "  << appName_ << " AppView: queue size xchange! " << queueSize << " -> " << _inputQueue.size() << " \n";
-    }
-
-
   bool willHandle = willHandleEvent(g);
   if(willHandle)
   {
     _inputQueue.push(g);
   }
-
-  // TEMP check queue
-  queueSize = _inputQueue.size();
-
   return willHandle;
 }
 
-
 } // namespace ml
+
 

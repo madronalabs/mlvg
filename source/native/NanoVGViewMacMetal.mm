@@ -161,14 +161,25 @@
 {
   NSPoint eventPos = [self convertPointToScreen:[pEvent locationInWindow]];
   
-  NSRect screen0Frame = NSScreen.screens[0].frame;
-  float screenMaxY = NSMaxY(screen0Frame);
+  // get union of screens.
+  // TODO move!
+  int screenCount = NSScreen.screens.count;
+  NSRect unionRect = NSZeroRect;
+  for(int i=0; i< screenCount; ++i)
+  {
+    unionRect = NSUnionRect(unionRect, NSScreen.screens[i].frame);
+  }
+  float screenMinY = NSMinY(unionRect);
+  float screenMaxY = NSMaxY(unionRect);
   
+  // TEMP
+  // NSLog(@"min %f max %f", screenMinY, screenMaxY);
+
   // allow dragging past top and bottom of screen by repositioning the mouse.
   const CGFloat dragMargin = 50;
   NSPoint moveDelta;
   bool repositioned = false;
-  if(eventPos.y < 1)
+  if(eventPos.y < screenMinY + 1)
   {
     moveDelta = NSMakePoint(0, dragMargin);
     repositioned = true;
