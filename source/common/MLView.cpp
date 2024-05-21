@@ -11,10 +11,6 @@
 
 using namespace ml;
 
-// TEMP
-auto red = nvgRGBA(255, 20, 80, 255);
-auto yellow = nvgRGBA(255, 220, 80, 255);
-
 View::View(Collection< Widget > t, WithValues p) : Widget(p), _widgets(t)
 {
   
@@ -373,7 +369,11 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
           (_widgets, [&](Widget& w2)
            {
             // if newGroup intersects visible w2, add to group
-            if((!w2._needsDraw) && w2.getBoolProperty("visible") && intersectRects(newGroup.bounds, w2.getBounds()))
+            
+            // safety in case widget has not received bounds property yet
+            Rect w2Bounds = w2.getRectPropertyWithDefault("bounds", Rect());
+            
+            if((!w2._needsDraw) && w2.getBoolProperty("visible") && intersectRects(newGroup.bounds, w2Bounds))
             {
               w2._needsDraw = true;
               newGroup.addAndExpand(&w2);

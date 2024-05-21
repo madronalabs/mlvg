@@ -217,7 +217,6 @@ int main(int argc, char *argv[])
   SDL_Window *window = ml::initSDLWindow(appView, defaultRect, "mlvg test");
   if(window)
   {
-
     // make Processor and register Actor
     TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
     TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(instanceNum));

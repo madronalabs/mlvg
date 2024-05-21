@@ -171,9 +171,6 @@
   }
   float screenMinY = NSMinY(unionRect);
   float screenMaxY = NSMaxY(unionRect);
-  
-  // TEMP
-  // NSLog(@"min %f max %f", screenMinY, screenMaxY);
 
   // allow dragging past top and bottom of screen by repositioning the mouse.
   const CGFloat dragMargin = 50;
