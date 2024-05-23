@@ -62,6 +62,8 @@ struct PlatformView::Impl
   int _frameCounter{ 0 };
   CRITICAL_SECTION _drawLock{ nullptr };
 
+  float _deviceScale{ 0 };
+
 protected:
   Vec2 _totalDrag;
 
@@ -218,11 +220,7 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* userData, void* p
   int h = bounds.height();
 
   // get monitor device scale
-  auto deviceScale = getDeviceScaleForWindow(parentWindow);
-  std::cout << "DEVICE SCALE: " << deviceScale << "\n:";
-
-
-
+  _deviceScale = getDeviceScaleForWindow(parentWindow);
 
   auto hInst = static_cast<HINSTANCE>(platformHandle);
 
@@ -409,7 +407,7 @@ void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUI
   // get point in view/backing coordinates
   long x = GET_X_LPARAM(lParam);
   long y = GET_Y_LPARAM(lParam);
-  vgEvent->position = Vec2(x, y);
+  vgEvent->position = Vec2(x, y)*_deviceScale;
 }
 
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
@@ -419,7 +417,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
   long y = GET_Y_LPARAM(lParam);
   POINT p{ x, y };
   ScreenToClient(_windowHandle, &p);
-  vgEvent->position = Vec2(p.x, p.y);
+  vgEvent->position = Vec2(p.x, p.y) * _deviceScale;
 }
 
 Vec2 PlatformView::Impl::eventPositionOnScreen(LPARAM lParam)
@@ -604,6 +602,10 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         pGraphics->_pImpl->convertEventPositions(wParam, lParam, &e);
         pGraphics->_pImpl->convertEventFlags(wParam, lParam, &e);
 
+        bool repositioned{ false };
+
+        // TEMP screen edge fix commented out for now. TODO fix
+        /*
         // get screen height
         HMONITOR monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
         MONITORINFO info;
@@ -614,7 +616,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         Vec2 pv = pGraphics->_pImpl->eventPositionOnScreen(lParam);
         const float kDragMargin{ 50.f };
         Vec2 moveDelta;
-        bool repositioned{ false };
+        
         if (pv.y() < 1)
         {
           moveDelta = { 0, kDragMargin };
@@ -625,6 +627,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
           moveDelta = { 0, -kDragMargin };
           repositioned = true;
         }
+       
 
         if (repositioned)
         {
@@ -634,6 +637,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
           pGraphics->_pImpl->_totalDrag -= moveDelta;
         }
         else
+         */
         {
           e.position += pGraphics->_pImpl->_totalDrag;
           if (pGraphics->_pImpl->_appView)

@@ -117,7 +117,10 @@ protected:
   float newDisplayScale{0};
   Vec2 newDisplaySize{0, 0};
   bool _needsResize{false};
-  
+
+  // TEMP
+  void doResize();
+
   // windowing
   void* _platformHandle{ nullptr };
   void* _parent{ nullptr };
@@ -165,7 +168,6 @@ private:
   // may reference this.
   CollectionRoot< Widget > _rootWidgets;
   
-  void doResize();
   
   // temp
   int queueSize{ 0 };
