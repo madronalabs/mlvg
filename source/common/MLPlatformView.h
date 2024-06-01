@@ -39,9 +39,9 @@ namespace ml
         // 
         // get the scale at the device covering the given point
         static float getDeviceScaleAtPoint(Vec2 p);
-        //
+        //      
         // get the scale the OS considers the window's device to be at, compared to "usual" DPI
-        static float getDeviceScaleForWindow(void* parent);
+        static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
         //
         //
       static Rect getWindowRect(void* parent, int platformFlags);

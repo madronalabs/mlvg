@@ -435,10 +435,34 @@ float PlatformView::getDeviceScaleAtPoint(Vec2 p)
 }
 
 // get the scale the OS considers the window's device to be at, compared to "usual" DPI
-float PlatformView::getDeviceScaleForWindow(void* parent)
+float PlatformView::getDeviceScaleForWindow(void* pParent, int platformFlags)
 {
-  return 1.0f;
+  if(!pParent) return 1.0f;
+  
+  // get parent view, from either NSWindow or NSView according to flag
+  NSView* parentView{nullptr};
+  if(platformFlags & PlatformView::kParentIsNSWindow)
+  {
+    auto parentWindow = (__bridge NSWindow *)(pParent);
+    parentView = [parentWindow contentView];
+  }
+  else
+  {
+    parentView = (__bridge NSView *)(pParent);
+  }
+  
+  NSRect frm = [parentView frame];
+  NSRect backingFrm = [parentView convertRectToBacking:frm];
+  
+
+  
+  float ratio = backingFrm.size.width / frm.size.width;
+  
+  
+  return ratio;
 }
+
+
 
 ml::Rect PlatformView::getWindowRect(void* pParent, int platformFlags)
 {
