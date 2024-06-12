@@ -17,7 +17,7 @@
 #include "testAppView.h"
 
 #define ML_INCLUDE_SDL 1
-#include "MLSDLUtils.h"
+#include "native/MLSDLUtils.h"
 
 constexpr int kInputChannels = 0;
 constexpr int kOutputChannels = 2;
