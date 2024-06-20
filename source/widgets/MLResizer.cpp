@@ -39,7 +39,8 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 
       if (getProperty("fix_ratio"))
       {
-        // constrain to ratio
+        // generate a view size change request,
+        // constrained to the fixed ratio if one exists
         float ratio = getFloatProperty("fix_ratio");
         float freeRatio = newSize.x()/ newSize.y();
         Vec2 minSize = { kMinHeight*ratio, kMinHeight + 0.f };

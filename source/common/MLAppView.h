@@ -55,6 +55,9 @@ public:
   bool getFixedRatioSize() const { return _fixedRatioSize; }
   void setFixedRatioSize(bool b) { _fixedRatioSize = b; }
   
+  Rect getBorderRect() const { return _borderRect; }
+  bool getStretchToScreenMode() const { return _stretchToScreenMode; }
+  
   Vec2 getMinDims() const {
     if (_fixedRatioSize)
     {
@@ -76,7 +79,7 @@ public:
   
   void setMinSizeInGridUnits(Vec2 g) { _minSizeInGridUnits = g; }
   
-  void createPlatformView(void* pParent, int flags);
+  void createPlatformView(void* pParent, int flags, int targetFPS = 60);
   
   void startTimersAndActor();
   void stopTimersAndActor();
@@ -104,11 +107,14 @@ protected:
   Path _controllerName;
   
   // dimensions
-  Vec2 viewSize_;
   GUICoordinates _GUICoordinates;
   Vec2 _sizeInGridUnits;
   Vec2 _minSizeInGridUnits{ 12, 9 };
+  
+  // the rect, always a fixed multiple of grid units, into which everything is drawn. This will be
+  // a bit smaller than the entire drawable surface.
   ml::Rect _borderRect;
+  
   bool _fixedRatioSize{ false };
   size_t _minGridSize{ 48 };
   size_t _defaultGridSize{ 96 };
@@ -117,6 +123,7 @@ protected:
   float newDisplayScale{0};
   Vec2 newDisplaySize{0, 0};
   bool _needsResize{false};
+  bool _stretchToScreenMode{false};
 
   // TEMP
   void doResize();
@@ -161,7 +168,7 @@ protected:
   GUIEvent _detectDoubleClicks(GUIEvent e);
   
   size_t _getElapsedTime();
-  void layoutFixedSizeWidgets_(Vec2 newSize);
+  void layoutFixedSizeWidgets_();
   
 private:
   // here is where all the Widgets are stored. Other instances of Collection < Widget >

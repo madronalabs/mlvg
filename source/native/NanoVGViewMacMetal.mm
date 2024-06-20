@@ -374,11 +374,31 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     // draw the AppView to the backing layer
     drawToImage(_backingLayer.get());
     _appView->render(_nvg);
+    
+    // get border rect that the AppView is drawn into
+    ml::Rect b = _appView->getBorderRect();
+    float scale = _appView->getCoords().displayScale;
+    b *= scale;
+    
+    // aspect ratio
+    float ax = w/b.width();
+    float ay = h/b.height();
 
     // blit backing layer to main layer
     drawToImage(nullptr);
     nvgBeginFrame(_nvg, w, h, 1.0f);
-    NVGpaint img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
+    
+    // get image pattern, either stretching border rect to whole screen or blitting to the same size, leaving a border
+    NVGpaint img;
+    if(_appView->getStretchToScreenMode())
+    {
+      img = nvgImagePattern(_nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, _backingLayer->_buf->image, 1.0f);
+    }
+    else
+    {
+      img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
+    }
+    // blit the image
     nvgSave(_nvg);
     nvgResetTransform(_nvg);
     nvgBeginPath(_nvg);
@@ -391,6 +411,33 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     nvgEndFrame(_nvg);
   }
 }
+
+
+// TEMP
+float drawImage(NVGcontext* vg, int image, float alpha,
+                float sx, float sy, float sw, float sh, // sprite location on texture
+                float x, float y, float w, float h) // position and size of the sprite rectangle on screen
+{
+  float ax, ay;
+  int iw,ih;
+  NVGpaint img;
+  
+  nvgImageSize(vg, image, &iw, &ih);
+  
+  // Aspect ration of pixel in x an y dimensions. This allows us to scale
+  // the sprite to fill the whole rectangle.
+  ax = w / sw;
+  ay = h / sh;
+  
+  img = nvgImagePattern(vg, x - sx*ax, y - sy*ay, (float)iw*ax, (float)ih*ay,
+                        0, image, alpha);
+  nvgBeginPath(vg);
+  nvgRect(vg, x,y, w,h);
+  nvgFillPaint(vg, img);
+  nvgFill(vg);
+}
+
+
 
 // internal resize, in system coordinates
 - (void) resize:(CGSize)size
@@ -497,7 +544,7 @@ struct PlatformView::Impl
   MetalNanoVGRenderer* _renderer{nullptr};
 };
 
-PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void* platformHandle, int platformFlags)
+PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void* platformHandle, int platformFlags, int targetFPS)
 {
   if(!pView)
   {
@@ -558,12 +605,9 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pView, void*
 
   // set origin here and not after resizing. important to get correct positioning in some hosts
   [view setFrameOrigin:CGPointMake(0, 0)];
-
-  // set AppView coordinates // ?
-  // pView->setDisplayScale(displayScale);
   
   // We should set this to a frame rate that we think our renderer can consistently maintain.
-  view.preferredFramesPerSecond = kTargetFPS;
+  view.preferredFramesPerSecond = targetFPS;
 
   // add the new view to our parent view supplied by the host.
   [parentView addSubview: view];

@@ -42,11 +42,10 @@ namespace ml
         //      
         // get the scale the OS considers the window's device to be at, compared to "usual" DPI
         static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
-        //
-        //
-      static Rect getWindowRect(void* parent, int platformFlags);
 
-        PlatformView(void* parent, ml::Rect boundsRect, AppView* pR, void* platformHandle, int platformFlags);
+        static Rect getWindowRect(void* parent, int platformFlags);
+
+        PlatformView(void* parent, ml::Rect boundsRect, AppView* pR, void* platformHandle, int platformFlags, int targetFPS);
         ~PlatformView();
 
         void resizePlatformView(int w, int h);

@@ -430,6 +430,10 @@ inline Rect alignCenterToPoint(Rect r, Vec2 p)
 
 inline Rect alignTopLeftToRect(const Rect& a, const Rect& b) { return Rect(b.left(), b.top(), a.width(), a.height()); }
 inline Rect alignTopRightToRect(const Rect& a, const Rect& b) { return Rect(b.right() - a.width(), b.top(), a.width(), a.height()); }
+
+inline Rect alignMiddleLeftToRect(const Rect& a, const Rect& b) { return alignMiddleLeftToPoint(a, getMiddleLeft(b)); }
+inline Rect alignMiddleRightToRect(const Rect& a, const Rect& b) { return alignMiddleRightToPoint(a, getMiddleRight(b)); }
+
 inline Rect alignBottomLeftToRect(const Rect& a, const Rect& b) { return Rect(b.left(), b.bottom() - a.height(), a.width(), a.height()); }
 inline Rect alignBottomRightToRect(const Rect& a, const Rect& b) { return Rect(b.right() - a.width(), b.bottom() - a.height(), a.width(), a.height()); }
 
