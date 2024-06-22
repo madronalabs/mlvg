@@ -247,14 +247,17 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
   bool kShowDirtyWidgets = dc.pProperties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
   if(kShowDirtyWidgets)
   {
-    // DEBUG
-    size_t x = (_frameCounter&0x3F);
-    float omega = x/64.f;
-    auto flickerColor = rgba(1, omega, 0, 1);
+    // make a pulsing color
+    size_t x2 = (_frameCounter&0x1F);
+    size_t x = (x2 & 0x10) ? (0x20 - x2) : x2;
+    
+    // periodic clear should happen when framecounter = 0, thereby not show pulsing
+    float omega = x/20.f;
+    auto flickerColor = rgba(1, omega, 0, omega);
     
     nvgBeginPath(nvg);
     nvgStrokeColor(nvg, flickerColor);
-    nvgStrokeWidth(nvg, 4);
+    nvgStrokeWidth(nvg, 6);
     nvgRect(nvg, widgetBounds);
     nvgStroke(nvg);
   }
@@ -339,8 +342,21 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   
-  static int frameCounter{};
-  frameCounter++;
+  // erase periodically when debugging dirty widgets visually
+  bool kShowDirtyWidgets = dc.pProperties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
+  if(kShowDirtyWidgets)
+  {
+    if ((_frameCounter&0x1F) == 0)
+    {
+      if(getBoolPropertyWithDefault("draw_background", true))
+      {
+        Rect nativeBounds = getLocalBounds(dc, *this);
+        drawBackground(dc, nativeBounds);
+      }
+      drawAllWidgets(dc);
+      return;
+    }
+  }
   
   std::vector< WidgetGroup > widgetGroups;
   
@@ -371,7 +387,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
             // if newGroup intersects visible w2, add to group
             
             // safety in case widget has not received bounds property yet
-            Rect w2Bounds = w2.getRectPropertyWithDefault("bounds", Rect());
+            Rect w2Bounds = w2.getRectProperty("bounds");
             
             if((!w2._needsDraw) && w2.getBoolProperty("visible") && intersectRects(newGroup.bounds, w2Bounds))
             {
