@@ -438,7 +438,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
     
     // draw background under this group's rect
     auto groupBounds = dc.coords.gridToPixel(wg.bounds);
-//    groupBounds = grow(groupBounds, 1);
+    groupBounds = grow(groupBounds, 1);
 
     nvgSave(nvg);
     nvgIntersectScissor(nvg, groupBounds);
@@ -447,7 +447,6 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
 
 //    std::cout << "         group: " << g++ << " -------------\n";
 
-    
     for(auto w : wg.widgets)
     {
 //      std::cout << "              widget: " << (unsigned long)w << "\n";

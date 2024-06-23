@@ -362,8 +362,8 @@ install(FILES
   )
 
 #set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
-set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
-install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
+#set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+#install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #--------------------------------------------------------------------
 # build tests
