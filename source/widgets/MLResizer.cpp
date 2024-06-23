@@ -28,7 +28,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   else if(type == "drag")
   {
     constexpr int kMinHeight = 64;
-    constexpr int kDragQuantum = 4;
+    constexpr int kDragQuantum = 1;
     Vec2 newDragDelta = viewPos - _dragStart;
 
     newDragDelta.quantize(kDragQuantum);

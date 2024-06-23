@@ -126,7 +126,7 @@ protected:
   bool _stretchToScreenMode{false};
 
   // TEMP
-  void doResize();
+  void doResizeIfNeeded();
 
   // windowing
   void* _platformHandle{ nullptr };

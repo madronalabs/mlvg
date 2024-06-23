@@ -177,8 +177,7 @@ void View::draw(ml::DrawContext dc)
   
   // if the View itself is dirty, all the Widgets in it must be redrawn.
   // otherwise, only the dirty Widgets need to be redrawn.
- if(_dirty)
- // if(1)
+  if(_dirty)
   {
     if(getBoolPropertyWithDefault("draw_background", true))
     {

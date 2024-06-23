@@ -210,13 +210,16 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
 // and handling any returned Messages.
 void AppView::_handleGUIEvents()
 {
+  /*
   guiToResizeCounter++;
   if(guiToResizeCounter > 2)
   {
     guiToResizeCounter = 0;
-    doResize();
-  }
+    doResizeIfNeeded();
+  }*/
   
+  doResizeIfNeeded();
+
   while (_inputQueue.elementsAvailable())
   {
     auto e = _inputQueue.pop();
@@ -398,7 +401,7 @@ void AppView::createPlatformView(void* pParent, int flags, int targetFPS)
 void AppView::startTimersAndActor()
 {
   _previousFrameTime = system_clock::now();
-  _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
+  _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/30));
   _debugTimer.start([=]() { _debug(); }, milliseconds(1000));
   Actor::start();
 }
@@ -411,7 +414,7 @@ void AppView::stopTimersAndActor()
 }
 
 // set new editor size in system coordinates.
-void AppView::doResize()
+void AppView::doResizeIfNeeded()
 {
     if (_needsResize)
     {
