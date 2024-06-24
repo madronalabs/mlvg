@@ -17,7 +17,8 @@ using namespace std::chrono;
 struct GUIEvent
 {
   Symbol type{};
-  Vec2 position{0, 0}; // position in grid coordinates
+  Vec2 position{0, 0}; // window position in grid coordinates
+  Vec2 screenPos{0, 0}; // screen position in system coordinates
   Vec2 delta{0, 0};
   uint32_t keyCode{0};
   uint32_t keyFlags{0};
@@ -69,11 +70,4 @@ enum KeyCodes
   // just a start, to implement delete
   deleteKey = 127
 };
-
-
-// TEMP for navigation
-#if 0
-MouseInputSource kSource;
-MouseEvent m;
-#endif
 

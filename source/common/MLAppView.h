@@ -58,6 +58,16 @@ public:
   Rect getBorderRect() const { return _borderRect; }
   bool getStretchToScreenMode() const { return _stretchToScreenMode; }
   
+  Vec2 getWindowToDrawingRatio() const
+  {
+    if(!_stretchToScreenMode) return Vec2{1, 1};
+    
+    Vec2 drawingSize = getDims(_borderRect) * _GUICoordinates.displayScale;
+    Vec2 windowSize = _GUICoordinates.viewSizeInPixels;
+    Vec2 windowToDrawingRatio = drawingSize / windowSize;
+    return windowToDrawingRatio;
+  }
+  
   Vec2 getMinDims() const {
     if (_fixedRatioSize)
     {
@@ -125,7 +135,6 @@ protected:
   bool _needsResize{false};
   bool _stretchToScreenMode{false};
 
-  // TEMP
   void doResizeIfNeeded();
 
   // windowing

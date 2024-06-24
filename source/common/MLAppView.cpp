@@ -210,14 +210,6 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
 // and handling any returned Messages.
 void AppView::_handleGUIEvents()
 {
-  /*
-  guiToResizeCounter++;
-  if(guiToResizeCounter > 2)
-  {
-    guiToResizeCounter = 0;
-    doResizeIfNeeded();
-  }*/
-  
   doResizeIfNeeded();
 
   while (_inputQueue.elementsAvailable())
@@ -239,9 +231,7 @@ void AppView::_handleGUIEvents()
 
 void AppView::_debug()
 {
-  //std::cout << "UtuViewView: " << getMessagesAvailable() << " messages in queue. max: "
-  //  << _maxQueueSize << " handled: " << _msgCounter << " \n";
-  //_msgCounter = 0;
+
 }
 
 void AppView::_sendParameterMessageToWidgets(const Message& msg)
@@ -442,7 +432,6 @@ void AppView::setDisplayScale(float newScale)
   }
 }
 
-
 void AppView::setDisplaySize(Vec2 newSize)
 {
   if(newDisplaySize != newSize)
@@ -451,8 +440,6 @@ void AppView::setDisplaySize(Vec2 newSize)
     _needsResize = true;
   }
 }
-
-
 
 bool AppView::willHandleEvent(GUIEvent g)
 {
