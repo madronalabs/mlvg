@@ -73,8 +73,10 @@ Vec2 NSPointToVec2(NSPoint p)
   NSPoint fromBottomBacking = [self convertPointToBacking:fromBottom ];
   
   Vec2 wdr = _appView->getWindowToDrawingRatio();
-  
-  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y) * wdr;
+  Vec2 borderTopLeft = getTopLeft(_appView->getBorderRect());
+  float displayScale = _appView->getCoords().displayScale;
+   
+  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y) * wdr + (borderTopLeft*displayScale);
 }
 
 - (void)convertEventPositionsWithOffset:(NSEvent *)appKitEvent withOffset:(NSPoint)offset toGUIEvent:(GUIEvent*)vgEvent;
@@ -87,8 +89,10 @@ Vec2 NSPointToVec2(NSPoint p)
   NSPoint fromBottomBacking = [self convertPointToBacking:fromBottom ];
   
   Vec2 wdr = _appView->getWindowToDrawingRatio();
-  
-  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y) * wdr;
+  Vec2 borderTopLeft = getTopLeft(_appView->getBorderRect());
+  float displayScale = _appView->getCoords().displayScale;
+
+  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y) * wdr + (borderTopLeft*displayScale);
 }
 
 - (void)convertEventFlags:(NSEvent *)appKitEvent toGUIEvent:(GUIEvent*)vgEvent

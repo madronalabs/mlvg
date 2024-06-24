@@ -406,21 +406,21 @@ void AppView::stopTimersAndActor()
 // set new editor size in system coordinates.
 void AppView::doResizeIfNeeded()
 {
-    if (_needsResize)
-    {
-        Vec2 newPixelSize = newDisplaySize * newDisplayScale;
-
-        _GUICoordinates.viewSizeInPixels = newPixelSize;
-        _GUICoordinates.displayScale = newDisplayScale;
-
-        onResize(newDisplaySize);
-
-        // resize our canvas, in system coordinates
-        if (_platformView)
-            _platformView->resizePlatformView(newDisplaySize[0], newDisplaySize[1]);
-
-        _needsResize = false;
-    }
+  if (_needsResize)
+  {
+    Vec2 newPixelSize = newDisplaySize * newDisplayScale;
+    
+    _GUICoordinates.viewSizeInPixels = newPixelSize;
+    _GUICoordinates.displayScale = newDisplayScale;
+    
+    onResize(newDisplaySize);
+    
+    // resize our canvas, in system coordinates
+    if (_platformView)
+      _platformView->resizePlatformView(newDisplaySize[0], newDisplaySize[1]);
+    
+    _needsResize = false;
+  }
 }
 
 void AppView::setDisplayScale(float newScale)
