@@ -12,11 +12,11 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 {
   MessageList reqList;
   auto type = e.type;
-  Vec2 viewPos = gc.gridToSystem(e.position);
   
-  viewPos = e.screenPos;
+  // resizer needs actual screen position otherwise it gets chaotic when we resize the window
+  Vec2 viewPos = e.screenPos;
   
-  std::cout << " Resizer: screenPos " << e.screenPos << "\n";
+  //std::cout << " Resizer: screenPos " << e.screenPos << "\n";
   
   bool wasEngaged = engaged;
 
