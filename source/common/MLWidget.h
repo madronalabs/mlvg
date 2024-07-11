@@ -198,8 +198,7 @@ namespace ml {
         virtual void draw(DrawContext d) {}
 
         // property helpers
-        inline ml::Rect getRectProperty(Path p) const { return matrixToRect(getMatrixProperty(p)); }
-        inline ml::Rect getRectPropertyWithDefault(Path p, ml::Rect r) const { return matrixToRect(getMatrixPropertyWithDefault(p, rectToMatrix(r))); }
+        inline ml::Rect getRectProperty(Path p, ml::Rect r = Rect()) const { return matrixToRect(getMatrixPropertyWithDefault(p, rectToMatrix(r))); }
         inline void setRectProperty(Path p, ml::Rect r) { setProperty(p, rectToMatrix(r)); }
 
         inline ml::Rect getBounds() const { return getRectProperty("bounds"); }

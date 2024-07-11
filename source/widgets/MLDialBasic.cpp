@@ -30,7 +30,7 @@ float DialBasic::_trackPositionToNormalValue(Vec2 p)
     if (angle < a1)
     {
       const float proportion = (angle - a0) / (a1 - a0);
-      return (ml::clamp (proportion, 0.0f, 1.0f));
+      return (ml::clamp (proportion, 0.0f, 1.0f)); 
     }
   }
   return -1.f;

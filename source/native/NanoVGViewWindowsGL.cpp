@@ -20,11 +20,6 @@
 
 #include "MLAppView.h"
 #include "MLPlatformView.h"
-// #include "MLDebug.h"
-
-// needs to be a little higher than actual preferred rate
-// because of window sync
-constexpr float preferredFPS{ 66.f };
 
 constexpr int kTimerID{ 2 };
 
@@ -63,6 +58,7 @@ struct PlatformView::Impl
   CRITICAL_SECTION _drawLock{ nullptr };
 
   float _deviceScale{ 0 };
+  int targetFPS_{ 60 };
 
 protected:
   Vec2 _totalDrag;
@@ -321,7 +317,7 @@ void PlatformView::Impl::swapBuffers()
 
 // PlatformView
 
-PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* platformHandle, int platformFlags)
+PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* platformHandle, int platformFlags, int targetFPS)
 {
   if(!pParent) return;
   
@@ -336,6 +332,8 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
   // create window and GL
   if (_pImpl->createWindow((HWND)pParent, this, platformHandle, bounds))
   {
+    _pImpl->targetFPS_ = targetFPS;
+    
     // create nanovg
     _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
 
@@ -455,7 +453,9 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
   if (msg == WM_CREATE)
   {
-    int mSec = static_cast<int>(std::round(1000.0 / (preferredFPS)));
+    // targetFPS_needs to be a little higher than actual preferred rate
+    // because of window sync
+    int mSec = static_cast<int>(std::round(1000.0 / ( (float) targetFPS_ * 1.1f )));
     UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
     SetFocus(hWnd);
     DragAcceptFiles(hWnd, true);
@@ -523,7 +523,16 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             // end backing layer update
             nvgEndFrame(nvg);
 
-
+          // get border rect that the AppView is drawn into
+          ml::Rect b = pView->getBorderRect();
+          float scale = pView->getCoords().displayScale;
+          b *= scale;
+          
+          // aspect ratio
+          float ax = w/b.width();
+          float ay = h/b.height();
+          
+          
             BeginPaint(hWnd, &ps);
 
             // blit backing layer to main layer
@@ -532,9 +541,24 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
             glViewport(0, 0, w, h);
             glClearColor(0.f, 0.f, 0.f, 0.f);
+          
+            // is there a way to force paint-over and avoid this step?
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+          
+          
             nvgBeginFrame(nvg, w, h, 1.0f);
-            NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
+          
+            // get image pattern, either stretching border rect to whole screen or blitting to the same size, leaving a border
+            NVGpaint img;
+            if(pView->getStretchToScreenMode())
+            {
+              img = nvgImagePattern(_nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, _backingLayer->_buf->image, 1.0f);
+            }
+            else
+            {
+              img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
+            }
+            
             nvgSave(nvg);
             nvgResetTransform(nvg);
             nvgBeginPath(nvg);

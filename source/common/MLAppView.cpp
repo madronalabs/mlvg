@@ -34,8 +34,6 @@ AppView::~AppView()
 // newSize is in system coordinates.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
 {
-  viewSize_ = newSize;
-  
   // get dims in system coordinates
   float displayScale = _GUICoordinates.displayScale;
   int systemWidth = newSize.x();
@@ -55,28 +53,24 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     int ux = systemWidth/gridUnitsX;
     int uy = systemHeight/gridUnitsY;
     systemGridSize = std::min(ux, uy);
-    float contentWidth = systemGridSize*gridUnitsX;
-    float contentHeight = systemGridSize*gridUnitsY;
-    float borderX = (systemWidth - contentWidth)/2;
-    float borderY = (systemHeight - contentHeight)/2;
-    _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
   }
   else
   {
     // not a fixed ratio - fit a whole number of grid units into the current window size.
-    // TODO user-adjustable grid size? only for subviews?
+    // TODO user-adjustable grid size?
     systemGridSize = _defaultGridSize;
     
     gridUnitsX = systemWidth/systemGridSize;
     gridUnitsY = systemHeight/systemGridSize;
     _sizeInGridUnits = Vec2(gridUnitsX, gridUnitsY);
-    
-    float contentWidth = systemGridSize*gridUnitsX;
-    float contentHeight = systemGridSize*gridUnitsY;
-    float borderX = (systemWidth - contentWidth)/2;
-    float borderY = (systemHeight - contentHeight)/2;
-    _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
   }
+  
+  float contentWidth = systemGridSize*gridUnitsX;
+  float contentHeight = systemGridSize*gridUnitsY;
+
+  float borderX = (systemWidth - contentWidth)/2;
+  float borderY = (systemHeight - contentHeight)/2;
+  _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
   
   _view->setProperty("grid_units_x", gridUnitsX);
   _view->setProperty("grid_units_y", gridUnitsY);
@@ -95,7 +89,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
   // set bounds for top-level View in grid coordinates
   _view->setBounds({0, 0, gridUnitsX, gridUnitsY});
   
-  layoutFixedSizeWidgets_(newSize);
+  layoutFixedSizeWidgets_();
   
   DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
   layoutView(dc);
@@ -103,7 +97,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
   _view->setDirty(true);
 }
 
-void AppView::layoutFixedSizeWidgets_(Vec2 newSize)
+void AppView::layoutFixedSizeWidgets_()
 {
   // fixed size widgets are measured in pixels, so they need their grid-based sizes recalculated
   // when the view dims change.
@@ -114,12 +108,10 @@ void AppView::layoutFixedSizeWidgets_(Vec2 newSize)
     {
       // get anchor point for widget in system coords from anchor param on (0, 1)
       Vec2 systemAnchor = matrixToVec2(w.getProperty("anchor").getMatrixValue());
-      systemAnchor = systemAnchor * newSize;
+      systemAnchor = systemAnchor * getDims(_borderRect) + getTopLeft(_borderRect);
       
       // fixed widget bounds are in system coords (for same apparent size)
       Vec4 systemBounds = w.getRectProperty("fixed_bounds");
-      
-      //Vec4 viewBounds = _GUICoordinates.systemToPixel(systemBounds);
       systemBounds = translate(systemBounds, systemAnchor);
       ml::Rect gridBounds = _GUICoordinates.systemToGrid(systemBounds);
       w.setBounds(gridBounds);
@@ -218,13 +210,8 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
 // and handling any returned Messages.
 void AppView::_handleGUIEvents()
 {
-  guiToResizeCounter++;
-  if(guiToResizeCounter > 2)
-  {
-    guiToResizeCounter = 0;
-    doResize();
-  }
-  
+  doResizeIfNeeded();
+
   while (_inputQueue.elementsAvailable())
   {
     auto e = _inputQueue.pop();
@@ -244,9 +231,7 @@ void AppView::_handleGUIEvents()
 
 void AppView::_debug()
 {
-  //std::cout << "UtuViewView: " << getMessagesAvailable() << " messages in queue. max: "
-  //  << _maxQueueSize << " handled: " << _msgCounter << " \n";
-  //_msgCounter = 0;
+
 }
 
 void AppView::_sendParameterMessageToWidgets(const Message& msg)
@@ -392,21 +377,21 @@ void AppView::render(NativeDrawContext* nvg)
   _view->setDirty(false);
 }
 
-void AppView::createPlatformView(void* pParent, int flags)
+void AppView::createPlatformView(void* pParent, int flags, int targetFPS)
 {
   // create the native platform view
   if(pParent != _parent)
   {
     _parent = pParent;
     Rect wSize = PlatformView::getWindowRect(pParent, flags);
-    _platformView = std::make_unique< PlatformView >(pParent, wSize, this, _platformHandle, flags);
+    _platformView = std::make_unique< PlatformView >(pParent, wSize, this, _platformHandle, flags, targetFPS);
   }
 }
 
 void AppView::startTimersAndActor()
 {
   _previousFrameTime = system_clock::now();
-  _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
+  _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/30));
   _debugTimer.start([=]() { _debug(); }, milliseconds(1000));
   Actor::start();
 }
@@ -419,23 +404,23 @@ void AppView::stopTimersAndActor()
 }
 
 // set new editor size in system coordinates.
-void AppView::doResize()
+void AppView::doResizeIfNeeded()
 {
-    if (_needsResize)
-    {
-        Vec2 newPixelSize = newDisplaySize * newDisplayScale;
-
-        _GUICoordinates.viewSizeInPixels = newPixelSize;
-        _GUICoordinates.displayScale = newDisplayScale;
-
-        onResize(newDisplaySize);
-
-        // resize our canvas, in system coordinates
-        if (_platformView)
-            _platformView->resizePlatformView(newDisplaySize[0], newDisplaySize[1]);
-
-        _needsResize = false;
-    }
+  if (_needsResize)
+  {
+    Vec2 newPixelSize = newDisplaySize * newDisplayScale;
+    
+    _GUICoordinates.viewSizeInPixels = newPixelSize;
+    _GUICoordinates.displayScale = newDisplayScale;
+    
+    onResize(newDisplaySize);
+    
+    // resize our canvas, in system coordinates
+    if (_platformView)
+      _platformView->resizePlatformView(newDisplaySize[0], newDisplaySize[1]);
+    
+    _needsResize = false;
+  }
 }
 
 void AppView::setDisplayScale(float newScale)
@@ -447,7 +432,6 @@ void AppView::setDisplayScale(float newScale)
   }
 }
 
-
 void AppView::setDisplaySize(Vec2 newSize)
 {
   if(newDisplaySize != newSize)
@@ -456,8 +440,6 @@ void AppView::setDisplaySize(Vec2 newSize)
     _needsResize = true;
   }
 }
-
-
 
 bool AppView::willHandleEvent(GUIEvent g)
 {

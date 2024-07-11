@@ -715,50 +715,6 @@ namespace ml {
             nvgStroke(nvg);
         }
     }
-    /*
-
-     // return brighter, less saturated vesion of a fill color-- for drawing lines etc.
-     inline NVGcolor brightLineColor (const NVGcolor c)
-     {
-     NVGcolor hsv = rgb2hsv(c);
-     float sat = std::min(hsv.g, 0.60f);
-     float val = 1.f;
-
-     return NVGcolor(c.getHue(), sat, val, 1.f);
-     }
-
-     */
-
-     /*
-      // special things for zero
-      if (fabs(number) < 0.00001f)
-      {
-      switch(mode)
-      {
-      case eMLNumFloat:
-      if (doSign) numBuf[0] = ' ';
-      break;
-      case eMLNumZeroIsOff:
-      snprintf(numBuf, bufLength, "off");
-      break;
-      break;
-      default:
-      break;
-      }
-      }
-      */
-      /*
-       if(mode == eMLNumDecibels)
-       {
-       if (number < -60.5f)
-       {
-       snprintf(numBuf, bufLength, "-inf.");
-       }
-       }
-       */
-
-       // //debug() << "N" << numBuf << "\n";
-
 
     void nvgDrawSVG(NVGcontext* vg, NSVGimage* svg);
 

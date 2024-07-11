@@ -17,7 +17,7 @@
 #include "testAppView.h"
 
 #define ML_INCLUDE_SDL 1
-#include "MLSDLUtils.h"
+#include "native/MLSDLUtils.h"
 
 constexpr int kInputChannels = 0;
 constexpr int kOutputChannels = 2;
@@ -205,7 +205,8 @@ int main(int argc, char *argv[])
 
 
   // set initial size. This is not a fixed-ratio app, meaning the window sizes
-  // freely and the grid unit size remains constant. 
+  // freely and the grid unit size remains constant.
+  // appView.setFixedRatioSize(true);
   appView.setSizeInGridUnits(kDefaultGridUnits);
   appView.setGridSizeDefault(kDefaultGridUnitSize* devScale);
 

@@ -12,23 +12,29 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 {
   MessageList reqList;
   auto type = e.type;
-  Vec2 viewPos = gc.gridToSystem(e.position);
-  viewPos = vmax(viewPos, Vec2());
+  
+  // resizer needs actual screen position otherwise it gets chaotic when we resize the window
+  Vec2 viewPos = e.screenPos;
+  
+  //std::cout << " Resizer: screenPos " << e.screenPos << "\n";
+  
+  bool wasEngaged = engaged;
 
   if(type == "down")
   {
+    engaged = true;
     _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
     _dragStart = viewPos;
     _dragDelta = Vec2(0, 0);
     
     // this ValueChange does nothing but indicate that we got the event
     reqList.push_back({"ack"});
-
   }
   else if(type == "drag")
   {
+    if(!engaged) return reqList;
     constexpr int kMinHeight = 64;
-    constexpr int kDragQuantum = 4;
+    constexpr int kDragQuantum = 1;
     Vec2 newDragDelta = viewPos - _dragStart;
 
     newDragDelta.quantize(kDragQuantum);
@@ -39,7 +45,8 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 
       if (getProperty("fix_ratio"))
       {
-        // constrain to ratio
+        // generate a view size change request,
+        // constrained to the fixed ratio if one exists
         float ratio = getFloatProperty("fix_ratio");
         float freeRatio = newSize.x()/ newSize.y();
         Vec2 minSize = { kMinHeight*ratio, kMinHeight + 0.f };
@@ -74,7 +81,15 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       _dragDelta = newDragDelta;
     }
   }
+  else if(type == "up")
+  {
+    engaged = false;
+    // this ValueChange does nothing but indicate that we got the event
+    reqList.push_back({"ack"});
+  }
   
+  if(wasEngaged != engaged) _dirty = true;
+
   return reqList;
 }
 
@@ -82,8 +97,9 @@ void Resizer::draw(ml::DrawContext dc)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   Rect bounds = getLocalBounds(dc, *this);
-  
-  auto bgColorA = getColor(dc, "mark");
+
+  // TODO color property
+  auto fillColor = engaged ? colors::gray8 : getColor(dc, "mark");
 
   //  paint triangle
   nvgBeginPath(nvg);
@@ -91,7 +107,7 @@ void Resizer::draw(ml::DrawContext dc)
   nvgLineTo(nvg, bounds.right(), bounds.bottom());
   nvgLineTo(nvg, bounds.left(), bounds.bottom());
   nvgClosePath(nvg);
-  nvgFillColor(nvg, bgColorA);
+  nvgFillColor(nvg, fillColor);
   nvgFill(nvg);
 }
 
