@@ -107,7 +107,7 @@ float PlatformView::getDeviceScaleAtPoint(Vec2 p)
     return (float)sf / 100.f;
 }
 
-float PlatformView::getDeviceScaleForWindow(void* parent)
+float PlatformView::getDeviceScaleForWindow(void* parent, int /*platformFlags*/)
 {
     HWND parentWindow = static_cast<HWND>(parent);
     HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
