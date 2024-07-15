@@ -42,8 +42,8 @@ struct PlatformView::Impl
 {
   static LRESULT CALLBACK appWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-  int _width;
-  int _height;
+  int _width{ 0 };
+  int _height{ 0 };
 
   NVGcontext* _nvg{ nullptr };
 
@@ -58,7 +58,7 @@ struct PlatformView::Impl
   CRITICAL_SECTION _drawLock{ nullptr };
 
   float _deviceScale{ 0 };
-  int targetFPS_{ 60 };
+  int targetFPS_{ 30 };
 
 protected:
   Vec2 _totalDrag;
@@ -329,6 +329,9 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
 
   _pImpl = std::make_unique< Impl >();
 
+
+  float scale = getDeviceScaleForWindow(pParent);
+
   // create window and GL
   if (_pImpl->createWindow((HWND)pParent, this, platformHandle, bounds))
   {
@@ -337,8 +340,9 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
     // create nanovg
     _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
 
-    // store view pointer and initialize resources
+    // store view pointer, set scale and initialize resources
     _pImpl->_appView = pR;
+    _pImpl->_appView->setDisplayScale(scale);
     _pImpl->_appView->initializeResources(_pImpl->_nvg);
 
     resizePlatformView(bounds.width(), bounds.height());
@@ -455,7 +459,8 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
   {
     // targetFPS_needs to be a little higher than actual preferred rate
     // because of window sync
-    int mSec = static_cast<int>(std::round(1000.0 / ( (float) targetFPS_ * 1.1f )));
+      float fFps = 30;// pGraphics->_pImpl->targetFPS_;
+    int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f )));
     UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
     SetFocus(hWnd);
     DragAcceptFiles(hWnd, true);
@@ -552,11 +557,11 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             NVGpaint img;
             if(pView->getStretchToScreenMode())
             {
-              img = nvgImagePattern(_nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, _backingLayer->_buf->image, 1.0f);
+              img = nvgImagePattern(nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, pBackingLayer->_buf->image, 1.0f);
             }
             else
             {
-              img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
+              img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
             }
             
             nvgSave(nvg);
