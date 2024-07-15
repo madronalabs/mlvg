@@ -406,12 +406,12 @@ void PlatformView::resizePlatformView(int w, int h)
 
 void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
 {
-  // get point in view/backing coordinates
-  long x = GET_X_LPARAM(lParam);
-  long y = GET_Y_LPARAM(lParam);
-  vgEvent->position = Vec2(x, y)*_deviceScale;
+    // get point in view/backing coordinates
+    long x = GET_X_LPARAM(lParam);
+    long y = GET_Y_LPARAM(lParam);
+    vgEvent->screenPos = eventPositionOnScreen(lParam);
+    vgEvent->position = Vec2(x, y) * _deviceScale;
 }
-
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
 {
   // get point in view/backing coordinates
@@ -419,6 +419,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
   long y = GET_Y_LPARAM(lParam);
   POINT p{ x, y };
   ScreenToClient(_windowHandle, &p);
+  vgEvent->screenPos = Vec2(x, y);
   vgEvent->position = Vec2(p.x, p.y) * _deviceScale;
 }
 
@@ -557,7 +558,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             NVGpaint img;
             if(pView->getStretchToScreenMode())
             {
-              img = nvgImagePattern(nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, pBackingLayer->_buf->image, 1.0f);
+              img = nvgImagePattern(nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, pBackingLayer->_buf->image, scale);
             }
             else
             {

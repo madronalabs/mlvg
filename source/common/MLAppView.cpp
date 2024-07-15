@@ -351,7 +351,7 @@ void AppView::render(NativeDrawContext* nvg)
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
 
   // begin the frame on the backing layer
-  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0f);
+  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), _GUICoordinates.displayScale); // TEMP
 
   // if top level view is dirty, clear entire window
   if(_view->isDirty())

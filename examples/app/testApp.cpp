@@ -206,9 +206,11 @@ int main(int argc, char *argv[])
 
   // set initial size. This is not a fixed-ratio app, meaning the window sizes
   // freely and the grid unit size remains constant.
-  // appView.setFixedRatioSize(true);
   appView.setSizeInGridUnits(kDefaultGridUnits);
   appView.setGridSizeDefault(kDefaultGridUnitSize* devScale);
+
+  // or try this:
+   appView.setFixedRatioSize(true);
 
   // get default rect 
   Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * devScale;
