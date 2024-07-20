@@ -7,7 +7,7 @@
 
 #pragma once
 
-//#include "madronalib.h"
+#include "madronalib.h"
 
 #include <vector>
 #include "MLPath.h"

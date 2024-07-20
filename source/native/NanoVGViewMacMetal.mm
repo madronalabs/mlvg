@@ -410,8 +410,8 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 {
   if(_appView && _nvg && _backingLayer)
   {
-    int w = _backingLayer->width;
-    int h = _backingLayer->height;
+    size_t w = _backingLayer->width;
+    size_t h = _backingLayer->height;
 
     // give the view a chance to animate
     _appView->animate(_nvg);

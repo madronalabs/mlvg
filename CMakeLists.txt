@@ -10,14 +10,22 @@
  # for windows validator debug:
  # debugging / command: C:\Users\Randy\dev\mlvg\build\bin\Debug\validator.exe
  # debugging / command arguments: C:\Users\Randy\dev\mlvg\build\VST3\Debug\aaltoverb.vst3\Contents\x86_64-win\aaltoverb.vst3
- 
- cmake_minimum_required (VERSION 3.5)
 
-  
- IF(APPLE)
-  SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
-  SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
- ENDIF(APPLE)
+
+  #--------------------------------------------------------------------
+  # set min version and deployment target -- before project
+  #--------------------------------------------------------------------
+    
+ cmake_minimum_required (VERSION 3.5)
+    
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+ 
+  IF(APPLE)
+   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+   SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
+  ENDIF(APPLE)
+
 
 #--------------------------------------------------------------------
 # project and version
@@ -370,15 +378,13 @@ install(FILES
 #--------------------------------------------------------------------
 
 if(BUILD_TESTS)
-
     set(target tests)
     file(GLOB TEST_SOURCES "tests/*.*")
 
     add_executable(${target} ${TEST_SOURCES})
     set_target_properties(${target} PROPERTIES EXCLUDE_FROM_ALL TRUE)
-    target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
+    add_dependencies(tests mlvg)
 
-    
     # add madronalib
     target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR})
     target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
@@ -413,8 +419,6 @@ if(BUILD_TESTS)
         target_link_libraries(${target} PRIVATE "Imm32.lib")
         target_link_libraries(${target} PRIVATE debug "msvcrtd.lib" optimized "msvcrt.lib")
     endif()
-
-
 endif()
 
 #--------------------------------------------------------------------
@@ -444,7 +448,10 @@ if(BUILD_SDL2_APP)
     target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
     if(APPLE)
         # to use the SDL2 framework in /Library/Frameworks, do this:
+        set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "/Library/Frameworks")
         find_package(SDL2 REQUIRED COMPONENTS SDL2)
+                
+        
     elseif(WIN32)
         # it seems like there's no standard place to put the SDL dev tools on Windows.
         # we put them in an SDL dir alongside the main project directory.

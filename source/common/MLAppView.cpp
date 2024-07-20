@@ -58,7 +58,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
   {
     // not a fixed ratio - fit a whole number of grid units into the current window size.
     // TODO user-adjustable grid size?
-    systemGridSize = _defaultGridSize;
+    systemGridSize = (int)_defaultGridSize;
     
     gridUnitsX = systemWidth/systemGridSize;
     gridUnitsY = systemHeight/systemGridSize;
@@ -337,7 +337,7 @@ void AppView::animate(NativeDrawContext* nvg)
     // Allow Widgets to draw any needed animations outside of main nvgBeginFrame().
     // Do animations and handle any resulting messages immediately.
     DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates };
-    MessageList ml = _view->animate(_getElapsedTime(), dc);
+    MessageList ml = _view->animate((int)_getElapsedTime(), dc);
     enqueueMessageList(ml);
     handleMessagesInQueue();
 }
