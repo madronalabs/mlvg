@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 
+#include "MLPlatform.h"
 #include "MLFiles.h"
 #include "external/miniz/miniz.h"
 

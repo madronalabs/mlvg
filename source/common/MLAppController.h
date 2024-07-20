@@ -43,7 +43,7 @@ protected:
   // parameters of our plugin or application.
   ParameterTree params;
 
-  int _instanceNum;
+  size_t _instanceNum;
   Path _instanceName;
   Path _viewName;
   Path _processorName;

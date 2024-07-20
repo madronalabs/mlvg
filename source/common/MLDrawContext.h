@@ -166,7 +166,7 @@ namespace ml {
             nvg_(nvg)
         {
             int flags = 0;
-            handle = nvgCreateImageMem(nvg_, flags, (unsigned char*)dataStart, dataBytes);
+            handle = nvgCreateImageMem(nvg_, flags, (unsigned char*)dataStart, (int)dataBytes);
             if (handle)
             {
                 nvgImageSize(nvg_, handle, &width, &height);

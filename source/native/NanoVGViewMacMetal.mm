@@ -400,6 +400,8 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if(_appView)
   {
     float scale = _appView->getCoords().displayScale;
+    
+    // convert pixel coords to system coords, call resize
     CGSize scaledSize = CGSizeMake(newSize.width/scale, newSize.height/scale);
     [self resize: scaledSize];
   }
@@ -410,8 +412,8 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 {
   if(_appView && _nvg && _backingLayer)
   {
-    int w = _backingLayer->width;
-    int h = _backingLayer->height;
+    size_t w = _backingLayer->width;
+    size_t h = _backingLayer->height;
 
     // give the view a chance to animate
     _appView->animate(_nvg);

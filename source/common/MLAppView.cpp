@@ -34,6 +34,9 @@ AppView::~AppView()
 // newSize is in system coordinates.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
 {
+  
+  std::cout << "AppView::viewResized: " << newSize << "\n";
+  
   // get dims in system coordinates
   float displayScale = _GUICoordinates.displayScale;
   int systemWidth = newSize.x();
@@ -58,7 +61,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
   {
     // not a fixed ratio - fit a whole number of grid units into the current window size.
     // TODO user-adjustable grid size?
-    systemGridSize = _defaultGridSize;
+    systemGridSize = (int)_defaultGridSize;
     
     gridUnitsX = systemWidth/systemGridSize;
     gridUnitsY = systemHeight/systemGridSize;
@@ -337,7 +340,7 @@ void AppView::animate(NativeDrawContext* nvg)
     // Allow Widgets to draw any needed animations outside of main nvgBeginFrame().
     // Do animations and handle any resulting messages immediately.
     DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates };
-    MessageList ml = _view->animate(_getElapsedTime(), dc);
+    MessageList ml = _view->animate((int)_getElapsedTime(), dc);
     enqueueMessageList(ml);
     handleMessagesInQueue();
 }
@@ -351,7 +354,7 @@ void AppView::render(NativeDrawContext* nvg)
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
 
   // begin the frame on the backing layer
-  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0f);
+  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0); // TEMP
 
   // if top level view is dirty, clear entire window
   if(_view->isDirty())
@@ -369,8 +372,24 @@ void AppView::render(NativeDrawContext* nvg)
   // translate the draw context to top level view bounds and draw.
   nvgIntersectScissor(nvg, topViewBounds);
   auto topLeft = getTopLeft(topViewBounds);
+  
+  // translate to the view's location and draw the view in its local coordinates
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
+  
+  
+  // TEMP
+  nvgFillColor(nvg, colors::red);
+  nvgBeginPath(nvg);
+  nvgCircle(nvg, 50, 50, 20);
+  nvgFill(nvg);
+   
+   nvgStrokeColor(nvg, colors::red);
+   nvgStrokeWidth(nvg, 10);
+   nvgBeginPath(nvg);
+   nvgX(nvg, translate(topViewBounds, -topViewBounds.topLeft()));
+   nvgStroke(nvg);
+  
   
   // end the frame.
   nvgEndFrame(nvg);
@@ -412,6 +431,10 @@ void AppView::doResizeIfNeeded()
     
     _GUICoordinates.viewSizeInPixels = newPixelSize;
     _GUICoordinates.displayScale = newDisplayScale;
+    
+    
+    
+    std::cout << "viewSizeInPixels: " << newPixelSize << ", displayScale: " << newDisplayScale << "\n";
     
     onResize(newDisplaySize);
     

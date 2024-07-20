@@ -194,21 +194,20 @@ int main(int argc, char *argv[])
   // make view
   TestAppView appView(getAppName(), instanceNum);
 
-
   // TODO get persistent window rect if available
-
 
   // if there is no persistent rect, use default
   // we have a few utilities in PlatformView that apps can use to make their own default strategies.
   Vec2 c = PlatformView::getPrimaryMonitorCenter();
   float devScale = PlatformView::getDeviceScaleAtPoint(c);
 
-
   // set initial size. This is not a fixed-ratio app, meaning the window sizes
   // freely and the grid unit size remains constant.
-  // appView.setFixedRatioSize(true);
   appView.setSizeInGridUnits(kDefaultGridUnits);
   appView.setGridSizeDefault(kDefaultGridUnitSize* devScale);
+
+  // or try this:
+  appView.setFixedRatioSize(true);
 
   // get default rect 
   Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * devScale;

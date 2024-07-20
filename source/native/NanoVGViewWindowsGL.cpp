@@ -42,8 +42,8 @@ struct PlatformView::Impl
 {
   static LRESULT CALLBACK appWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-  int _width;
-  int _height;
+  int _width{ 0 };
+  int _height{ 0 };
 
   NVGcontext* _nvg{ nullptr };
 
@@ -58,7 +58,7 @@ struct PlatformView::Impl
   CRITICAL_SECTION _drawLock{ nullptr };
 
   float _deviceScale{ 0 };
-  int targetFPS_{ 60 };
+  int targetFPS_{ 30 };
 
 protected:
   Vec2 _totalDrag;
@@ -103,7 +103,7 @@ float PlatformView::getDeviceScaleAtPoint(Vec2 p)
     return (float)sf / 100.f;
 }
 
-float PlatformView::getDeviceScaleForWindow(void* parent)
+float PlatformView::getDeviceScaleForWindow(void* parent, int /*platformFlags*/)
 {
     HWND parentWindow = static_cast<HWND>(parent);
     HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
@@ -329,6 +329,9 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
 
   _pImpl = std::make_unique< Impl >();
 
+
+  float scale = getDeviceScaleForWindow(pParent);
+
   // create window and GL
   if (_pImpl->createWindow((HWND)pParent, this, platformHandle, bounds))
   {
@@ -337,8 +340,9 @@ PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* pl
     // create nanovg
     _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
 
-    // store view pointer and initialize resources
+    // store view pointer, set scale and initialize resources
     _pImpl->_appView = pR;
+    _pImpl->_appView->setDisplayScale(scale);
     _pImpl->_appView->initializeResources(_pImpl->_nvg);
 
     resizePlatformView(bounds.width(), bounds.height());
@@ -402,12 +406,12 @@ void PlatformView::resizePlatformView(int w, int h)
 
 void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
 {
-  // get point in view/backing coordinates
-  long x = GET_X_LPARAM(lParam);
-  long y = GET_Y_LPARAM(lParam);
-  vgEvent->position = Vec2(x, y)*_deviceScale;
+    // get point in view/backing coordinates
+    long x = GET_X_LPARAM(lParam);
+    long y = GET_Y_LPARAM(lParam);
+    vgEvent->screenPos = eventPositionOnScreen(lParam);
+    vgEvent->position = Vec2(x, y) * _deviceScale;
 }
-
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
 {
   // get point in view/backing coordinates
@@ -415,6 +419,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
   long y = GET_Y_LPARAM(lParam);
   POINT p{ x, y };
   ScreenToClient(_windowHandle, &p);
+  vgEvent->screenPos = Vec2(x, y);
   vgEvent->position = Vec2(p.x, p.y) * _deviceScale;
 }
 
@@ -455,7 +460,8 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
   {
     // targetFPS_needs to be a little higher than actual preferred rate
     // because of window sync
-    int mSec = static_cast<int>(std::round(1000.0 / ( (float) targetFPS_ * 1.1f )));
+      float fFps = 30;// pGraphics->_pImpl->targetFPS_;
+    int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f )));
     UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
     SetFocus(hWnd);
     DragAcceptFiles(hWnd, true);
@@ -552,11 +558,11 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             NVGpaint img;
             if(pView->getStretchToScreenMode())
             {
-              img = nvgImagePattern(_nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, _backingLayer->_buf->image, 1.0f);
+              img = nvgImagePattern(nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, pBackingLayer->_buf->image, scale);
             }
             else
             {
-              img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
+              img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
             }
             
             nvgSave(nvg);
