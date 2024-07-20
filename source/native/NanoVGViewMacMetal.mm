@@ -400,6 +400,8 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if(_appView)
   {
     float scale = _appView->getCoords().displayScale;
+    
+    // convert pixel coords to system coords, call resize
     CGSize scaledSize = CGSizeMake(newSize.width/scale, newSize.height/scale);
     [self resize: scaledSize];
   }

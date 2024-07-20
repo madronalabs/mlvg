@@ -34,6 +34,9 @@ AppView::~AppView()
 // newSize is in system coordinates.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
 {
+  
+  std::cout << "AppView::viewResized: " << newSize << "\n";
+  
   // get dims in system coordinates
   float displayScale = _GUICoordinates.displayScale;
   int systemWidth = newSize.x();
@@ -351,7 +354,7 @@ void AppView::render(NativeDrawContext* nvg)
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
 
   // begin the frame on the backing layer
-  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), _GUICoordinates.displayScale); // TEMP
+  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0); // TEMP
 
   // if top level view is dirty, clear entire window
   if(_view->isDirty())
@@ -369,8 +372,24 @@ void AppView::render(NativeDrawContext* nvg)
   // translate the draw context to top level view bounds and draw.
   nvgIntersectScissor(nvg, topViewBounds);
   auto topLeft = getTopLeft(topViewBounds);
+  
+  // translate to the view's location and draw the view in its local coordinates
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
+  
+  
+  // TEMP
+  nvgFillColor(nvg, colors::red);
+  nvgBeginPath(nvg);
+  nvgCircle(nvg, 50, 50, 20);
+  nvgFill(nvg);
+   
+   nvgStrokeColor(nvg, colors::red);
+   nvgStrokeWidth(nvg, 10);
+   nvgBeginPath(nvg);
+   nvgX(nvg, translate(topViewBounds, -topViewBounds.topLeft()));
+   nvgStroke(nvg);
+  
   
   // end the frame.
   nvgEndFrame(nvg);
@@ -412,6 +431,10 @@ void AppView::doResizeIfNeeded()
     
     _GUICoordinates.viewSizeInPixels = newPixelSize;
     _GUICoordinates.displayScale = newDisplayScale;
+    
+    
+    
+    std::cout << "viewSizeInPixels: " << newPixelSize << ", displayScale: " << newDisplayScale << "\n";
     
     onResize(newDisplaySize);
     

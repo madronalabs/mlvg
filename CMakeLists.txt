@@ -436,6 +436,8 @@ if(BUILD_SDL2_APP)
     list(APPEND test_app_sources ${LOCAL_SOURCES} )
     list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 
+    list(APPEND test_app_sources "${MLVG_SOURCE_DIR}/native/MLSDLUtils.h" )
+
     if(APPLE)
     elseif(WIN32)
         list(APPEND test_app_sources "${MLVG_SOURCE_DIR}/native/hidpi.manifest" )
