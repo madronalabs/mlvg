@@ -41,12 +41,13 @@ public:
   virtual void render(NativeDrawContext* nvg);
   
   // called by the PlatformView to set our size in system coordinates.
-  void viewResized(NativeDrawContext* nvg, Vec2 newSize);
+  void viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
   
   void setCoords(const GUICoordinates& c) { _GUICoordinates = c; }
   const GUICoordinates& getCoords() { return _GUICoordinates; }
-  void setDisplayScale(float scale);
-  void setDisplaySize(Vec2 newSize);
+
+//  void setDisplayScale(float scale);
+//  void setDisplaySize(Vec2 newSize);
 
   // for a fixed ratio layout, get (width, height) of window in grid units.
   Vec2 getSizeInGridUnits() const { return _sizeInGridUnits; }
@@ -89,7 +90,8 @@ public:
   
   void setMinSizeInGridUnits(Vec2 g) { _minSizeInGridUnits = g; }
   
-  void createPlatformView(void* pParent, int flags, int targetFPS = 60);
+  // create a PlatformView on the parent window. Return 
+  // PlatformView* createPlatformViewForWindow(void* pParent, int flags);
   
   void startTimersAndActor();
   void stopTimersAndActor();
@@ -104,10 +106,11 @@ public:
   
 protected:
   
-  // platform and top-level things.
+  // PlatformView and top-level things.
   // order is important for default destructor!
-  std::unique_ptr< PlatformView > _platformView;
-  std::unique_ptr< View > _view;
+  // std::unique_ptr< PlatformView > _platformView;
+  
+  std::unique_ptr< ml::View > _view;
   DrawingResources _resources;
   PropertyTree _drawingProperties;
   ParameterTree _params;
@@ -129,17 +132,17 @@ protected:
   size_t _minGridSize{ 48 };
   size_t _defaultGridSize{ 96 };
   size_t _maxGridSize{ 240 };
-  
-  float newDisplayScale{0};
-  Vec2 newDisplaySize{0, 0};
-  bool _needsResize{false};
   bool _stretchToScreenMode{false};
 
-  void doResizeIfNeeded();
+//  float newDisplayScale{0};
+//  Vec2 newDisplaySize{0, 0};
+//  bool _needsResize{false};
+  
+
+//  void doResizeIfNeeded();
 
   // windowing
   void* _platformHandle{ nullptr };
-  void* _parent{ nullptr };
   
   // Widgets
   Tree< std::vector< Widget* > > _widgetsByParameter;

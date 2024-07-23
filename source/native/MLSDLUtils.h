@@ -14,8 +14,8 @@ namespace ml {
 
 struct ResizingEventWatcherData
 {
-  SDL_Window* window;
-  AppView* view;
+  SDL_Window* window{nullptr};
+  PlatformView* platformView{nullptr};
 };
 
 inline void SdlAppResize(ResizingEventWatcherData* watcherData)
@@ -25,7 +25,7 @@ inline void SdlAppResize(ResizingEventWatcherData* watcherData)
   SDL_GetWindowSize(watcherData->window, &w, &h);
   if ((w > 0) && (h > 0))
   {
-    watcherData->view->setDisplaySize(Vec2{ float(w), float(h) });
+    watcherData->platformView->resizePlatformView(w, h);
   }
 }
 
@@ -63,7 +63,7 @@ inline uint32_t getPlatformWindowCreateFlags()
 }
 
 
-inline SDL_Window* initSDLWindow(const AppView& appView, ml::Rect b, const char* windowName)
+inline SDL_Window* newSDLWindow(ml::Rect b, Vec2 minDims, Vec2 maxDims, const char* windowName)
 {
   // Enable standard application logging
   SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -78,17 +78,10 @@ inline SDL_Window* initSDLWindow(const AppView& appView, ml::Rect b, const char*
   int commonFlags = SDL_WINDOW_RESIZABLE;
   
   // Create window
-  /*
-   Vec2 defaultDims = appView.getDefaultDims();
-   SDL_Window* newWindow = SDL_CreateWindow(windowName, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-   defaultDims.x(), defaultDims.y(), commonFlags | getPlatformWindowCreateFlags());
-   */
-  
   int x = b.left();
   int y = b.top();
   int w = b.width();
   int h = b.height();
-  
   
   SDL_Window* newWindow = SDL_CreateWindow(windowName, x, y, w, h,
                                            commonFlags | getPlatformWindowCreateFlags());
@@ -100,8 +93,6 @@ inline SDL_Window* initSDLWindow(const AppView& appView, ml::Rect b, const char*
   }
   
   // set min and max sizes for window
-  Vec2 minDims = appView.getMinDims();
-  Vec2 maxDims = appView.getMaxDims();
   SDL_SetWindowMinimumSize(newWindow, minDims.x(), minDims.y());
   SDL_SetWindowMaximumSize(newWindow, maxDims.x(), maxDims.y());
   

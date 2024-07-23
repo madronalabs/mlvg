@@ -186,73 +186,96 @@ int main(int argc, char *argv[])
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
 
-  // make controller and get instance number. The Controller
-  // creates the ActorRegistry, allowing us to register other Actors.
-  TestAppController appController(getAppName(), pdl);
-  auto instanceNum = appController.getInstanceNum();
-
-  // make view
-  TestAppView appView(getAppName(), instanceNum);
 
   // TODO get persistent window rect if available
 
-  // if there is no persistent rect, use default
+  // get monitor and scale for making window. if there is no persistent rect, use defaults
   // we have a few utilities in PlatformView that apps can use to make their own default strategies.
-  Vec2 c = PlatformView::getPrimaryMonitorCenter();
+  Vec2 c = PlatformView::getPrimaryMonitorCenter(); // -> platformViewUtils
   float devScale = PlatformView::getDeviceScaleAtPoint(c);
 
+
+  // get default rect 
+  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * devScale;
+  
+  Vec2 minSize(320, 240);
+  Vec2 maxSize(3200, 2400);
+  Rect boundsRect(0, 0, defaultSize.x(), defaultSize.y());
+  Rect defaultRect = alignCenterToPoint(boundsRect, c);
+
+  // make SDL window
+  SDL_Window *window = ml::newSDLWindow(defaultRect, minSize, maxSize, "mlvg test");
+  if(!window)
+  {
+    std::cout << "newSDLWindow failed!\n";
+    return -1;
+  }
+  ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
+  
+  // make PlatformView: the layer between our window and app view that supports events and drawing.
+  auto platformView = std::make_unique<PlatformView>(windowInfo.windowPtr, nullptr, windowInfo.flags);
+
+  // make controller and get instance number. The Controller
+  // creates the ActorRegistry, allowing us to register other Actors.
+  TestAppController appController(getAppName(), pdl);
+  auto appInstanceNum = appController.getInstanceNum();
+  
+  // make app view for this instance of our app
+  TestAppView appView(getAppName(), appInstanceNum);
+  
   // set initial size. This is not a fixed-ratio app, meaning the window sizes
   // freely and the grid unit size remains constant.
   appView.setSizeInGridUnits(kDefaultGridUnits);
   appView.setGridSizeDefault(kDefaultGridUnitSize* devScale);
-
   // or try this:
-  appView.setFixedRatioSize(true);
+  // appView.setFixedRatioSize(true);
 
-  // get default rect 
-  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * devScale;
-  Rect boundsRect(0, 0, defaultSize.x(), defaultSize.y());
-  Rect defaultRect = alignCenterToPoint(boundsRect, c);
+  // make UI and startup
+  appView.makeWidgets(pdl);
+  appView.startTimersAndActor();
+  
+  // connect PlatformView to the AppView
+  platformView->setAppView(&appView);
 
-  SDL_Window *window = ml::initSDLWindow(appView, defaultRect, "mlvg test");
-  if(window)
+  // connect window to the PlatformView: watch for window resize events during drag
+  ResizingEventWatcherData watcherData{ window, platformView.get() };
+  SDL_AddEventWatch(resizingEventWatcher, &watcherData);
+  SdlAppResize(&watcherData);
+  
+  
+  
+  
+  
+  // make Processor and register Actor
+  TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
+  TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(appInstanceNum));
+  registerActor(Path(processorName), &appProcessor);
+  
+  // broadcast all params to update display
+  appController.broadcastParams();
+  
+  // start audio processing
+  appProcessor.start();
+  appProcessor.startAudio();
+  
+  // just vibe
+  while(!doneFlag)
   {
-    // make Processor and register Actor
-    TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
-    TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(instanceNum));
-    registerActor(Path(processorName), &appProcessor);
-      
-    // attach app view to window, make UI and resize
-    ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
-    appView.makeWidgets(pdl);
-    appView.createPlatformView(windowInfo.windowPtr, windowInfo.flags);
-    appView.startTimersAndActor();
-
-    // watch for window resize events during drag
-    ResizingEventWatcherData watcherData{ window, &appView };
-    SDL_AddEventWatch(resizingEventWatcher, &watcherData);
-    SdlAppResize(&watcherData);
-    
-    appController.broadcastParams();
-    
-    // start audio processing
-    appProcessor.start();
-    appProcessor.startAudio();
-    
-    // just vibe
-    while(!doneFlag)
-    {
-      SDLAppLoop(window, &doneFlag);
-    }
-    
-    // stop doing things and quit
-    appView.stopTimersAndActor();
-    appProcessor.stopAudio();
-    appProcessor.stop();
-    SDL_Quit();
+    SDLAppLoop(window, &doneFlag);
   }
-    
+  
+  // destroy things and quit:
+  // AppView
+  appView.stopTimersAndActor();
+  appProcessor.stopAudio();
+  appProcessor.stop();
+  
+  // PlatformView
+  
+  
+  // SDL window
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+
   return 0;
 }
-
-

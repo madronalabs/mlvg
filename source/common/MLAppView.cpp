@@ -32,13 +32,12 @@ AppView::~AppView()
 
 // called when native view size changes in the PlatformView callback.
 // newSize is in system coordinates.
-void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
+void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
-  
   std::cout << "AppView::viewResized: " << newSize << "\n";
   
   // get dims in system coordinates
-  float displayScale = _GUICoordinates.displayScale;
+ // float displayScale = _GUICoordinates.displayScale;
   int systemWidth = newSize.x();
   int systemHeight = newSize.y();
   
@@ -68,8 +67,8 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize)
     _sizeInGridUnits = Vec2(gridUnitsX, gridUnitsY);
   }
   
-  float contentWidth = systemGridSize*gridUnitsX;
-  float contentHeight = systemGridSize*gridUnitsY;
+  float contentWidth = systemWidth;
+  float contentHeight = systemHeight;
 
   float borderX = (systemWidth - contentWidth)/2;
   float borderY = (systemHeight - contentHeight)/2;
@@ -213,7 +212,7 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
 // and handling any returned Messages.
 void AppView::_handleGUIEvents()
 {
-  doResizeIfNeeded();
+  // doResizeIfNeeded();
 
   while (_inputQueue.elementsAvailable())
   {
@@ -349,10 +348,33 @@ void AppView::render(NativeDrawContext* nvg)
 {
   // TODO move resource types into Renderer, DrawContext points to Renderer
   DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
+  
+  /*
+   // number of pixels per single grid unit.
+   int gridSizeInPixels{};
+   
+   // width and height of entire view in pixels.
+   Vec2 viewSizeInPixels{};
+   
+   // number of native pixels per system coordinate unit. often 1. or 2.
+   float displayScale{1.f};
+   
+   // origin of grid system, relative to view top left,
+   // in pixel coordinate system.
+   Vec2 origin{};
+   */
 
   auto layerSize = _GUICoordinates.viewSizeInPixels;
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
 
+  
+  
+  // TEMP
+  //std::cout << " AppView::render: orig " << _GUICoordinates.origin << " size " << _GUICoordinates.viewSizeInPixels << " bounds " << topViewBounds << " ]\n";
+  
+
+  
+  
   // begin the frame on the backing layer
   nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0); // TEMP
 
@@ -377,7 +399,6 @@ void AppView::render(NativeDrawContext* nvg)
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
   
-  
   // TEMP
   nvgFillColor(nvg, colors::red);
   nvgBeginPath(nvg);
@@ -396,21 +417,17 @@ void AppView::render(NativeDrawContext* nvg)
   _view->setDirty(false);
 }
 
-void AppView::createPlatformView(void* pParent, int flags, int targetFPS)
+/*
+void AppView::createPlatformViewForWindow(void* pParent, int flags)
 {
-  // create the native platform view
-  if(pParent != _parent)
-  {
-    _parent = pParent;
-    Rect wSize = PlatformView::getWindowRect(pParent, flags);
-    _platformView = std::make_unique< PlatformView >(pParent, wSize, this, _platformHandle, flags, targetFPS);
-  }
+  _platformView = std::make_unique< PlatformView >(pParent, this, _platformHandle, flags);
 }
+*/
 
 void AppView::startTimersAndActor()
 {
   _previousFrameTime = system_clock::now();
-  _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/30));
+  _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
   _debugTimer.start([=]() { _debug(); }, milliseconds(1000));
   Actor::start();
 }
@@ -422,6 +439,7 @@ void AppView::stopTimersAndActor()
   _debugTimer.stop();
 }
 
+/*
 // set new editor size in system coordinates.
 void AppView::doResizeIfNeeded()
 {
@@ -431,7 +449,6 @@ void AppView::doResizeIfNeeded()
     
     _GUICoordinates.viewSizeInPixels = newPixelSize;
     _GUICoordinates.displayScale = newDisplayScale;
-    
     
     
     std::cout << "viewSizeInPixels: " << newPixelSize << ", displayScale: " << newDisplayScale << "\n";
@@ -463,6 +480,7 @@ void AppView::setDisplaySize(Vec2 newSize)
     _needsResize = true;
   }
 }
+*/
 
 bool AppView::willHandleEvent(GUIEvent g)
 {

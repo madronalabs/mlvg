@@ -18,41 +18,52 @@
 
 namespace ml
 {
-    // forward declaration of a class that has a render() method.
-    class AppView;
+// forward declaration of a class that has a render() method.
+class AppView;
 
-    // declare PlatformView, which draws our application into an AppView.
-    // PlatformView is implemented in the platform-specific files in mlvg/source/native.
-    class PlatformView
-    {
- 
-    public:
-        enum platformFlags
-        {
-            kParentIsNSWindow = 1
-        };
+// declare PlatformView, which draws our application into an AppView.
+// PlatformView is implemented in the platform-specific files in mlvg/source/native.
+class PlatformView
+{
+  
+public:
+  enum platformFlags
+  {
+    kParentIsNSWindow = 1
+  };
+  
+  // window / resolution helpers
+  //
+  // get default point to put the center of a new window
+  static Vec2 getPrimaryMonitorCenter();
+  //
+  // get the scale at the device covering the given point
+  static float getDeviceScaleAtPoint(Vec2 p);
+  //
+  // get the scale the OS considers the window's device to be at, compared to "usual" DPI
+  static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
+  //
+  static Rect getWindowRect(void* parent, int platformFlags);
+  
+  // make a platform view for the given parent window.
+  // parent: pointer to the parent window
+  // platformHandle: platform-specific data
+  // platformFlags: platform-specific flags
+  PlatformView(void* parent, void* platformHandle, int platformFlags);
+  
+  ~PlatformView();
+  
+  // set a non-owning pointer to the AppView. We will call the AppView to animate and render,
+  // and notify it when window size and display scale change.
+  void setAppView(AppView* pView);
+  
+  void setPlatformViewDisplayScale(float scale);
+  void resizePlatformView(int w, int h);
 
-        // window / resolution helpers that are here for now 
-        // 
-        // get default point to put the center of a new window
-        static Vec2 getPrimaryMonitorCenter();
-        // 
-        // get the scale at the device covering the given point
-        static float getDeviceScaleAtPoint(Vec2 p);
-        //      
-        // get the scale the OS considers the window's device to be at, compared to "usual" DPI
-        static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
-
-        static Rect getWindowRect(void* parent, int platformFlags);
-
-        PlatformView(void* parent, ml::Rect boundsRect, AppView* pR, void* platformHandle, int platformFlags, int targetFPS);
-        ~PlatformView();
-
-        void resizePlatformView(int w, int h);
-
-    protected:
-        struct Impl;
-        std::unique_ptr< Impl > _pImpl;
-    };
+protected:
+  struct Impl;
+  std::unique_ptr< Impl > _pImpl;
+};
 
 } // namespace ml
+
