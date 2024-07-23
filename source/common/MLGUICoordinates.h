@@ -19,7 +19,7 @@ namespace ml
 struct GUICoordinates
 {
   // number of pixels per single grid unit.
-  int gridSizeInPixels{};
+  float gridSizeInPixels{0};
 
   // width and height of entire view in pixels.
   Vec2 viewSizeInPixels{};
@@ -29,7 +29,7 @@ struct GUICoordinates
 
   // origin of grid system, relative to view top left,
   // in pixel coordinate system.
-  Vec2 origin{};
+  Vec2 origin{0, 0};
   
   template< class T > // TODO for what, why not all the below
   T systemToPixel(T vc) const

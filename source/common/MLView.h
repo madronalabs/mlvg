@@ -12,7 +12,8 @@
 
 namespace ml
 {
-
+  // View: a kind of Widget that holds other Widgets.
+  //
 	class View : public Widget
 	{
 	public:

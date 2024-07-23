@@ -22,13 +22,19 @@ void TestAppView::layoutView(DrawContext dc)
   ml::Rect largeDialRect{0, 0, 1.5, 1.5};
   ml::Rect labelRect(0, 0, 2, 0.5);
   
-  Vec2 gridDims = getSizeInGridUnits();
-  int gx = gridDims.x();
-  int gy = gridDims.y();
+  Vec2 pixelSize = dc.coords.viewSizeInPixels;
+  float gridSize = dc.coords.gridSizeInPixels;
+  
+  int gx = pixelSize.x() / gridSize;
+  int gy = pixelSize.y() / gridSize;
+  
+  //Vec2 gridDims = getSizeInGridUnits();
+  //int gx = gridDims.x();
+  //int gy = gridDims.y();
   
   // set grid size of entire view, for background and other drawing
-  _view->setProperty("grid_units_x", gx);
-  _view->setProperty("grid_units_y", gy);
+  //_view->setProperty("grid_units_x", gx);
+  //_view->setProperty("grid_units_y", gy);
   
   // layout dials
   _view->_widgets["freq1"]->setBounds(alignCenterToPoint(largeDialRect, {1, 1}));

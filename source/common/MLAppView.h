@@ -24,7 +24,7 @@ public:
   //
   // initialize resources such as images, needed to draw the View.
   virtual void initializeResources(NativeDrawContext* nvg) = 0;
-  
+  //
   // set the bounds of all the Widgets.
   virtual void layoutView(DrawContext dc) = 0;
   //
@@ -50,15 +50,17 @@ public:
 //  void setDisplaySize(Vec2 newSize);
 
   // for a fixed ratio layout, get (width, height) of window in grid units.
-  Vec2 getSizeInGridUnits() const { return _sizeInGridUnits; }
-  void setSizeInGridUnits(Vec2 size) { _sizeInGridUnits = size; }
-  
-  bool getFixedRatioSize() const { return _fixedRatioSize; }
-  void setFixedRatioSize(bool b) { _fixedRatioSize = b; }
-  
-  Rect getBorderRect() const { return _borderRect; }
+  Vec2 getFixedAspectRatio() const { return _sizeInGridUnits; }
+  void setFixedAspectRatio(Vec2 size)
+  {
+    _sizeInGridUnits = size;
+    aspectRatioIsFixed_ = true;
+  }
+
+  // Rect getBorderRect() const { return _borderRect; }
   bool getStretchToScreenMode() const { return _stretchToScreenMode; }
   
+  /*
   Vec2 getWindowToDrawingRatio() const
   {
     if(!_stretchToScreenMode) return Vec2{1, 1};
@@ -68,9 +70,10 @@ public:
     Vec2 windowToDrawingRatio = drawingSize / windowSize;
     return windowToDrawingRatio;
   }
+  */
   
   Vec2 getMinDims() const {
-    if (_fixedRatioSize)
+    if (aspectRatioIsFixed_)
     {
       // for a fixed ratio size window, _sizeInGridUnits is fixed.
       return _sizeInGridUnits * _minGridSize;
@@ -126,9 +129,9 @@ protected:
   
   // the rect, always a fixed multiple of grid units, into which everything is drawn. This will be
   // a bit smaller than the entire drawable surface.
-  ml::Rect _borderRect;
+  // Vec2 _borderRect;
   
-  bool _fixedRatioSize{ false };
+  bool aspectRatioIsFixed_{ false };
   size_t _minGridSize{ 48 };
   size_t _defaultGridSize{ 96 };
   size_t _maxGridSize{ 240 };

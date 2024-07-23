@@ -107,13 +107,9 @@ Vec2 NSPointToVec2(NSPoint p)
   NSPoint pt = [self convertPoint:eventLocation fromView:nil];
   NSPoint fromBottom = NSMakePoint(pt.x, self.frame.size.height - pt.y);
   NSPoint fromBottomBacking = [self convertPointToBacking:fromBottom ];
-  
-  // TEMP NO
-  Vec2 wdr = appView_->getWindowToDrawingRatio();
-  Vec2 borderTopLeft = getTopLeft(appView_->getBorderRect());
-  float displayScale = appView_->getCoords().displayScale;
+
    
-  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y) * wdr + (borderTopLeft*displayScale);
+  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y);
 }
 
 - (void)convertEventPositionsWithOffset:(NSEvent *)appKitEvent withOffset:(NSPoint)offset toGUIEvent:(GUIEvent*)vgEvent;
@@ -124,12 +120,9 @@ Vec2 NSPointToVec2(NSPoint p)
   NSPoint pt = [self convertPoint:eventLocationWithOffset fromView:nil];
   NSPoint fromBottom = NSMakePoint(pt.x, self.frame.size.height - pt.y);
   NSPoint fromBottomBacking = [self convertPointToBacking:fromBottom ];
-  
-  Vec2 wdr = appView_->getWindowToDrawingRatio();
-  Vec2 borderTopLeft = getTopLeft(appView_->getBorderRect());
-  float displayScale = appView_->getCoords().displayScale;
 
-  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y) * wdr + (borderTopLeft*displayScale);
+
+  vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y);
 }
 
 - (void)convertEventFlags:(NSEvent *)appKitEvent toGUIEvent:(GUIEvent*)vgEvent
@@ -479,21 +472,14 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     drawToImage(_backingLayer.get());
     appView_->render(_nvg);
     
-    // TEMP NO
-    // get border rect that the AppView is drawn into
-    ml::Rect b = appView_->getBorderRect();
-    float scale = appView_->getCoords().displayScale;
-    b *= scale;
-    
-    // aspect ratio
-    float ax = w/b.width();
-    float ay = h/b.height();
+    //_nativeSize
+
 
     // blit backing layer to main layer
     drawToImage(nullptr);
     nvgBeginFrame(_nvg, w, h, 1.0f);
     
-    // get image pattern, either stretching border rect to whole screen or blitting to the same size, leaving a border
+    // get image pattern for 1:1 blit
     NVGpaint img;
     img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
     

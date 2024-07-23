@@ -31,65 +31,53 @@ AppView::~AppView()
 }
 
 // called when native view size changes in the PlatformView callback.
-// newSize is in system coordinates.
+// newSize is in pixel coordinates.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
-  std::cout << "AppView::viewResized: " << newSize << "\n";
+  std::cout << "AppView::viewResized: " << newSize << ", scale: " << displayScale << "\n";
   
-  // get dims in system coordinates
- // float displayScale = _GUICoordinates.displayScale;
-  int systemWidth = newSize.x();
-  int systemHeight = newSize.y();
+
   
-  int systemGridSize;
-  Vec2 sizeInGridUnits(getSizeInGridUnits());
-  float gridUnitsX(sizeInGridUnits.x());
-  float gridUnitsY(sizeInGridUnits.y());
+  float gridSizeInPixels{0};
   
-  if(_fixedRatioSize)
+  if(aspectRatioIsFixed_)
   {
     // fixed ratio:
-    // scale both the app and the grid,
-    // leave a border around the content area so that it is always
-    // an even multiple of the grid size in system coordinates.
-    int ux = systemWidth/gridUnitsX;
-    int uy = systemHeight/gridUnitsY;
-    systemGridSize = std::min(ux, uy);
+    // the app aspect ratio is fixed. grid size may be fractional.
+    // Normally we will only use this mode if the size of the window is also constrained.
+
+    float ux = newSize.x()/_sizeInGridUnits.x();
+    float uy = newSize.y()/_sizeInGridUnits.y();
+    gridSizeInPixels = std::min(ux, uy);
   }
   else
   {
     // not a fixed ratio - fit a whole number of grid units into the current window size.
     // TODO user-adjustable grid size?
-    systemGridSize = (int)_defaultGridSize;
+    gridSizeInPixels = _defaultGridSize;
     
-    gridUnitsX = systemWidth/systemGridSize;
-    gridUnitsY = systemHeight/systemGridSize;
-    _sizeInGridUnits = Vec2(gridUnitsX, gridUnitsY);
-  }
-  
-  float contentWidth = systemWidth;
-  float contentHeight = systemHeight;
+    _sizeInGridUnits.x() = newSize.x()/gridSizeInPixels;
+    _sizeInGridUnits.y() = newSize.y()/gridSizeInPixels;
 
-  float borderX = (systemWidth - contentWidth)/2;
-  float borderY = (systemHeight - contentHeight)/2;
-  _borderRect = ml::Rect{borderX, borderY, contentWidth, contentHeight};
+  }
+
+  // TODO
+  // float borderX = (systemWidth - contentWidth)/2;
+  // float borderY = (systemHeight - contentHeight)/2;
   
-  _view->setProperty("grid_units_x", gridUnitsX);
-  _view->setProperty("grid_units_y", gridUnitsY);
+  // NEEDED?
+  //_view->setProperty("grid_units_x", _sizeInGridUnits.x());
+  //_view->setProperty("grid_units_y", _sizeInGridUnits.y());
   
-  // get origin of grid system, relative to view top left,
-  // in pixel coordinate system.
-  Vec2 origin = getTopLeft(_borderRect)*displayScale;
+
+  Vec2 origin (0, 0);
   
-  // set new coordinate transform values for GUI renderer
-  _GUICoordinates.gridSizeInPixels = systemGridSize*displayScale;
-  _GUICoordinates.origin = getTopLeft(_borderRect)*displayScale;
-  
-  GUICoordinates newCoords{int(systemGridSize*displayScale), newSize*displayScale, displayScale, origin};
+  GUICoordinates newCoords{gridSizeInPixels, newSize, displayScale, origin};
   setCoords(newCoords);
   
   // set bounds for top-level View in grid coordinates
-  _view->setBounds({0, 0, gridUnitsX, gridUnitsY});
+  Vec4 newGridSize = newCoords.pixelToGrid(newCoords.viewSizeInPixels);
+  _view->setBounds({0, 0, newGridSize.x(), newGridSize.y()});
   
   layoutFixedSizeWidgets_();
   
@@ -109,19 +97,19 @@ void AppView::layoutFixedSizeWidgets_()
     if(w.getProperty("fixed_size"))
     {
       // get anchor point for widget in system coords from anchor param on (0, 1)
+      Vec2 systemViewSize = _GUICoordinates.pixelToSystem(_GUICoordinates.viewSizeInPixels);
       Vec2 systemAnchor = matrixToVec2(w.getProperty("anchor").getMatrixValue());
-      systemAnchor = systemAnchor * getDims(_borderRect) + getTopLeft(_borderRect);
+      systemAnchor = systemAnchor * systemViewSize;
       
       // fixed widget bounds are in system coords (for same apparent size)
-      Vec4 systemBounds = w.getRectProperty("fixed_bounds");
-      systemBounds = translate(systemBounds, systemAnchor);
-      ml::Rect gridBounds = _GUICoordinates.systemToGrid(systemBounds);
-      w.setBounds(gridBounds);
+      Vec4 systemWidgetBounds = w.getRectProperty("fixed_bounds");
+      systemWidgetBounds = translate(systemWidgetBounds, systemAnchor);
+      ml::Rect gridWidgetBounds = _GUICoordinates.systemToGrid(systemWidgetBounds);
+      w.setBounds(gridWidgetBounds);
     }
   }
    );
 }
-
 
 void AppView::_deleteWidgets()
 {
