@@ -122,7 +122,6 @@ inline void SDLAppLoop(SDL_Window* window, bool* done)
   }
 }
 
-
 struct ParentWindowInfo
 {
   void* windowPtr{ nullptr };

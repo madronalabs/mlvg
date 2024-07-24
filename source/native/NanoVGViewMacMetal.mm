@@ -417,6 +417,11 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     
     appView_ = nullptr;
     displayScale = scale;
+    
+    CGSize pixelSize = CGSizeMake(width*displayScale, height*displayScale);
+    [self resize:pixelSize];
+    [self setDisplayScale:displayScale];
+    
   }
   return self;
 }
@@ -472,9 +477,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     drawToImage(_backingLayer.get());
     appView_->render(_nvg);
     
-    //_nativeSize
-
-
     // blit backing layer to main layer
     drawToImage(nullptr);
     nvgBeginFrame(_nvg, w, h, 1.0f);
@@ -482,17 +484,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     // get image pattern for 1:1 blit
     NVGpaint img;
     img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
-    
-    /*
-    if(appView_->getStretchToScreenMode())
-    {
-      img = nvgImagePattern(_nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, _backingLayer->_buf->image, 1.0f);
-    }
-    else
-    {
-      img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
-    }
-    */
     
     // blit the image
     nvgSave(_nvg);
@@ -546,12 +537,6 @@ Vec2 PlatformView::getPrimaryMonitorCenter()
   float x = frm.origin.x + frm.size.width/2;
   float y = frm.origin.y + frm.size.height/2;
   return Vec2{x, y};
-}
-
-// get the scale at the device covering the given point
-float PlatformView::getDeviceScaleAtPoint(Vec2 p)
-{
-  return 1.0f;
 }
 
 // get the scale the OS considers the window's device to be at, compared to "usual" DPI
@@ -684,12 +669,12 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   _pImpl->_mtkView = view;
   _pImpl->_renderer = renderer;
   
-  
   // add the new view to our parent view supplied by the host.
   // will call viewDidChangeBackingProperties.
   [parentView addSubview: view];
   
-  
+//  [renderer resize:rendererSize];
+
   // resizeAppView doesn't call viewResize here on creation because appView is not set
 }
 
@@ -709,7 +694,6 @@ void PlatformView::setAppView(AppView* pView)
   [_pImpl->_mtkView setAppView: pView];
   [_pImpl->_renderer setAppView: pView];
   [_pImpl->_renderer resizeAppView];
-
 }
 
 void PlatformView::setPlatformViewDisplayScale(float scale)
@@ -728,8 +712,7 @@ void PlatformView::resizePlatformView(int w, int h)
 
   if (_pImpl->_mtkView)
   {
-    // set view frame size, which will trigger renderer drawableSizeWillChange call
+    // set view frame size, which will trigger the renderer's drawableSizeWillChange call
     [_pImpl->_mtkView setFrameSize:newSize];
   }
-
 }

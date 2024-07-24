@@ -103,6 +103,14 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
     _resources.drawableImages["screen1"] = std::make_unique< DrawableImage >(nvg, 320, 240);
 }
 
+void TestAppView::clearResources()
+{
+  _resources.fonts.clear();
+  _resources.rasterImages.clear();
+  _resources.vectorImages.clear();
+  _resources.drawableImages.clear();
+}
+
 void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
 {
   // add labels to background

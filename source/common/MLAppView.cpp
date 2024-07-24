@@ -34,10 +34,6 @@ AppView::~AppView()
 // newSize is in pixel coordinates.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
-  std::cout << "AppView::viewResized: " << newSize << ", scale: " << displayScale << "\n";
-  
-
-  
   float gridSizeInPixels{0};
   
   if(aspectRatioIsFixed_)
@@ -54,24 +50,13 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
   {
     // not a fixed ratio - fit a whole number of grid units into the current window size.
     // TODO user-adjustable grid size?
-    gridSizeInPixels = _defaultGridSize;
+    gridSizeInPixels = _defaultGridSize * displayScale;
     
     _sizeInGridUnits.x() = newSize.x()/gridSizeInPixels;
     _sizeInGridUnits.y() = newSize.y()/gridSizeInPixels;
-
   }
-
-  // TODO
-  // float borderX = (systemWidth - contentWidth)/2;
-  // float borderY = (systemHeight - contentHeight)/2;
   
-  // NEEDED?
-  //_view->setProperty("grid_units_x", _sizeInGridUnits.x());
-  //_view->setProperty("grid_units_y", _sizeInGridUnits.y());
-  
-
   Vec2 origin (0, 0);
-  
   GUICoordinates newCoords{gridSizeInPixels, newSize, displayScale, origin};
   setCoords(newCoords);
   
@@ -219,6 +204,12 @@ void AppView::_handleGUIEvents()
   }
 }
 
+void AppView::clearWidgets()
+{
+  _rootWidgets.clear();
+}
+
+
 void AppView::_debug()
 {
 
@@ -336,48 +327,12 @@ void AppView::render(NativeDrawContext* nvg)
 {
   // TODO move resource types into Renderer, DrawContext points to Renderer
   DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
-  
-  /*
-   // number of pixels per single grid unit.
-   int gridSizeInPixels{};
-   
-   // width and height of entire view in pixels.
-   Vec2 viewSizeInPixels{};
-   
-   // number of native pixels per system coordinate unit. often 1. or 2.
-   float displayScale{1.f};
-   
-   // origin of grid system, relative to view top left,
-   // in pixel coordinate system.
-   Vec2 origin{};
-   */
 
   auto layerSize = _GUICoordinates.viewSizeInPixels;
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
-
-  
-  
-  // TEMP
-  //std::cout << " AppView::render: orig " << _GUICoordinates.origin << " size " << _GUICoordinates.viewSizeInPixels << " bounds " << topViewBounds << " ]\n";
-  
-
-  
   
   // begin the frame on the backing layer
-  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0); // TEMP
-
-  // if top level view is dirty, clear entire window
-  if(_view->isDirty())
-  {
-    nvgBeginPath(nvg);
-    
-    // we don't have the window dims. so add sufficient margin around the top view bounds to cover the window.
-    nvgRect(nvg, grow(topViewBounds, 1000));
-    
-    auto bgColor = getColorWithDefault(dc, "background", colors::black);
-    nvgFillColor(nvg, bgColor);
-    nvgFill(nvg);
-  }
+  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0);
   
   // translate the draw context to top level view bounds and draw.
   nvgIntersectScissor(nvg, topViewBounds);
@@ -387,30 +342,11 @@ void AppView::render(NativeDrawContext* nvg)
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
   
-  // TEMP
-  nvgFillColor(nvg, colors::red);
-  nvgBeginPath(nvg);
-  nvgCircle(nvg, 50, 50, 20);
-  nvgFill(nvg);
-   
-   nvgStrokeColor(nvg, colors::red);
-   nvgStrokeWidth(nvg, 10);
-   nvgBeginPath(nvg);
-   nvgX(nvg, translate(topViewBounds, -topViewBounds.topLeft()));
-   nvgStroke(nvg);
-  
-  
   // end the frame.
   nvgEndFrame(nvg);
   _view->setDirty(false);
 }
 
-/*
-void AppView::createPlatformViewForWindow(void* pParent, int flags)
-{
-  _platformView = std::make_unique< PlatformView >(pParent, this, _platformHandle, flags);
-}
-*/
 
 void AppView::startTimersAndActor()
 {
@@ -426,49 +362,6 @@ void AppView::stopTimersAndActor()
   _ioTimer.stop();
   _debugTimer.stop();
 }
-
-/*
-// set new editor size in system coordinates.
-void AppView::doResizeIfNeeded()
-{
-  if (_needsResize)
-  {
-    Vec2 newPixelSize = newDisplaySize * newDisplayScale;
-    
-    _GUICoordinates.viewSizeInPixels = newPixelSize;
-    _GUICoordinates.displayScale = newDisplayScale;
-    
-    
-    std::cout << "viewSizeInPixels: " << newPixelSize << ", displayScale: " << newDisplayScale << "\n";
-    
-    onResize(newDisplaySize);
-    
-    // resize our canvas, in system coordinates
-    if (_platformView)
-      _platformView->resizePlatformView(newDisplaySize[0], newDisplaySize[1]);
-    
-    _needsResize = false;
-  }
-}
-
-void AppView::setDisplayScale(float newScale)
-{
-  if(newDisplayScale != newScale)
-  {
-    newDisplayScale = newScale;
-    _needsResize = true;
-  }
-}
-
-void AppView::setDisplaySize(Vec2 newSize)
-{
-  if(newDisplaySize != newSize)
-  {
-    newDisplaySize = newSize;
-    _needsResize = true;
-  }
-}
-*/
 
 bool AppView::willHandleEvent(GUIEvent g)
 {

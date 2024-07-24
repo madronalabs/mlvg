@@ -25,6 +25,9 @@ public:
   // initialize resources such as images, needed to draw the View.
   virtual void initializeResources(NativeDrawContext* nvg) = 0;
   //
+  // clear all resources that could depend on the draw context.
+  virtual void clearResources() = 0;
+  //
   // set the bounds of all the Widgets.
   virtual void layoutView(DrawContext dc) = 0;
   //
@@ -46,9 +49,6 @@ public:
   void setCoords(const GUICoordinates& c) { _GUICoordinates = c; }
   const GUICoordinates& getCoords() { return _GUICoordinates; }
 
-//  void setDisplayScale(float scale);
-//  void setDisplaySize(Vec2 newSize);
-
   // for a fixed ratio layout, get (width, height) of window in grid units.
   Vec2 getFixedAspectRatio() const { return _sizeInGridUnits; }
   void setFixedAspectRatio(Vec2 size)
@@ -59,18 +59,6 @@ public:
 
   // Rect getBorderRect() const { return _borderRect; }
   bool getStretchToScreenMode() const { return _stretchToScreenMode; }
-  
-  /*
-  Vec2 getWindowToDrawingRatio() const
-  {
-    if(!_stretchToScreenMode) return Vec2{1, 1};
-    
-    Vec2 drawingSize = getDims(_borderRect) * _GUICoordinates.displayScale;
-    Vec2 windowSize = _GUICoordinates.viewSizeInPixels;
-    Vec2 windowToDrawingRatio = drawingSize / windowSize;
-    return windowToDrawingRatio;
-  }
-  */
   
   Vec2 getMinDims() const {
     if (aspectRatioIsFixed_)
@@ -93,9 +81,6 @@ public:
   
   void setMinSizeInGridUnits(Vec2 g) { _minSizeInGridUnits = g; }
   
-  // create a PlatformView on the parent window. Return 
-  // PlatformView* createPlatformViewForWindow(void* pParent, int flags);
-  
   void startTimersAndActor();
   void stopTimersAndActor();
   
@@ -107,12 +92,12 @@ public:
   
   Vec2 constrainSize(Vec2 size) const;
   
+  void clearWidgets();
+  
 protected:
   
-  // PlatformView and top-level things.
+  // main view and top-level things.
   // order is important for default destructor!
-  // std::unique_ptr< PlatformView > _platformView;
-  
   std::unique_ptr< ml::View > _view;
   DrawingResources _resources;
   PropertyTree _drawingProperties;
@@ -127,22 +112,11 @@ protected:
   Vec2 _sizeInGridUnits;
   Vec2 _minSizeInGridUnits{ 12, 9 };
   
-  // the rect, always a fixed multiple of grid units, into which everything is drawn. This will be
-  // a bit smaller than the entire drawable surface.
-  // Vec2 _borderRect;
-  
   bool aspectRatioIsFixed_{ false };
   size_t _minGridSize{ 48 };
   size_t _defaultGridSize{ 96 };
   size_t _maxGridSize{ 240 };
   bool _stretchToScreenMode{false};
-
-//  float newDisplayScale{0};
-//  Vec2 newDisplaySize{0, 0};
-//  bool _needsResize{false};
-  
-
-//  void doResizeIfNeeded();
 
   // windowing
   void* _platformHandle{ nullptr };
@@ -152,9 +126,6 @@ protected:
   Tree< std::vector< Widget* > > _widgetsByProperty;
   Tree< std::vector< Widget* > > _widgetsByCollection;
   Tree< std::vector< Widget* > > _widgetsBySignal;
-  
-  // TODO ------------------------
-  
   Tree< std::vector< Widget* > > _modalWidgetsByParameter;
   Path _currentModalParam;
   
@@ -176,8 +147,8 @@ protected:
   void _setupWidgets(const ParameterDescriptionList& pdl);
   void _updateParameterDescription(const ParameterDescriptionList& pdl, Path pname);
   void _handleGUIEvents();
-  
 
+  
   void _debug();
   void _sendParameterMessageToWidgets(const Message& msg);
   GUIEvent _detectDoubleClicks(GUIEvent e);
@@ -189,7 +160,6 @@ private:
   // here is where all the Widgets are stored. Other instances of Collection < Widget >
   // may reference this.
   CollectionRoot< Widget > _rootWidgets;
-  
   
   // temp
   int queueSize{ 0 };

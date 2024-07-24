@@ -37,9 +37,6 @@ public:
   // get default point to put the center of a new window
   static Vec2 getPrimaryMonitorCenter();
   //
-  // get the scale at the device covering the given point
-  static float getDeviceScaleAtPoint(Vec2 p);
-  //
   // get the scale the OS considers the window's device to be at, compared to "usual" DPI
   static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
   //

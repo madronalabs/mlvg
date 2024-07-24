@@ -528,7 +528,15 @@ inline float getNvgLabelKerning(float textSize)
 
 inline NVGcolor matrixToColor(const ml::Matrix& m)
 {
-  return nvgRGBAf(m[0], m[1], m[2], m[3]);
+  // TODO no more matrix here
+  if(m.getWidth() >= 4)
+  {
+    return nvgRGBAf(m[0], m[1], m[2], m[3]);
+  }
+  else
+  {
+    return nvgRGBAf(0, 0, 0, 0);
+  }
 }
 
 inline Matrix colorToMatrix(const NVGcolor& c)

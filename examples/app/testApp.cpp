@@ -186,17 +186,14 @@ int main(int argc, char *argv[])
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
 
-
-  // TODO get persistent window rect if available
+  // TODO get persistent window rect from AppData if available
 
   // get monitor and scale for making window. if there is no persistent rect, use defaults
   // we have a few utilities in PlatformView that apps can use to make their own default strategies.
   Vec2 c = PlatformView::getPrimaryMonitorCenter(); // -> platformViewUtils
-  float devScale = PlatformView::getDeviceScaleAtPoint(c);
 
-
-  // get default rect 
-  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * devScale;
+  // get default rect in system coords
+  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
   
   Vec2 minSize(320, 240);
   Vec2 maxSize(3200, 2400);
@@ -221,29 +218,25 @@ int main(int argc, char *argv[])
   auto appInstanceNum = appController.getInstanceNum();
   
   // make app view for this instance of our app
-  TestAppView appView(getAppName(), appInstanceNum);
+  auto appView = std::make_unique<TestAppView> (getAppName(), appInstanceNum);
   
   // set initial size. This is not a fixed-ratio app, meaning the window sizes
   // freely and the grid unit size remains constant.
-  //appView.setFixedAspectRatio(kDefaultGridUnits);
-  appView.setGridSizeDefault(kDefaultGridUnitSize* devScale);
+  appView->setGridSizeDefault(kDefaultGridUnitSize);
   // or try this:
- 
-  // make UI and startup
-  appView.makeWidgets(pdl);
-  appView.startTimersAndActor();
+  //appView->setFixedAspectRatio(kDefaultGridUnits);
   
-  // connect PlatformView to the AppView
-  platformView->setAppView(&appView);
+  // make UI and startup
+  appView->makeWidgets(pdl);
+  appView->startTimersAndActor();
+  
+  // connect PlatformView to the AppView after making widgets, because layout will be triggered
+  platformView->setAppView(appView.get());
 
   // connect window to the PlatformView: watch for window resize events during drag
   ResizingEventWatcherData watcherData{ window, platformView.get() };
   SDL_AddEventWatch(resizingEventWatcher, &watcherData);
   SdlAppResize(&watcherData);
-  
-  
-  
-  
   
   // make Processor and register Actor
   TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
@@ -264,13 +257,18 @@ int main(int argc, char *argv[])
   }
   
   // destroy things and quit:
-  // AppView
-  appView.stopTimersAndActor();
+  // processor
   appProcessor.stopAudio();
   appProcessor.stop();
   
-  // PlatformView
+  // AppView
+  appView->stopTimersAndActor();
+  appView->clearResources();
+  appView->clearWidgets();
+  appView = nullptr;
   
+  // then platformView
+  platformView = nullptr;
   
   // SDL window
   SDL_DestroyWindow(window);

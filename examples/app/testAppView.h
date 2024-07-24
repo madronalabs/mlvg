@@ -17,6 +17,7 @@ public:
 
   // AppView interface
   void initializeResources(NativeDrawContext* nvg) override;
+  void clearResources() override;
   void layoutView(DrawContext dc) override;
   void onGUIEvent(const GUIEvent& event) override {};
   void onResize(Vec2 newSize) override {};

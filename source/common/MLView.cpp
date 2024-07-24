@@ -471,6 +471,13 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
 {
   NativeDrawContext* nvg = getNativeContext(dc);
   
+  Vec2 pixelSize = dc.coords.viewSizeInPixels;
+  float gridSize = dc.coords.gridSizeInPixels;
+  
+  int gx = pixelSize.x() / gridSize;
+  int gy = pixelSize.y() / gridSize;
+  
+  
   // black background for testing / promo
   if(0)
   {
@@ -533,25 +540,22 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     if(drawGrid)
     {
       auto markColor = getColor(dc, "mark");
-      
-      const int gx = std::ceilf(getFloatProperty("grid_units_x"));
-      const int gy = std::ceilf(getFloatProperty("grid_units_y"));
-      
+
       nvgStrokeColor(nvg, markColor);
       nvgStrokeWidth(nvg, 1.0f*dc.coords.displayScale);
       
       nvgBeginPath(nvg);
-      for(int i=0; i <= gx; ++i)
+      for(int i=0; i <= gx + 1; ++i)
       {
         Vec2 a = dc.coords.gridToPixel(Vec2(i, 0));
-        Vec2 b = dc.coords.gridToPixel(Vec2(i, gy));
+        Vec2 b = dc.coords.gridToPixel(Vec2(i, gy + 1));
         nvgMoveTo(nvg, a.x(), a.y());
         nvgLineTo(nvg, b.x(), b.y());
       }
-      for(int j=0; j <= gy; ++j)
+      for(int j=0; j <= gy + 1; ++j)
       {
         Vec2 a = dc.coords.gridToPixel(Vec2(0, j));
-        Vec2 b = dc.coords.gridToPixel(Vec2(gx, j));
+        Vec2 b = dc.coords.gridToPixel(Vec2(gx + 1, j));
         nvgMoveTo(nvg, a.x(), a.y());
         nvgLineTo(nvg, b.x(), b.y());
       }
