@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
   ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
   
   // make PlatformView: the layer between our window and app view that supports events and drawing.
-  auto platformView = std::make_unique<PlatformView>(windowInfo.windowPtr, nullptr, windowInfo.flags);
+  auto platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, nullptr, windowInfo.flags);
 
   // make controller and get instance number. The Controller
   // creates the ActorRegistry, allowing us to register other Actors.
@@ -226,18 +226,23 @@ int main(int argc, char *argv[])
   // or try this:
   //appView->setFixedAspectRatio(kDefaultGridUnits);
   
+  
+  // connect PlatformView to the AppView before making widgets, to initialize resources
+  platformView->setAppView(appView.get());
+  
   // make UI and startup
   appView->makeWidgets(pdl);
   appView->startTimersAndActor();
-  
-  // connect PlatformView to the AppView after making widgets, because layout will be triggered
-  platformView->setAppView(appView.get());
+
+  // resize will trigger layout of widgets, so wait until after making widgets to resize for the first time
+  int w, h;
+  SDL_GetWindowSize(window, &w, &h);
+  platformView->resizePlatformView(w, h);
 
   // connect window to the PlatformView: watch for window resize events during drag
   ResizingEventWatcherData watcherData{ window, platformView.get() };
   SDL_AddEventWatch(resizingEventWatcher, &watcherData);
-  SdlAppResize(&watcherData);
-  
+
   // make Processor and register Actor
   TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
   TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(appInstanceNum));

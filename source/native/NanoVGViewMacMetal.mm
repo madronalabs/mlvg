@@ -76,17 +76,10 @@ Vec2 NSPointToVec2(NSPoint p)
 
 - (void)setFrameSize:(NSSize)size
 {
-  std::cout << "OVERRIDE: size " << size.width << "\n";
   displaySize = size;
   [super setFrameSize:size];
 }
 
-/*
-- (AppView*)getAppView
-{
-  return appView_;
-}
-*/
 - (NSPoint) convertPointToScreen:(NSPoint)point
 {
   NSRect screenRect = [self.window convertRectToScreen:NSMakeRect(point.x, point.y, 0.0, 0.0)];
@@ -419,7 +412,9 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     displayScale = scale;
     
     CGSize pixelSize = CGSizeMake(width*displayScale, height*displayScale);
-    [self resize:pixelSize];
+    
+    // dont resize here when creating because app view is not attached yet
+    // [self resize:pixelSize];
     [self setDisplayScale:displayScale];
     
   }
@@ -458,7 +453,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // resize callback, called by the MTKView in pixel coordinates
 - (void) mtkView: (nonnull MTKView*)view drawableSizeWillChange:(CGSize)newSize
 {
-  std::cout << "renderer drawableSizeWillChange: " << newSize.width << " x " << newSize.height << "\n";
+  //std::cout << "renderer drawableSizeWillChange: " << newSize.width << " x " << newSize.height << "\n";
   [self resize: newSize];
 }
 
@@ -502,8 +497,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // internal resize, in pixel size
 - (void) resize:(CGSize)size
 {
-  std::cout << "renderer resize: " << size.width << " x " << size.height << "\n";
-  
   Vec2 newNativeSize(size.width, size.height);
 
   if((newNativeSize != _nativeSize) || (!_backingLayer.get()))
@@ -623,7 +616,7 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
   
   NSRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
-  float displayScale = boundsRectBacking.size.width / boundsRectDefault.size.width;
+  displayScale_ = boundsRectBacking.size.width / boundsRectDefault.size.width;
   
   // make the new view
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
@@ -648,7 +641,7 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
 
   [view setFrameSize:rendererSize];
   
-  MetalNanoVGRenderer* renderer = [[MetalNanoVGRenderer alloc] initWithMetalKitView:view withBounds:boundsRect withScale:displayScale];
+  MetalNanoVGRenderer* renderer = [[MetalNanoVGRenderer alloc] initWithMetalKitView:view withBounds:boundsRect withScale:displayScale_];
   if(!renderer)
   {
     NSLog(@"Renderer failed initialization");
@@ -672,10 +665,7 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   // add the new view to our parent view supplied by the host.
   // will call viewDidChangeBackingProperties.
   [parentView addSubview: view];
-  
-//  [renderer resize:rendererSize];
 
-  // resizeAppView doesn't call viewResize here on creation because appView is not set
 }
 
 PlatformView::~PlatformView()
@@ -693,7 +683,6 @@ void PlatformView::setAppView(AppView* pView)
 {
   [_pImpl->_mtkView setAppView: pView];
   [_pImpl->_renderer setAppView: pView];
-  [_pImpl->_renderer resizeAppView];
 }
 
 void PlatformView::setPlatformViewDisplayScale(float scale)
@@ -707,12 +696,23 @@ void PlatformView::setPlatformViewDisplayScale(float scale)
 // resize view, in system coordinates
 void PlatformView::resizePlatformView(int w, int h)
 {
-  std::cout << "PlatformView::resizePlatformView: " << w << " x " << h << "\n";
-  CGSize newSize = CGSizeMake(w, h);
-
-  if (_pImpl->_mtkView)
+  Vec2 newSizeVec(w, h);
+  if(newSizeVec != displaySize)
   {
-    // set view frame size, which will trigger the renderer's drawableSizeWillChange call
-    [_pImpl->_mtkView setFrameSize:newSize];
+    displaySize = newSizeVec;
+    CGSize newSize = CGSizeMake(w, h);
+    CGSize displaySize = CGSizeMake(w*displayScale_, h*displayScale_);
+    
+    if (_pImpl->_mtkView)
+    {
+      // set view frame size, which will trigger the renderer's drawableSizeWillChange call
+      [_pImpl->_mtkView setFrameSize:newSize];
+    }
+    
+    if (_pImpl->_renderer)
+    {
+      // this will resize the renderer if it exists but is not yet connected via drawableSizeWillChange (first time)
+      [_pImpl->_renderer resize:displaySize];
+    }
   }
 }

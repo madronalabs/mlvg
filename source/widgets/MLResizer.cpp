@@ -99,7 +99,7 @@ void Resizer::draw(ml::DrawContext dc)
   Rect bounds = getLocalBounds(dc, *this);
 
   // TODO color property
-  auto fillColor = engaged ? colors::gray8 : getColor(dc, "mark");
+  auto fillColor = engaged ? getColor(dc, "mark_bright") : getColor(dc, "mark");
 
   //  paint triangle
   nvgBeginPath(nvg);

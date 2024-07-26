@@ -81,7 +81,8 @@ void TestAppView::layoutView(DrawContext dc)
 void TestAppView::initializeResources(NativeDrawContext* nvg)
 {
     // initialize drawing properties before controls are made
-    _drawingProperties.setProperty("mark", colorToMatrix({ 0.01, 0.01, 0.01, 1.0 }));
+  _drawingProperties.setProperty("mark", colorToMatrix({ 0.01, 0.01, 0.01, 1.0 }));
+  _drawingProperties.setProperty("mark_bright", colorToMatrix({ 0.9, 0.9, 0.9, 1.0 }));
     _drawingProperties.setProperty("background", colorToMatrix({ 0.8, 0.8, 0.8, 1.0 }));
     _drawingProperties.setProperty("draw_background_grid", true);
     _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
