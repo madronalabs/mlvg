@@ -27,14 +27,7 @@ void TestAppView::layoutView(DrawContext dc)
   
   int gx = pixelSize.x() / gridSize;
   int gy = pixelSize.y() / gridSize;
-  
-  //Vec2 gridDims = getSizeInGridUnits();
-  //int gx = gridDims.x();
-  //int gy = gridDims.y();
-  
-  // set grid size of entire view, for background and other drawing
-  //_view->setProperty("grid_units_x", gx);
-  //_view->setProperty("grid_units_y", gy);
+
   
   // layout dials
   _view->_widgets["freq1"]->setBounds(alignCenterToPoint(largeDialRect, {1, 1}));
@@ -68,7 +61,8 @@ void TestAppView::layoutView(DrawContext dc)
   float halfButtonWidth = buttonWidth/2.f;
   float buttonsY1 = bottomY + 0.5;
   
-  _view->_widgets["open"]->setRectProperty("bounds", alignCenterToPoint(textButtonRect, {centerX, buttonsY1}));
+  Rect openButtonRect = alignCenterToPoint(textButtonRect, { centerX, buttonsY1 });
+  _view->_widgets["open"]->setRectProperty("bounds", openButtonRect);
   
   // resize widgets
   forEach< Widget >

@@ -332,7 +332,9 @@ void AppView::render(NativeDrawContext* nvg)
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
   
   // begin the frame on the backing layer
-  nvgBeginFrame(nvg, layerSize.x(), layerSize.y(), 1.0);
+  int w = layerSize.x();
+  int h = layerSize.y();
+  nvgBeginFrame(nvg, w, h, 1.0);
   
   // translate the draw context to top level view bounds and draw.
   nvgIntersectScissor(nvg, topViewBounds);
@@ -342,6 +344,16 @@ void AppView::render(NativeDrawContext* nvg)
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
   
+  // TEMP draw red line
+  nvgStrokeColor(nvg, rgba(1, 0, 0, 1));
+  nvgStrokeWidth(nvg, 10);
+  nvgBeginPath(nvg);
+  nvgMoveTo(nvg, w, 0);
+  nvgLineTo(nvg, 0, h);
+  nvgStroke(nvg);
+  nvgEndFrame(nvg);
+
+
   // end the frame.
   nvgEndFrame(nvg);
   _view->setDirty(false);

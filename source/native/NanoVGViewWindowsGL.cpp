@@ -354,6 +354,7 @@ PlatformView::~PlatformView()
 void PlatformView::setAppView(AppView* pView)
 {
     _pImpl->_appView = pView;
+    _pImpl->_appView->initializeResources(_pImpl->_nvg);
 }
 
 void PlatformView::resizePlatformView(int w, int h)
@@ -377,11 +378,6 @@ void PlatformView::resizePlatformView(int w, int h)
       if (_pImpl->_nvg)
       {
         _pImpl->_nvgBackingLayer = std::make_unique< DrawableImage >(_pImpl->_nvg, w, h);
-
-        // TEMP
-        std::cout << " PlatformView::resizePlatformView: new Layer " << (void*)_pImpl->_nvgBackingLayer.get() << std::endl;
-        std::cout << "                                " << w << " x " << h  << std::endl;
-
       }
       _pImpl->unlockContext();
     }
@@ -400,7 +396,7 @@ void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUI
     long x = GET_X_LPARAM(lParam);
     long y = GET_Y_LPARAM(lParam);
     vgEvent->screenPos = eventPositionOnScreen(lParam);
-    vgEvent->position = Vec2(x, y) * _deviceScale;
+    vgEvent->position = Vec2(x, y);
 }
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
 {
@@ -410,7 +406,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
   POINT p{ x, y };
   ScreenToClient(_windowHandle, &p);
   vgEvent->screenPos = Vec2(x, y);
-  vgEvent->position = Vec2(p.x, p.y) * _deviceScale;
+  vgEvent->position = Vec2(p.x, p.y);
 }
 
 Vec2 PlatformView::Impl::eventPositionOnScreen(LPARAM lParam)
@@ -503,69 +499,44 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
       // TEMP: this might change the backing layer! make that impossible
       pView->animate(nvg);
 
-      // draw the AppView to the backing Layer
-      drawToImage(pBackingLayer);
-      nvgBeginFrame(nvg, w, h, 1.0f);
-      pView->render(nvg);
-      nvgEndFrame(nvg);
-
-      // TEMP draw line
-      nvgStrokeColor(nvg, rgba(1, 0, 1, 1));
-      nvgStrokeWidth(nvg, 10);
-      nvgBeginPath(nvg);
-      nvgMoveTo(nvg, 0, 0);
-      nvgLineTo(nvg, w, h);
-      nvgStroke(nvg);
-
+      // draw the AppView to the backing Layer. The backing layer is our persistent
+      // buffer, so don't clear it.
+      {
+          drawToImage(pBackingLayer);
+          pView->render(nvg); 
+      }
 
       BeginPaint(hWnd, &ps);
+      {
+          // blit backing layer to main layer
+          drawToImage(nullptr);
 
-      // blit backing layer to main layer
-      drawToImage(nullptr);
+          // clear
+          glViewport(0, 0, w, h);
+          glClearColor(0.f, 1.f, 0.f, 1.f);
+          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+          nvgBeginFrame(nvg, w, h, 1.0f);
 
+          // get image pattern for 1:1 blit
+          NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
+          
+          // blit the image
+          nvgSave(nvg);
+          nvgResetTransform(nvg);
+          nvgBeginPath(nvg);
+          nvgRect(nvg, 0, 0, w, h);
+          nvgFillPaint(nvg, img);
+          nvgFill(nvg);
+          nvgRestore(nvg);
 
-
-      glViewport(0, 0, w, h);
-      glClearColor(0.f, 1.f, 0.f, 0.f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-      // get image pattern for 1:1 blit
-      NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
-
-      
-      // blit the image
-      nvgSave(nvg);
-      nvgResetTransform(nvg);
-      nvgBeginPath(nvg);
-      nvgRect(nvg, 0, 0, w, h);
-      nvgFillPaint(nvg, img);
-      nvgFill(nvg);
-      nvgRestore(nvg);
-      
-
-      // TEMP draw line
-      nvgStrokeColor(nvg, rgba(1, 1, 1, 1));
-      nvgStrokeWidth(nvg, 10);
-      nvgBeginPath(nvg);
-      nvgMoveTo(nvg, 0, 0);
-      nvgLineTo(nvg, w, h);
-      nvgStroke(nvg);
-
-      // end main update
-      nvgEndFrame(nvg);
-
-
- 
-
-      
+          // end main update
+          nvgEndFrame(nvg);
+      }
 
       // finish platform GL drawing
       pGraphics->_pImpl->swapBuffers();
       EndPaint(hWnd, &ps);
-
-      
-
 
       return 0;
     }
