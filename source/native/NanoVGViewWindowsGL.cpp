@@ -54,7 +54,7 @@ struct PlatformView::Impl
   HDC _deviceContext{ nullptr };
   HGLRC _openGLContext{ nullptr };
   UINT_PTR _timerID{ 0 };
-  int _frameCounter{ 0 };
+
   CRITICAL_SECTION _drawLock{ nullptr };
 
   float _deviceScale{ 0 };
@@ -92,15 +92,6 @@ Vec2 PlatformView::getPrimaryMonitorCenter()
     float x = GetSystemMetrics(SM_CXSCREEN);
     float y = GetSystemMetrics(SM_CYSCREEN);
     return Vec2{ x/2, y/2 };
-}
-
-float PlatformView::getDeviceScaleAtPoint(Vec2 p)
-{
-    POINT winPt{ p.x(), p.y() };
-    HMONITOR hMonitor = MonitorFromPoint(winPt, MONITOR_DEFAULTTONEAREST);
-    DEVICE_SCALE_FACTOR sf;
-    GetScaleFactorForMonitor(hMonitor, &sf);
-    return (float)sf / 100.f;
 }
 
 float PlatformView::getDeviceScaleForWindow(void* parent, int /*platformFlags*/)
@@ -317,35 +308,25 @@ void PlatformView::Impl::swapBuffers()
 
 // PlatformView
 
-PlatformView::PlatformView(void* pParent, ml::Rect bounds, AppView* pR, void* platformHandle, int platformFlags, int targetFPS)
+PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlags)
 {
   if(!pParent) return;
-  
-  if(!pR)
-  {
-    // DBGMSG("PlatformView: null view!");
-     return;
-  }
 
   _pImpl = std::make_unique< Impl >();
+  _pImpl->_deviceScale = getDeviceScaleForWindow(pParent);
+
+  HWND parentHandle = (HWND)pParent;
+  Rect bounds = getWindowRect(pParent, 0);
 
 
-  float scale = getDeviceScaleForWindow(pParent);
-
-  // create window and GL
-  if (_pImpl->createWindow((HWND)pParent, this, platformHandle, bounds))
+  // create child window and GL
+  if (_pImpl->createWindow(parentHandle, this, platformHandle, bounds))
   {
-    _pImpl->targetFPS_ = targetFPS;
+    _pImpl->targetFPS_ = kTargetFPS;
     
     // create nanovg
     _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
 
-    // store view pointer, set scale and initialize resources
-    _pImpl->_appView = pR;
-    _pImpl->_appView->setDisplayScale(scale);
-    _pImpl->_appView->initializeResources(_pImpl->_nvg);
-
-    resizePlatformView(bounds.width(), bounds.height());
   }
 }
 
@@ -370,6 +351,11 @@ PlatformView::~PlatformView()
     }
 }
 
+void PlatformView::setAppView(AppView* pView)
+{
+    _pImpl->_appView = pView;
+}
+
 void PlatformView::resizePlatformView(int w, int h)
 {  
   if (_pImpl)
@@ -391,7 +377,11 @@ void PlatformView::resizePlatformView(int w, int h)
       if (_pImpl->_nvg)
       {
         _pImpl->_nvgBackingLayer = std::make_unique< DrawableImage >(_pImpl->_nvg, w, h);
-      //  std::cout << " PlatformView::resizePlatformView: new Layer " << (void*)_pImpl->_nvgBackingLayer.get() << std::endl;
+
+        // TEMP
+        std::cout << " PlatformView::resizePlatformView: new Layer " << (void*)_pImpl->_nvgBackingLayer.get() << std::endl;
+        std::cout << "                                " << w << " x " << h  << std::endl;
+
       }
       _pImpl->unlockContext();
     }
@@ -399,7 +389,7 @@ void PlatformView::resizePlatformView(int w, int h)
     // notify the renderer
     if (_pImpl->_appView)
     {
-	  _pImpl->_appView->viewResized(_pImpl->_nvg, ml::Vec2{static_cast<float>(w), static_cast<float>(h)});
+	  _pImpl->_appView->viewResized(_pImpl->_nvg, ml::Vec2{static_cast<float>(w), static_cast<float>(h)}, _pImpl->_deviceScale );
     }
   }
 }
@@ -500,87 +490,81 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     {
       PAINTSTRUCT ps;
 
-      if (pGraphics->_pImpl->makeContextCurrent())
-      {
-        if ((!nvg) || (!pView)) return 0;
-        {
-            // allow Widgets to animate. 
-            // note: this might change the backing layer!
-            pView->animate(nvg);
+      if (!pGraphics->_pImpl->makeContextCurrent()) return 0;
+      if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
+      auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
+      if (!pBackingLayer) return 0;
+      if ((!nvg) || (!pView)) return 0;
 
-            pGraphics->_pImpl->_frameCounter++;
+      size_t w = pBackingLayer->width;
+      size_t h = pBackingLayer->height;
 
-            int w = pGraphics->_pImpl->_width;
-            int h = pGraphics->_pImpl->_height;
+      // allow Widgets to animate. 
+      // TEMP: this might change the backing layer! make that impossible
+      pView->animate(nvg);
 
-            // draw to backing layer, which retains previous frame's image
-            if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
-            auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
-            if (!pBackingLayer) return 0;
+      // draw the AppView to the backing Layer
+      drawToImage(pBackingLayer);
+      nvgBeginFrame(nvg, w, h, 1.0f);
+      pView->render(nvg);
+      nvgEndFrame(nvg);
 
-            // switch to persistent backing layer. do not clear.
-            drawToImage(pBackingLayer);
-
-            nvgBeginFrame(nvg, w, h, 1.0f);
-
-            // render the App view
-            pView->render(nvg);
-
-            // end backing layer update
-            nvgEndFrame(nvg);
-
-          // get border rect that the AppView is drawn into
-          ml::Rect b = pView->getBorderRect();
-          float scale = pView->getCoords().displayScale;
-          b *= scale;
-          
-          // aspect ratio
-          float ax = w/b.width();
-          float ay = h/b.height();
-          
-          
-            BeginPaint(hWnd, &ps);
-
-            // blit backing layer to main layer
-            drawToImage(nullptr);
+      // TEMP draw line
+      nvgStrokeColor(nvg, rgba(1, 0, 1, 1));
+      nvgStrokeWidth(nvg, 10);
+      nvgBeginPath(nvg);
+      nvgMoveTo(nvg, 0, 0);
+      nvgLineTo(nvg, w, h);
+      nvgStroke(nvg);
 
 
-            glViewport(0, 0, w, h);
-            glClearColor(0.f, 0.f, 0.f, 0.f);
-          
-            // is there a way to force paint-over and avoid this step?
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-          
-          
-            nvgBeginFrame(nvg, w, h, 1.0f);
-          
-            // get image pattern, either stretching border rect to whole screen or blitting to the same size, leaving a border
-            NVGpaint img;
-            if(pView->getStretchToScreenMode())
-            {
-              img = nvgImagePattern(nvg, 0 - b.left()*ax, 0 - b.top()*ay, w*ax, h*ay, 0, pBackingLayer->_buf->image, scale);
-            }
-            else
-            {
-              img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
-            }
-            
-            nvgSave(nvg);
-            nvgResetTransform(nvg);
-            nvgBeginPath(nvg);
-            nvgRect(nvg, 0, 0, w, h);
-            nvgFillPaint(nvg, img);
-            nvgFill(nvg);
-            nvgRestore(nvg);
+      BeginPaint(hWnd, &ps);
 
-            // end main update
-            nvgEndFrame(nvg);
+      // blit backing layer to main layer
+      drawToImage(nullptr);
 
-            // finish platform GL drawing
-            pGraphics->_pImpl->swapBuffers();
-            EndPaint(hWnd, &ps);
-        }
-      }
+
+
+
+      glViewport(0, 0, w, h);
+      glClearColor(0.f, 1.f, 0.f, 0.f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+      // get image pattern for 1:1 blit
+      NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
+
+      
+      // blit the image
+      nvgSave(nvg);
+      nvgResetTransform(nvg);
+      nvgBeginPath(nvg);
+      nvgRect(nvg, 0, 0, w, h);
+      nvgFillPaint(nvg, img);
+      nvgFill(nvg);
+      nvgRestore(nvg);
+      
+
+      // TEMP draw line
+      nvgStrokeColor(nvg, rgba(1, 1, 1, 1));
+      nvgStrokeWidth(nvg, 10);
+      nvgBeginPath(nvg);
+      nvgMoveTo(nvg, 0, 0);
+      nvgLineTo(nvg, w, h);
+      nvgStroke(nvg);
+
+      // end main update
+      nvgEndFrame(nvg);
+
+
+ 
+
+      
+
+      // finish platform GL drawing
+      pGraphics->_pImpl->swapBuffers();
+      EndPaint(hWnd, &ps);
+
+      
 
 
       return 0;
