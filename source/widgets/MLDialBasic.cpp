@@ -262,7 +262,7 @@ void DialBasic::draw(ml::DrawContext dc)
   NativeDrawContext* nvg = getNativeContext(dc);
   int gridSizeInPixels = dc.coords.gridSizeInPixels;
   Rect bounds = getLocalBounds(dc, *this);
-  
+
   // properties
   bool opaqueBg = getBoolPropertyWithDefault("opaque_bg", false);  
   bool bipolar = getBoolPropertyWithDefault("bipolar", false);

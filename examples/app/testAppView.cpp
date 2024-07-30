@@ -4,7 +4,12 @@
 // See LICENSE.txt for details.
 
 #include "testAppView.h"
+#include "testAppParameters.h"
 #include "../build/resources/testapp/resources.c"
+
+#define TEST_RESIZER 0
+#define TEST_FIXED_RATIO 0
+
 
 TestAppView::TestAppView(TextFragment appName, size_t instanceNum) :
   AppView(appName, instanceNum)
@@ -27,14 +32,7 @@ void TestAppView::layoutView(DrawContext dc)
   
   int gx = pixelSize.x() / gridSize;
   int gy = pixelSize.y() / gridSize;
-  
-  //Vec2 gridDims = getSizeInGridUnits();
-  //int gx = gridDims.x();
-  //int gy = gridDims.y();
-  
-  // set grid size of entire view, for background and other drawing
-  //_view->setProperty("grid_units_x", gx);
-  //_view->setProperty("grid_units_y", gy);
+
   
   // layout dials
   _view->_widgets["freq1"]->setBounds(alignCenterToPoint(largeDialRect, {1, 1}));
@@ -68,7 +66,8 @@ void TestAppView::layoutView(DrawContext dc)
   float halfButtonWidth = buttonWidth/2.f;
   float buttonsY1 = bottomY + 0.5;
   
-  _view->_widgets["open"]->setRectProperty("bounds", alignCenterToPoint(textButtonRect, {centerX, buttonsY1}));
+  Rect openButtonRect = alignCenterToPoint(textButtonRect, { centerX, buttonsY1 });
+  _view->_widgets["open"]->setRectProperty("bounds", openButtonRect);
   
   // resize widgets
   forEach< Widget >
@@ -110,6 +109,52 @@ void TestAppView::clearResources()
   _resources.rasterImages.clear();
   _resources.vectorImages.clear();
   _resources.drawableImages.clear();
+}
+
+void TestAppView::stop()
+{
+    stopTimersAndActor();
+    clearResources();
+    clearWidgets();
+
+    _platformView = nullptr;
+}
+
+void TestAppView::attachToWindow(SDL_Window* window)
+{
+    // read parameter descriptions into a list
+    ParameterDescriptionList pdl;
+    readParameterDescriptions(pdl);
+
+    ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
+
+    _platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, nullptr, windowInfo.flags);
+
+    // set initial size. When this is not a fixed-ratio app, the window sizes
+    // freely and the grid unit size remains constant.
+    setGridSizeDefault(kDefaultGridUnitSize);
+
+#if TEST_FIXED_RATIO
+    setFixedAspectRatio(kDefaultGridUnits);
+#endif
+
+   // connect PlatformView to the AppView before making widgets, to initialize resources
+   _platformView->setAppView(this);
+
+   // make UI and startup
+   makeWidgets(pdl);
+   startTimersAndActor();
+
+
+   // resize will trigger layout of widgets, so wait until after making widgets to resize for the first time
+   int w, h;
+   SDL_GetWindowSize(window, &w, &h);
+   _platformView->resizePlatformView(w, h);
+
+   // connect window to the PlatformView: watch for window resize events during drag
+   watcherData_ = ResizingEventWatcherData{ window, _platformView.get() };
+   SDL_AddEventWatch(resizingEventWatcher, &watcherData_);
+
 }
 
 void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
@@ -167,6 +212,17 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"text_size", 0.4f },
     {"action", "open" }
   } );
+
+
+#if TEST_RESIZER
+  _view->_widgets.add_unique< Resizer >("resizer", WithValues{
+    {"fix_ratio", (kDefaultGridUnits[0]) / (kDefaultGridUnits[1])},
+    {"z", -3}, // stay on top of popups
+    {"fixed_size", true},
+    {"fixed_bounds", { -16, -16, 16, 16 }}, // fixed size rect in system coords
+    {"anchor", {1, 1}} // for fixed-size widgets, anchor is a point on the view from top left {0, 0} to bottom right {1, 1}.
+      });
+#endif
   
   // make all the above Widgets visible
   forEach< Widget >
@@ -195,6 +251,37 @@ void TestAppView::onMessage(Message msg)
     {
       switch(hash(head(tail(msg.address))))
       {
+          case(hash("view_size")):
+          {
+              // TODO better API for all this, no matrixes
+              Value v = msg.value;
+              Matrix m = v.getMatrixValue();
+              if (m.getSize() == 2)
+              {
+                  // resize platform view in pixel coords
+                  Vec2 c = (Vec2(m[0], m[1]));
+                  Vec2 pixelSize = constrainSize(_GUICoordinates.systemToPixel(c));
+                  _platformView->resizePlatformView(pixelSize[0], pixelSize[1]);
+
+                  // back to system coords
+                  Vec2 systemSizeConstrained = _GUICoordinates.pixelToSystem(pixelSize);
+                  onResize(systemSizeConstrained);
+
+                  // set constrained value and send it back to Controller
+                  Path paramName = tail(msg.address);
+                  _params.setFromRealValue(paramName, msg.value);
+
+                  // if size change is not from the controller, send it there so it will be saved with controller params.
+                  if (!(msg.flags & kMsgFromController))
+                  {
+                      Value constrainedSize(vec2ToMatrix(systemSizeConstrained));
+                      sendMessageToActor(_controllerName, Message{ "set_param/view_size" , constrainedSize });
+                  }
+              }
+              break;
+          }
+
+
         default:
         {
           // no local parameter was found, set a plugin parameter
@@ -223,15 +310,6 @@ void TestAppView::onMessage(Message msg)
     {
       switch(hash(second(msg.address)))
       {
-        case(hash("set_audio_data")):
-        {
-          // get Sample pointer
-          //Sample* pSample = *reinterpret_cast<Sample**>(msg.value.getBlobValue());
-          //_view->_widgets["sample"]->receiveNamedRawPointer("sample", pSample);
-          
-          break;
-        }
-          
         default:
         {
           // if the message is not from the controller,

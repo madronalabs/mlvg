@@ -37,6 +37,9 @@ public:
   // get default point to put the center of a new window
   static Vec2 getPrimaryMonitorCenter();
   //
+  // get the scale at the point on the desktop, compared to "usual" DPI
+  static float getDeviceScaleAtPoint(Vec2 p);
+  //
   // get the scale the OS considers the window's device to be at, compared to "usual" DPI
   static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
   //
@@ -54,7 +57,10 @@ public:
   // and notify it when window size and display scale change.
   void setAppView(AppView* pView);
   
+  // TODO only used for Mac, make internal only
   void setPlatformViewDisplayScale(float scale);
+
+  // resize the PlatformView, in pixel coordinates
   void resizePlatformView(int w, int h);
 
 protected:

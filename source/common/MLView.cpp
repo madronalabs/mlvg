@@ -174,7 +174,6 @@ void View::draw(ml::DrawContext dc)
     nvgTranslate(nvg, dc.coords.gridToPixel(matrixToVec2(getMatrixProperty("position"))));
   }
   
-  
   // if the View itself is dirty, all the Widgets in it must be redrawn.
   // otherwise, only the dirty Widgets need to be redrawn.
   if(_dirty)

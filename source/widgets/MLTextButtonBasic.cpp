@@ -60,7 +60,7 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   NativeDrawContext* nvg = getNativeContext(dc);
   Rect bounds = getLocalBounds(dc, *this);
   int gridSizeInPixels = dc.coords.gridSizeInPixels;
-  
+
   auto font = getFontResource(dc, "d_din");
   if(!font) return;
 
@@ -74,7 +74,6 @@ void TextButtonBasic::draw(ml::DrawContext dc)
     markColor = multiplyAlpha(markColor, kDisabledAlpha);
     backgroundColor = multiplyAlpha(backgroundColor, kDisabledAlpha);
   }
-  
   
   float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
   float strokeWidth = gridSizeInPixels*strokeWidthMul;
