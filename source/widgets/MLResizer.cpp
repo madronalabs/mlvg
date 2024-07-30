@@ -14,17 +14,14 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   auto type = e.type;
   
   // resizer needs actual screen position otherwise it gets chaotic when we resize the window
-  Vec2 viewPos = e.screenPos;
-  
-  //std::cout << " Resizer: screenPos " << e.screenPos << "\n";
-  
+  Vec2 eventScreenPos = e.screenPos;
   bool wasEngaged = engaged;
 
   if(type == "down")
   {
     engaged = true;
     _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
-    _dragStart = viewPos;
+    _dragStart = eventScreenPos;
     _dragDelta = Vec2(0, 0);
     
     // this ValueChange does nothing but indicate that we got the event
@@ -33,52 +30,37 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   else if(type == "drag")
   {
     if(!engaged) return reqList;
-    constexpr int kMinHeight = 64;
+
     constexpr int kDragQuantum = 1;
-    Vec2 newDragDelta = viewPos - _dragStart;
+    Vec2 newDragDelta = gc.pixelToSystem(eventScreenPos - _dragStart);
 
     newDragDelta.quantize(kDragQuantum);
 
     if (newDragDelta != _dragDelta)
     {
-      Vec2 newSize = _sizeStart + newDragDelta;
+      _dragDelta = newDragDelta;
 
+     // generate a view size change request,
+     // and constrain to the fixed ratio if one exists
+      Vec2 newSize = _sizeStart + newDragDelta;
       if (getProperty("fix_ratio"))
       {
-        // generate a view size change request,
-        // constrained to the fixed ratio if one exists
         float ratio = getFloatProperty("fix_ratio");
         float freeRatio = newSize.x()/ newSize.y();
-        Vec2 minSize = { kMinHeight*ratio, kMinHeight + 0.f };
         if (freeRatio < ratio)
         {
           float newY = newSize[1];
-          if (newY > kMinHeight)
-          {
-            newSize[0] = newY * ratio;
-          }
-          else
-          {
-            newSize = minSize;
-          }         
+          newSize[0] = newY * ratio;       
         }
         else
         {
           float newX = newSize[0];
-          if (newX > kMinHeight*ratio)
-          {
-            newSize[1] = newX / ratio;
-          }
-          else
-          {
-            newSize = minSize;
-          }
+          newSize[1] = newX / ratio;
         }      
       }
-      
+
       // send new size in system coordinates to the editor
       reqList.push_back(Message("set_param/view_size", vec2ToMatrix(newSize)));
-      _dragDelta = newDragDelta;
     }
   }
   else if(type == "up")

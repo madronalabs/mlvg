@@ -62,8 +62,8 @@ inline uint32_t getPlatformWindowCreateFlags()
 #endif
 }
 
-
-inline SDL_Window* newSDLWindow(ml::Rect b, Vec2 minDims, Vec2 maxDims, const char* windowName)
+// create a new window. dims in pixel coodinates.
+inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName)
 {
   // Enable standard application logging
   SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -92,10 +92,10 @@ inline SDL_Window* newSDLWindow(ml::Rect b, Vec2 minDims, Vec2 maxDims, const ch
     return nullptr;
   }
   
-  // set min and max sizes for window
-  SDL_SetWindowMinimumSize(newWindow, minDims.x(), minDims.y());
-  SDL_SetWindowMaximumSize(newWindow, maxDims.x(), maxDims.y());
-  
+  const int kWindowMinDim = 200;
+  SDL_SetWindowMinimumSize(newWindow, kWindowMinDim, kWindowMinDim);
+  SDL_SetWindowMaximumSize(newWindow, 10000, 10000);
+
   return newWindow;
 }
 

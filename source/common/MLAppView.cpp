@@ -31,7 +31,7 @@ AppView::~AppView()
 }
 
 // called when native view size changes in the PlatformView callback.
-// newSize is in pixel coordinates.
+// newSize is in pixel coordinates. displayScale is pixels per system size unit.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
   float gridSizeInPixels{0};
@@ -291,7 +291,7 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
   return r;
 }
 
-// given a size in system UI coordinates, tweak it to be a valid window size.
+// given a window size in pixel coordinates, tweak it to be a valid window size.
 Vec2 AppView::constrainSize(Vec2 size) const
 {
   Vec2 newSize = size;
@@ -343,16 +343,6 @@ void AppView::render(NativeDrawContext* nvg)
   // translate to the view's location and draw the view in its local coordinates
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
-  
-  // TEMP draw red line
-  nvgStrokeColor(nvg, rgba(1, 0, 0, 1));
-  nvgStrokeWidth(nvg, 10);
-  nvgBeginPath(nvg);
-  nvgMoveTo(nvg, w, 0);
-  nvgLineTo(nvg, 0, h);
-  nvgStroke(nvg);
-  nvgEndFrame(nvg);
-
 
   // end the frame.
   nvgEndFrame(nvg);

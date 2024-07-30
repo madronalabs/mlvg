@@ -15,50 +15,10 @@
 
 #include "testApp.h"
 #include "testAppView.h"
+#include "testAppParameters.h"
 
 #define ML_INCLUDE_SDL 1
 #include "native/MLSDLUtils.h"
-
-constexpr int kInputChannels = 0;
-constexpr int kOutputChannels = 2;
-constexpr int kSampleRate = 48000;
-constexpr float kDefaultGain = 0.1f;
-constexpr float kMaxGain = 0.5f;
-constexpr float kFreqLo = 40, kFreqHi = 4000;
-const ml::Vec2 kDefaultGridUnits{ 16, 9 };
-const int kDefaultGridUnitSize{ 60 };
-
-void readParameterDescriptions(ParameterDescriptionList& params)
-{
-  // Processor parameters
-  params.push_back( std::make_unique< ParameterDescription >(WithValues{
-    { "name", "freq1" },
-    { "range", { kFreqLo, kFreqHi } },
-    { "log", true },
-    { "units", "Hz" },
-    { "default", 0.75 }
-  } ) );
-  
-  params.push_back( std::make_unique< ParameterDescription >(WithValues{
-    { "name", "freq2" },
-    { "range", { kFreqLo, kFreqHi } },
-    { "log", true },
-    { "units", "Hz" }
-    // no default here means the normalized default will be 0.5 (400 Hz)
-  } ) );
-  
-  params.push_back( std::make_unique< ParameterDescription >(WithValues{
-    { "name", "gain" },
-    { "range", {0, kMaxGain} },
-    { "plaindefault", kDefaultGain }
-  } ) );
-  
-  // Controller parameters
-  params.push_back( std::make_unique< ParameterDescription >(WithValues{
-    { "name", "view_size" },
-    { "save_in_controller", true }
-  } ) );
-}
 
 class TestAppProcessor :
 public RtAudioProcessor
@@ -97,7 +57,6 @@ public:
   TestAppController(TextFragment appName, const ParameterDescriptionList& pdl) : AppController(appName, pdl) {}
   ~TestAppController() = default;
   
-  
   int _loadSampleFromDialog()
   {
     int OK{ false };
@@ -109,9 +68,6 @@ public:
     return OK;
   }
 
-  
-  
-  
   void onMessage(Message m)
   {
     if(!m.address) return;
@@ -123,23 +79,34 @@ public:
     {
       case(hash("set_param")):
       {
-        Path whatParam = tail(addr);
-        switch(hash(head(whatParam)))
-        {
-        }
-        break;
+          switch (hash(second(addr)))
+          {
+              case(hash("view_size")):
+              {
+                  // set our new view size from system coordinates
+                  // TODO better API for all this, no matrixes
+                  Value v = m.value;
+                  Matrix m = v.getMatrixValue();
+                  Vec2 c (m[0], m[1]);
+                  Vec2 pixelSize = appView_->getCoords().systemToPixel(c);
+
+                  if (window_)
+                  {
+                      int w = pixelSize[0];
+                      int h = pixelSize[1];
+                      SDL_SetWindowSize(window_, w, h);
+                  }
+                  break;
+              }
+
+                default:
+              // do nothing, param will be set in AppController::onMessage();
+              break;
+          }
       }
       case(hash("set_prop")):
       {
-        Path whatProp = tail(addr);
-        switch(hash(head(whatProp)))
-        {
-          case(hash("playback_progress")):
-          {
-            sendMessageToActor(_viewName, {"widget/sample/set_prop/progress", m.value});
-            break;
-          }
-        }
+        // no properties in test app
         break;
       }
       case(hash("do")):
@@ -151,9 +118,8 @@ public:
           {
             if(_loadSampleFromDialog())
             {
-
+                std::cout << "loaded sample.\n";
             }
-
             messageHandled = true;
             break;
           }
@@ -161,7 +127,6 @@ public:
           {
             break;
           }
-            
         }
         break;
       }
@@ -176,6 +141,10 @@ public:
       AppController::onMessage(m);
     }
   }
+
+
+   SDL_Window* window_{ nullptr };
+   std::unique_ptr<TestAppView> appView_;
 };
 
 int main(int argc, char *argv[])
@@ -190,58 +159,32 @@ int main(int argc, char *argv[])
 
   // get monitor and scale for making window. if there is no persistent rect, use defaults
   // we have a few utilities in PlatformView that apps can use to make their own default strategies.
-  Vec2 c = PlatformView::getPrimaryMonitorCenter(); // -> platformViewUtils
+  Vec2 c = PlatformView::getPrimaryMonitorCenter(); // TODO -> platformViewUtils
 
-  // get default rect in system coords
-  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
-  
-  Vec2 minSize(320, 240);
-  Vec2 maxSize(3200, 2400);
-  Rect boundsRect(0, 0, defaultSize.x(), defaultSize.y());
-  Rect defaultRect = alignCenterToPoint(boundsRect, c);
-
-  // make SDL window
-  SDL_Window *window = ml::newSDLWindow(defaultRect, minSize, maxSize, "mlvg test");
-  if(!window)
-  {
-    std::cout << "newSDLWindow failed!\n";
-    return -1;
-  }
-  ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
-  
-  // make PlatformView: the layer between our window and app view that supports events and drawing.
-  auto platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, nullptr, windowInfo.flags);
+  // get sizes in pixel coords
+  float defaultScale = PlatformView::getDeviceScaleAtPoint(c);
+  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * defaultScale;
+  Vec2 minSizeInPixels = kDefaultGridUnits * kMinGridUnitSize * defaultScale;
+  Vec2 maxSizeInPixels = kDefaultGridUnits * kMaxGridUnitSize * defaultScale;
+  Rect boundsRectInPixels(0, 0, defaultSize.x(), defaultSize.y());
+  Rect defaultRectInPixels = alignCenterToPoint(boundsRectInPixels, c);
 
   // make controller and get instance number. The Controller
   // creates the ActorRegistry, allowing us to register other Actors.
   TestAppController appController(getAppName(), pdl);
   auto appInstanceNum = appController.getInstanceNum();
+
+  // make SDL window
+  appController.window_ = ml::newSDLWindow(defaultRectInPixels, "mlvg test");
+  if(!appController.window_)
+  {
+    std::cout << "newSDLWindow failed!\n";
+    return -1;
+  }
   
   // make app view for this instance of our app
-  auto appView = std::make_unique<TestAppView> (getAppName(), appInstanceNum);
-  
-  // set initial size. This is not a fixed-ratio app, meaning the window sizes
-  // freely and the grid unit size remains constant.
-  appView->setGridSizeDefault(kDefaultGridUnitSize);
-  // or try this:
-  //appView->setFixedAspectRatio(kDefaultGridUnits);
-  
-  
-  // connect PlatformView to the AppView before making widgets, to initialize resources
-  platformView->setAppView(appView.get());
-  
-  // make UI and startup
-  appView->makeWidgets(pdl);
-  appView->startTimersAndActor();
-
-  // resize will trigger layout of widgets, so wait until after making widgets to resize for the first time
-  int w, h;
-  SDL_GetWindowSize(window, &w, &h);
-  platformView->resizePlatformView(w, h);
-
-  // connect window to the PlatformView: watch for window resize events during drag
-  ResizingEventWatcherData watcherData{ window, platformView.get() };
-  SDL_AddEventWatch(resizingEventWatcher, &watcherData);
+  appController.appView_ = std::make_unique<TestAppView> (getAppName(), appInstanceNum);
+  appController.appView_->attachToWindow(appController.window_);
 
   // make Processor and register Actor
   TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
@@ -258,26 +201,14 @@ int main(int argc, char *argv[])
   // just vibe
   while(!doneFlag)
   {
-    SDLAppLoop(window, &doneFlag);
+    SDLAppLoop(appController.window_, &doneFlag);
   }
   
-  // destroy things and quit:
-  // processor
+  // stop doing things, clean up and return
   appProcessor.stopAudio();
   appProcessor.stop();
-  
-  // AppView
-  appView->stopTimersAndActor();
-  appView->clearResources();
-  appView->clearWidgets();
-  appView = nullptr;
-  
-  // then platformView
-  platformView = nullptr;
-  
-  // SDL window
-  SDL_DestroyWindow(window);
+  appController.appView_->stop();
+  SDL_DestroyWindow(appController.window_);
   SDL_Quit();
-
   return 0;
 }
