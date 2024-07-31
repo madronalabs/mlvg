@@ -94,7 +94,11 @@ public:
                   {
                       int w = pixelSize[0];
                       int h = pixelSize[1];
-                      SDL_SetWindowSize(window_, w, h);
+                    
+                    
+                    // TEMP                    SDL_SetWindowSize(window_, w, h);
+                      setWindowSizeInPixels(window_, pixelSize);
+                    
                   }
                   break;
               }
@@ -175,7 +179,8 @@ int main(int argc, char *argv[])
   auto appInstanceNum = appController.getInstanceNum();
 
   // make SDL window
-  appController.window_ = ml::newSDLWindow(defaultRectInPixels, "mlvg test");
+  int windowFlags = SDL_WINDOW_RESIZABLE;
+  appController.window_ = ml::newSDLWindow(defaultRectInPixels, "mlvg test", windowFlags);
   if(!appController.window_)
   {
     std::cout << "newSDLWindow failed!\n";

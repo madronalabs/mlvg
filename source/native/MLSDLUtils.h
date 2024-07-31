@@ -12,43 +12,6 @@
 
 namespace ml {
 
-struct ResizingEventWatcherData
-{
-  SDL_Window* window{nullptr};
-  PlatformView* platformView{nullptr};
-};
-
-inline void SdlAppResize(ResizingEventWatcherData* watcherData)
-{
-  int w{ 0 };
-  int h{ 0 };
-  SDL_GetWindowSize(watcherData->window, &w, &h);
-  if ((w > 0) && (h > 0))
-  {
-    watcherData->platformView->resizePlatformView(w, h);
-  }
-}
-
-inline int resizingEventWatcher(void* data, SDL_Event* event)
-{
-  ResizingEventWatcherData* watcherData = static_cast<ResizingEventWatcherData*>(data);
-  SDL_Event& ev = *event;
-  
-  if(ev.type != SDL_WINDOWEVENT) return 0;
-  if (SDL_GetWindowFromID(ev.window.windowID) != watcherData->window) return 0;
-
-  switch(ev.window.event)
-  {
-    case SDL_WINDOWEVENT_RESIZED:// || (ev.window.event == SDL_WINDOWEVENT_MOVED ))
-    {
-      //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
-      SdlAppResize(watcherData);
-      break;
-    }
-  }
-  return 0;
-}
-
 inline uint32_t getPlatformWindowCreateFlags()
 {
 #if ML_WINDOWS
@@ -63,7 +26,7 @@ inline uint32_t getPlatformWindowCreateFlags()
 }
 
 // create a new window. dims in pixel coodinates.
-inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName)
+inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName, int flags)
 {
   // Enable standard application logging
   SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -75,16 +38,15 @@ inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName)
     return nullptr;
   }
   
-  int commonFlags = SDL_WINDOW_RESIZABLE;
-  
   // Create window
   int x = b.left();
   int y = b.top();
   int w = b.width();
   int h = b.height();
   
+  // combine user flags parameters with platform flags and make window
   SDL_Window* newWindow = SDL_CreateWindow(windowName, x, y, w, h,
-                                           commonFlags | getPlatformWindowCreateFlags());
+                                           flags | getPlatformWindowCreateFlags());
   
   if (!newWindow)
   {
@@ -98,7 +60,6 @@ inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName)
 
   return newWindow;
 }
-
 
 inline void SDLAppLoop(SDL_Window* window, bool* done)
 {
@@ -194,11 +155,13 @@ inline ParentWindowInfo getParentWindowInfo(SDL_Window* window)
 #endif
     }
     
+
     SDL_Log("This program is running SDL version %d.%d.%d on %s",
             (int)info.version.major,
             (int)info.version.minor,
             (int)info.version.patch,
             subsystem);
+     
   }
   else
   {
@@ -208,7 +171,69 @@ inline ParentWindowInfo getParentWindowInfo(SDL_Window* window)
   return p;
 }
 
+
+inline Vec2 getWindowSizeInPixels(SDL_Window* window)
+{
+  int w, h;
+  SDL_GetWindowSize(window, &w, &h);
+  
+  auto p = getParentWindowInfo(window);
+  
+  float scale = PlatformView::getDeviceScaleForWindow(p.windowPtr, p.flags);
+  return Vec2(w*scale, h*scale);
 }
+
+
+inline void setWindowSizeInPixels(SDL_Window* window, Vec2 pixelSize)
+{
+  auto p = getParentWindowInfo(window);
+  
+  float scale = PlatformView::getDeviceScaleForWindow(p.windowPtr, p.flags);
+  Vec2 systemSize = pixelSize/scale;
+
+  SDL_SetWindowSize(window, systemSize.x(), systemSize.y());
+}
+
+
+struct ResizingEventWatcherData
+{
+  SDL_Window* window{nullptr};
+  PlatformView* platformView{nullptr};
+};
+
+inline void SdlAppResize(ResizingEventWatcherData* watcherData)
+{
+  Vec2 newSize = getWindowSizeInPixels(watcherData->window);
+  if(newSize.x() <= 0 || newSize.y() <= 0) return;
+  
+  
+  std::cout << "SdlAppResize: " << newSize << "\n";
+  
+  watcherData->platformView->resizePlatformView(newSize.x(), newSize.y());
+  
+}
+
+inline int resizingEventWatcher(void* data, SDL_Event* event)
+{
+  ResizingEventWatcherData* watcherData = static_cast<ResizingEventWatcherData*>(data);
+  SDL_Event& ev = *event;
+  
+  if(ev.type != SDL_WINDOWEVENT) return 0;
+  if (SDL_GetWindowFromID(ev.window.windowID) != watcherData->window) return 0;
+  
+  switch(ev.window.event)
+  {
+    case SDL_WINDOWEVENT_RESIZED:// || (ev.window.event == SDL_WINDOWEVENT_MOVED ))
+    {
+      //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
+      SdlAppResize(watcherData);
+      break;
+    }
+  }
+  return 0;
+}
+
+} // namespace ml
 
 
 

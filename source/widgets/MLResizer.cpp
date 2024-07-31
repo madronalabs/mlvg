@@ -16,6 +16,9 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   // resizer needs actual screen position otherwise it gets chaotic when we resize the window
   Vec2 eventScreenPos = e.screenPos;
   bool wasEngaged = engaged;
+  
+  
+  std::cout << "screen pos: " << eventScreenPos << "\n";
 
   if(type == "down")
   {

@@ -115,6 +115,9 @@ struct DrawableImage
   DrawableImage(NativeDrawContext* nvg, int w, int h) :
   _nvg(nvg), width(w), height(h)
   {
+    w = max(w, 16);
+    h = max(h, 16);
+    
     _buf = nvgCreateFramebuffer(nvg, w, h, 0);
     nvgBindFramebuffer(_buf);
 #if ML_WINDOWS // TEMP

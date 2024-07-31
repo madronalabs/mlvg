@@ -67,7 +67,7 @@ protected:
   struct Impl;
   std::unique_ptr< Impl > _pImpl;
   float displayScale_{1.0f};
-  Vec2 displaySize{0, 0};
+  Vec2 displaySize_{0, 0};
 };
 
 } // namespace ml
