@@ -12,10 +12,11 @@
 #include "SDL_syswm.h"
 #include "native/MLSDLUtils.h"
 
+#define TEST_RESIZER 1
+#define TEST_FIXED_RATIO 1
+
 const ml::Vec2 kDefaultGridUnits{ 16, 9 };
 const int kDefaultGridUnitSize{ 60 };
-const int kMinGridUnitSize{ 30 };
-const int kMaxGridUnitSize{ 120 };
 
 class TestAppView final:
   public ml::AppView

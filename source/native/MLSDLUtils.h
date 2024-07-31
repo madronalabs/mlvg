@@ -19,13 +19,13 @@ inline uint32_t getPlatformWindowCreateFlags()
 #elif ML_LINUX
   return 0;
 #elif ML_IOS
-  return SDL_WINDOW_METAL;
+  return SDL_WINDOW_METAL | SDL_WINDOW_ALLOW_HIGHDPI;
 #elif ML_MAC
-  return SDL_WINDOW_METAL;
+  return SDL_WINDOW_METAL | SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
 }
 
-// create a new window. dims in pixel coodinates.
+// create a new window. dims in system (screen) coodinates.
 inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName, int flags)
 {
   // Enable standard application logging
@@ -203,13 +203,14 @@ struct ResizingEventWatcherData
 
 inline void SdlAppResize(ResizingEventWatcherData* watcherData)
 {
-  Vec2 newSize = getWindowSizeInPixels(watcherData->window);
-  if(newSize.x() <= 0 || newSize.y() <= 0) return;
+  int w, h;
+  SDL_GetWindowSize(watcherData->window, &w, &h);
+  if(w <= 0 || h <= 0) return;
   
   
-  std::cout << "SdlAppResize: " << newSize << "\n";
+  std::cout << "SdlAppResize: " << w << " x " << h << "\n";
   
-  watcherData->platformView->resizePlatformView(newSize.x(), newSize.y());
+  watcherData->platformView->resizePlatformView(w, h);
   
 }
 

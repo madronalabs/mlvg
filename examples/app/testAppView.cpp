@@ -7,10 +7,6 @@
 #include "testAppParameters.h"
 #include "../build/resources/testapp/resources.c"
 
-#define TEST_RESIZER 1
-#define TEST_FIXED_RATIO 1
-
-
 TestAppView::TestAppView(TextFragment appName, size_t instanceNum) :
   AppView(appName, instanceNum)
 {
@@ -149,11 +145,7 @@ void TestAppView::attachToWindow(SDL_Window* window)
    // resize will trigger layout of widgets, so wait until after making widgets to resize for the first time
    int w, h;
    SDL_GetWindowSize(window, &w, &h);
-  
-  Vec2 pixelSize = getWindowSizeInPixels(window);
-  
-  _platformView->resizePlatformView(pixelSize.x(), pixelSize.y());
-  //_platformView->resizePlatformView(w, h);
+  _platformView->resizePlatformView(w, h);
 
    // connect window to the PlatformView: watch for window resize events during drag
    watcherData_ = ResizingEventWatcherData{ window, _platformView.get() };
@@ -261,20 +253,11 @@ void TestAppView::onMessage(Message msg)
               Matrix m = v.getMatrixValue();
               if (m.getSize() == 2)
               {
-                  // resize platform view in pixel coords
-                  Vec2 c = (Vec2(m[0], m[1]));
-                
-                std::cout << "view_size: " << c << "\n";
-                
-                  Vec2 pixelSize = constrainSize(_GUICoordinates.systemToPixel(c));
-                          
-                std::cout << "pixelSize: " << pixelSize << "\n";
-                
-                  _platformView->resizePlatformView(pixelSize[0], pixelSize[1]);
-
-                  // back to system coords
-                  Vec2 systemSizeConstrained = _GUICoordinates.pixelToSystem(pixelSize);
-                  onResize(systemSizeConstrained);
+                // resize platform view
+                Vec2 c (m[0], m[1]);
+                Vec2 cs = constrainSize(c);
+                _platformView->resizePlatformView(cs[0], cs[1]);
+                onResize(cs);
 
                   // set constrained value and send it back to Controller
                   Path paramName = tail(msg.address);
@@ -283,7 +266,7 @@ void TestAppView::onMessage(Message msg)
                   // if size change is not from the controller, send it there so it will be saved with controller params.
                   if (!(msg.flags & kMsgFromController))
                   {
-                      Value constrainedSize(vec2ToMatrix(systemSizeConstrained));
+                      Value constrainedSize(vec2ToMatrix(cs));
                       sendMessageToActor(_controllerName, Message{ "set_param/view_size" , constrainedSize });
                   }
               }

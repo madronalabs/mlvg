@@ -17,8 +17,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   Vec2 eventScreenPos = e.screenPos;
   bool wasEngaged = engaged;
   
-  
-  std::cout << "screen pos: " << eventScreenPos << "\n";
+  // std::cout << "screen pos: " << eventScreenPos << "\n";
 
   if(type == "down")
   {

@@ -484,6 +484,24 @@ if(BUILD_SDL2_APP)
     target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
     target_link_libraries(${target} PRIVATE "mlvg")
 
+    
+    # add the package info
+    if(APPLE)
+        set_target_properties( 
+            ${target} PROPERTIES
+            # these settings allow the bundle version to be updated from the buildApp script.
+            # the stale version from when the XCode project was made will still appear in the
+            # project's "Custom macOS Application Target Properties."
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.madronalabs.guiro_example_app"
+            XCODE_ATTRIBUTE_INFOPLIST_FILE ${CMAKE_CURRENT_LIST_DIR}/examples/app/mac/Info.plist
+            XCODE_ATTRIBUTE_INFOPLIST_PREPROCESS NO
+            )
+            
+    elseif(APPLE)
+        # target_sources(${target} PRIVATE resource/guiro_example_app.rc)
+    endif(APPLE)
+            
+ 
     if(APPLE)
         target_compile_definitions(${target} PUBLIC "$<$<CONFIG:DEBUG>:DEBUG>")
         target_compile_definitions(${target} PUBLIC "$<$<CONFIG:RELEASE>:NDEBUG>")

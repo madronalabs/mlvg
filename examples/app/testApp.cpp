@@ -88,17 +88,10 @@ public:
                   Value v = m.value;
                   Matrix m = v.getMatrixValue();
                   Vec2 c (m[0], m[1]);
-                  Vec2 pixelSize = appView_->getCoords().systemToPixel(c);
 
                   if (window_)
                   {
-                      int w = pixelSize[0];
-                      int h = pixelSize[1];
-                    
-                    
-                    // TEMP                    SDL_SetWindowSize(window_, w, h);
-                      setWindowSizeInPixels(window_, pixelSize);
-                    
+                      SDL_SetWindowSize(window_, c[0], c[1]);
                   }
                   break;
               }
@@ -165,11 +158,8 @@ int main(int argc, char *argv[])
   // we have a few utilities in PlatformView that apps can use to make their own default strategies.
   Vec2 c = PlatformView::getPrimaryMonitorCenter(); // TODO -> platformViewUtils
 
-  // get sizes in pixel coords
-  float defaultScale = PlatformView::getDeviceScaleAtPoint(c);
-  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize * defaultScale;
-  Vec2 minSizeInPixels = kDefaultGridUnits * kMinGridUnitSize * defaultScale;
-  Vec2 maxSizeInPixels = kDefaultGridUnits * kMaxGridUnitSize * defaultScale;
+  // get window size in system coords
+  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
   Rect boundsRectInPixels(0, 0, defaultSize.x(), defaultSize.y());
   Rect defaultRectInPixels = alignCenterToPoint(boundsRectInPixels, c);
 
@@ -180,6 +170,10 @@ int main(int argc, char *argv[])
 
   // make SDL window
   int windowFlags = SDL_WINDOW_RESIZABLE;
+#if TEST_RESIZER
+  windowFlags = 0;
+#endif
+  
   appController.window_ = ml::newSDLWindow(defaultRectInPixels, "mlvg test", windowFlags);
   if(!appController.window_)
   {

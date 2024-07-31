@@ -452,7 +452,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // resize callback, called by the MTKView in pixel coordinates
 - (void) mtkView: (nonnull MTKView*)view drawableSizeWillChange:(CGSize)newSize
 {
-  std::cout << "renderer drawableSizeWillChange: " << newSize.width << " x " << newSize.height << "\n";
+  // std::cout << "renderer drawableSizeWillChange: " << newSize.width << " x " << newSize.height << "\n";
   [self resize: newSize];
 }
 
@@ -708,19 +708,19 @@ void PlatformView::resizePlatformView(int w, int h)
   //if(newSizeVec != displaySize_) // TEMP
   {
     displaySize_ = newSizeVec;
-    CGSize newSize = CGSizeMake(w/displayScale_, h/displayScale_);
-    CGSize cgPixelSize = CGSizeMake(w, h);
+    CGSize newScreenSize = CGSizeMake(w, h);
+    CGSize newPixelSize = CGSizeMake(w*displayScale_, h*displayScale_);
     
     if (_pImpl->_mtkView)
     {
       // set view frame size, which will trigger the renderer's drawableSizeWillChange call
-      [_pImpl->_mtkView setFrameSize:newSize];
+      [_pImpl->_mtkView setFrameSize:newScreenSize];
     }
     
     if (_pImpl->_renderer)
     {
       // this will resize the renderer if it exists but is not yet connected via drawableSizeWillChange (first time)
-      [_pImpl->_renderer resize:cgPixelSize];
+      [_pImpl->_renderer resize:newPixelSize];
     }
   }
 }
