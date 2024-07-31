@@ -60,7 +60,7 @@ public:
   // TODO only used for Mac, make internal only
   void setPlatformViewDisplayScale(float scale);
 
-  // resize the PlatformView, in pixel coordinates
+  // resize the PlatformView, in system coordinates
   void resizePlatformView(int w, int h);
 
 protected:

@@ -12,7 +12,7 @@
 #include "SDL_syswm.h"
 #include "native/MLSDLUtils.h"
 
-#define TEST_RESIZER 1
+#define TEST_RESIZER 0
 #define TEST_FIXED_RATIO 1
 
 const ml::Vec2 kDefaultGridUnits{ 16, 9 };
