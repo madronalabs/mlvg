@@ -256,6 +256,10 @@ void TestAppView::onMessage(Message msg)
                 // resize platform view
                 Vec2 c (m[0], m[1]);
                 Vec2 cs = constrainSize(c);
+
+
+                std::cout << "view)_size: " << c << " => " << cs << "\n";
+
                 _platformView->resizePlatformView(cs[0], cs[1]);
                 onResize(cs);
 

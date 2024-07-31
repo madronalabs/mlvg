@@ -58,7 +58,7 @@ struct PlatformView::Impl
   int targetFPS_{ 30 };
 
   Vec2 _totalDrag;
-  Vec2 sizeInPixels_;
+  Vec2 systemSize_;
 
   Impl();
   ~Impl() noexcept;
@@ -367,11 +367,14 @@ void PlatformView::resizePlatformView(int w, int h)
 {  
     if (_pImpl)
     {
-        float d = _pImpl->_deviceScale;
+    //    std::cout << "resizePlatformView: " << w << " x " << h << "\n";
+
         Vec2 newSize = Vec2(w, h);
-        if (newSize != _pImpl->sizeInPixels_)
+
+        if (newSize != _pImpl->systemSize_)
         {
-            _pImpl->sizeInPixels_ = newSize;
+            _pImpl->systemSize_ = newSize;
+            float d = _pImpl->_deviceScale;
 
             // resize window, GL, nanovg
             if (_pImpl->_windowHandle)
@@ -405,7 +408,7 @@ void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUI
     // get point in view/backing coordinates
     long x = GET_X_LPARAM(lParam);
     long y = GET_Y_LPARAM(lParam);
-    vgEvent->screenPos = eventPositionOnScreen(lParam);
+    vgEvent->screenPos = eventPositionOnScreen(lParam)*_deviceScale;
     vgEvent->position = Vec2(x, y);
 }
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
@@ -415,7 +418,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
   long y = GET_Y_LPARAM(lParam);
   POINT p{ x, y };
   ScreenToClient(_windowHandle, &p);
-  vgEvent->screenPos = Vec2(x, y);
+  vgEvent->screenPos = Vec2(x, y) * _deviceScale;
   vgEvent->position = Vec2(p.x, p.y);
 }
 

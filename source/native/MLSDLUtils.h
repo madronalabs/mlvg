@@ -208,7 +208,7 @@ inline void SdlAppResize(ResizingEventWatcherData* watcherData)
   if(w <= 0 || h <= 0) return;
   
   
-  std::cout << "SdlAppResize: " << w << " x " << h << "\n";
+ // std::cout << "SdlAppResize: " << w << " x " << h << "\n";
   
   watcherData->platformView->resizePlatformView(w, h);
   
