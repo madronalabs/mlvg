@@ -314,7 +314,7 @@ void PlatformView::Impl::swapBuffers()
 
 // PlatformView
 
-PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlags)
+PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlags, int fps)
 {
   if(!pParent) return;
 
@@ -328,7 +328,7 @@ PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlag
   // create child window and GL
   if (_pImpl->createWindow(parentHandle, this, platformHandle, bounds))
   {
-    _pImpl->targetFPS_ = kTargetFPS;
+    _pImpl->targetFPS_ = fps;
     
     // create nanovg
     _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
