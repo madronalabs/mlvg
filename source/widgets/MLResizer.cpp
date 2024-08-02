@@ -26,8 +26,8 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     engaged = true;
 
 
-   // TEMP _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
-    _sizeStart = (gc.viewSizeInPixels); 
+    _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
+    //_sizeStart = (gc.viewSizeInPixels); 
 
 
     _dragStart = eventScreenPos;

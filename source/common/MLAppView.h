@@ -12,7 +12,6 @@
 #include "MLGUIEvent.h"
 #include "MLView.h"
 #include "MLWidget.h"
-#include "MLPlatformView.h"
 
 namespace ml {
 
@@ -56,9 +55,6 @@ public:
     _sizeInGridUnits = size;
     aspectRatioIsFixed_ = true;
   }
-
-  // Rect getBorderRect() const { return _borderRect; }
-  bool getStretchToScreenMode() const { return _stretchToScreenMode; }
   
   Vec2 getDefaultDims() const {
     return _sizeInGridUnits * _defaultGridSize;
@@ -102,7 +98,6 @@ protected:
   size_t _minGridSize{ 30 };
   size_t _defaultGridSize{ 60 };
   size_t _maxGridSize{ 120 };
-  bool _stretchToScreenMode{false};
 
   // windowing
   void* _platformHandle{ nullptr };

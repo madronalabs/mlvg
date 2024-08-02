@@ -49,7 +49,8 @@ public:
   // parent: pointer to the parent window
   // platformHandle: platform-specific data
   // platformFlags: platform-specific flags
-  PlatformView(void* parent, void* platformHandle, int platformFlags);
+  // fps: target refresh rate
+  PlatformView(void* parent, void* platformHandle, int platformFlags, int fps);
   
   ~PlatformView();
   

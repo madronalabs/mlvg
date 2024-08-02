@@ -594,7 +594,7 @@ struct PlatformView::Impl
   MetalNanoVGRenderer* _renderer{nullptr};
 };
 
-PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platformFlags)
+PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platformFlags, int targetFPS)
 {
   if(!pParent) return;
   
@@ -660,7 +660,7 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   [view setFrameOrigin:CGPointMake(0, 0)];
   
   // We should set this to a frame rate that we think our renderer can consistently maintain.
-  view.preferredFramesPerSecond = ml::kTargetFPS;
+  view.preferredFramesPerSecond = targetFPS;
 
 
   _pImpl = std::make_unique< Impl >();
@@ -698,12 +698,12 @@ void PlatformView::setPlatformViewDisplayScale(float scale)
   }
 }
                      
-// resize view, in pixel coordinates
+// resize view, in system coordinates
 void PlatformView::resizePlatformView(int w, int h)
 {
   Vec2 newSizeVec(w, h);
   
-  std::cout << "resizePlatformView: " << newSizeVec << "\n";
+  // std::cout << "resizePlatformView: " << newSizeVec << "\n";
   
   //if(newSizeVec != displaySize_) // TEMP
   {

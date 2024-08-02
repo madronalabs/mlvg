@@ -124,7 +124,7 @@ void TestAppView::attachToWindow(SDL_Window* window)
 
     ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
 
-    _platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, nullptr, windowInfo.flags);
+    _platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, nullptr, windowInfo.flags, 60);
 
     // set initial size. When this is not a fixed-ratio app, the window sizes
     // freely and the grid unit size remains constant.
@@ -256,10 +256,6 @@ void TestAppView::onMessage(Message msg)
                 // resize platform view
                 Vec2 c (m[0], m[1]);
                 Vec2 cs = constrainSize(c);
-
-
-                std::cout << "view)_size: " << c << " => " << cs << "\n";
-
                 _platformView->resizePlatformView(cs[0], cs[1]);
                 onResize(cs);
 
