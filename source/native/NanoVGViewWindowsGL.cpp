@@ -43,7 +43,6 @@ struct PlatformView::Impl
   static LRESULT CALLBACK appWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
   NVGcontext* _nvg{ nullptr };
-
   ml::AppView* _appView{ nullptr };
   std::unique_ptr< DrawableImage > _nvgBackingLayer;
 
@@ -59,6 +58,8 @@ struct PlatformView::Impl
 
   Vec2 _totalDrag;
   Vec2 systemSize_;
+  Vec2 newViewSize_;
+  bool viewNeedsResize_{ false };
 
   Impl();
   ~Impl() noexcept;
@@ -79,6 +80,7 @@ struct PlatformView::Impl
   bool lockContext();
   bool unlockContext();
   void swapBuffers();
+  void doResize(Vec2 newSize);
 };
 
 // static utilities
@@ -302,6 +304,38 @@ bool PlatformView::Impl::unlockContext()
   return true;
 }
 
+void PlatformView::Impl::doResize(Vec2 newSize)
+{
+    if (newSize != systemSize_)
+    {
+        systemSize_ = newSize;
+        float d = _deviceScale;
+
+        // resize window, GL, nanovg
+        if (_windowHandle)
+        {
+            long flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE;
+            flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
+            lockContext();
+            makeContextCurrent();
+            SetWindowPos(_windowHandle, NULL, 0, 0, newSize.x(), newSize.y(), flags);
+
+            // resize main backing layer
+            if (_nvg)
+            {
+                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, newSize.x(), newSize.y());
+            }
+            unlockContext();
+        }
+
+        // notify the renderer
+        if (_appView)
+        {
+            _appView->viewResized(_nvg, newSize, _deviceScale);
+        }
+    }
+}
+
 void PlatformView::Impl::swapBuffers()
 {
   if (_deviceContext)
@@ -364,42 +398,11 @@ void PlatformView::setAppView(AppView* pView)
 }
 
 void PlatformView::resizePlatformView(int w, int h)
-{  
+{
     if (_pImpl)
     {
-    //    std::cout << "resizePlatformView: " << w << " x " << h << "\n";
-
-        Vec2 newSize = Vec2(w, h);
-
-        if (newSize != _pImpl->systemSize_)
-        {
-            _pImpl->systemSize_ = newSize;
-            float d = _pImpl->_deviceScale;
-
-            // resize window, GL, nanovg
-            if (_pImpl->_windowHandle)
-            {
-                long flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE;
-                flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
-
-                _pImpl->lockContext();
-                _pImpl->makeContextCurrent();
-                SetWindowPos(_pImpl->_windowHandle, NULL, 0, 0, newSize.x(), newSize.y(), flags);
-
-                // resize main backing layer
-                if (_pImpl->_nvg)
-                {
-                    _pImpl->_nvgBackingLayer = std::make_unique< DrawableImage >(_pImpl->_nvg, newSize.x(), newSize.y());
-                }
-                _pImpl->unlockContext();
-            }
-
-            // notify the renderer
-            if (_pImpl->_appView)
-            {
-                _pImpl->_appView->viewResized(_pImpl->_nvg, newSize, _pImpl->_deviceScale);
-            }
-        }
+        _pImpl->viewNeedsResize_ = true;
+        _pImpl->newViewSize_ = Vec2(w, h);
     }
 }
 
@@ -504,6 +507,14 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
       // NOTE: this might change the backing layer!
       pView->animate(nvg);
 
+      // resize if needed.
+      if (pGraphics->_pImpl->viewNeedsResize_)
+      {
+          pGraphics->_pImpl->doResize();
+          pGraphics->_pImpl->viewNeedsResize_ = false;
+      }
+
+      // draw
       if (!pGraphics->_pImpl->makeContextCurrent()) return 0;
       if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
       auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
