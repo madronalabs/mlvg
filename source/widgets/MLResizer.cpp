@@ -75,8 +75,6 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
         }      
       }
 
-      std::cout << "resizer: new size " << newSize << "\n";
-
       // send new size in system coordinates to the editor
       reqList.push_back(Message("set_param/view_size", vec2ToMatrix(newSize)));
     }
