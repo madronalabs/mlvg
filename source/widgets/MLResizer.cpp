@@ -25,9 +25,12 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 
     engaged = true;
 
-
+// TODO fix cross-platform coords and remove this
+#if ML_MAC
     _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
-    //_sizeStart = (gc.viewSizeInPixels); 
+#elif ML_WINDOWS
+    _sizeStart = (gc.viewSizeInPixels); 
+#endif
 
 
     _dragStart = eventScreenPos;
