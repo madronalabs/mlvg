@@ -36,8 +36,8 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     _dragStart = eventScreenPos;
     _dragDelta = Vec2(0, 0);
 
-    std::cout << "DOWN: viewSizeInPixels" << gc.viewSizeInPixels << "\n";
-    std::cout << "DOWN: _sizeStart" << _sizeStart << "\n\n";
+    //std::cout << "DOWN: viewSizeInPixels" << gc.viewSizeInPixels << "\n";
+   // std::cout << "DOWN: _sizeStart" << _sizeStart << "\n\n";
 
     
     // this ValueChange does nothing but indicate that we got the event
@@ -74,8 +74,6 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
           newSize[1] = newX / ratio;
         }      
       }
-
-      std::cout << "resizer: new size " << newSize << "\n";
 
       // send new size in system coordinates to the editor
       reqList.push_back(Message("set_param/view_size", vec2ToMatrix(newSize)));

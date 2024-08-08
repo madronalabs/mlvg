@@ -80,7 +80,7 @@ struct PlatformView::Impl
   bool lockContext();
   bool unlockContext();
   void swapBuffers();
-  void doResize(Vec2 newSize);
+  void doResize();
 };
 
 // static utilities
@@ -304,11 +304,11 @@ bool PlatformView::Impl::unlockContext()
   return true;
 }
 
-void PlatformView::Impl::doResize(Vec2 newSize)
+void PlatformView::Impl::doResize()
 {
-    if (newSize != systemSize_)
+    if (newViewSize_ != systemSize_)
     {
-        systemSize_ = newSize;
+        systemSize_ = newViewSize_;
         float d = _deviceScale;
 
         // resize window, GL, nanovg
@@ -318,12 +318,12 @@ void PlatformView::Impl::doResize(Vec2 newSize)
             flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
             lockContext();
             makeContextCurrent();
-            SetWindowPos(_windowHandle, NULL, 0, 0, newSize.x(), newSize.y(), flags);
+            SetWindowPos(_windowHandle, NULL, 0, 0, newViewSize_.x(), newViewSize_.y(), flags);
 
             // resize main backing layer
             if (_nvg)
             {
-                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, newSize.x(), newSize.y());
+                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, newViewSize_.x(), newViewSize_.y());
             }
             unlockContext();
         }
@@ -331,7 +331,7 @@ void PlatformView::Impl::doResize(Vec2 newSize)
         // notify the renderer
         if (_appView)
         {
-            _appView->viewResized(_nvg, newSize, _deviceScale);
+            _appView->viewResized(_nvg, newViewSize_, _deviceScale);
         }
     }
 }
@@ -502,6 +502,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     {
       PAINTSTRUCT ps;
       if ((!nvg) || (!pView)) return 0;
+      if (!pGraphics->_pImpl->makeContextCurrent()) return 0;
 
       // allow Widgets to animate. 
       // NOTE: this might change the backing layer!
@@ -515,7 +516,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
       }
 
       // draw
-      if (!pGraphics->_pImpl->makeContextCurrent()) return 0;
+
       if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
       auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
       if (!pBackingLayer) return 0;
@@ -537,7 +538,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
           // clear
           glViewport(0, 0, w, h);
-          glClearColor(0.f, 1.f, 0.f, 1.f);
+          glClearColor(1.f, 1.f, 0.f, 1.f);
           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
           nvgBeginFrame(nvg, w, h, 1.0f);

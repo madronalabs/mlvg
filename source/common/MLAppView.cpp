@@ -295,12 +295,20 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
 Vec2 AppView::constrainSize(Vec2 size) const
 {
   Vec2 newSize = size;
-  
+
+  // TODO fix cross-platform
+#if ML_WINDOWS
+  newSize = _GUICoordinates.pixelToSystem(newSize);
+#endif
+
     Vec2 minDims = getMinDims();
     Vec2 maxDims = getMaxDims();
     newSize = vmax(newSize, minDims);
     newSize = vmin(newSize, maxDims);
 
+#if ML_WINDOWS
+    newSize = _GUICoordinates.systemToPixel(newSize);
+#endif
   return newSize;
 }
 
