@@ -36,8 +36,8 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     _dragStart = eventScreenPos;
     _dragDelta = Vec2(0, 0);
 
-    std::cout << "DOWN: viewSizeInPixels" << gc.viewSizeInPixels << "\n";
-    std::cout << "DOWN: _sizeStart" << _sizeStart << "\n\n";
+    //std::cout << "DOWN: viewSizeInPixels" << gc.viewSizeInPixels << "\n";
+   // std::cout << "DOWN: _sizeStart" << _sizeStart << "\n\n";
 
     
     // this ValueChange does nothing but indicate that we got the event
