@@ -79,16 +79,21 @@ struct VectorImage
   nvg_(nvg)
   {
     // horribly, nsvgParse will clobber the data it reads! So let's copy that data before parsing.
-    std::vector<char> tempData;
-    tempData.resize(dataBytes);
-    std::copy_n(dataStart, dataBytes, tempData.data());
-    
-    _pImage = nsvgParse(tempData.data(), "px", 96);
-    if (_pImage)
+    // TODO replace nanosvg
+    char* pTempData{nullptr};
+    // there must be some bug in nanosvg. *2 is a safety net
+    if((pTempData = (char*)malloc(dataBytes*2)))
     {
-      width = _pImage->width;
-      height = _pImage->height;
+      std::copy_n(dataStart, dataBytes, pTempData);
+      _pImage = nsvgParse(pTempData, "px", 96);
+      if (_pImage)
+      {
+        width = _pImage->width;
+        height = _pImage->height;
+      }
     }
+    
+    free(pTempData);
   }
   
   ~VectorImage()
