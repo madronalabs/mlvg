@@ -12,7 +12,6 @@
 #include "MLGUIEvent.h"
 #include "MLView.h"
 #include "MLWidget.h"
-#include "MLPlatformView.h"
 
 namespace ml {
 
@@ -43,7 +42,7 @@ public:
   virtual void animate(NativeDrawContext* nvg);
   virtual void render(NativeDrawContext* nvg);
   
-  // called by the PlatformView to set our size in system coordinates.
+  // called by the PlatformView to set our size in pixel coordinates.
   void viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
   
   void setCoords(const GUICoordinates& c) { _GUICoordinates = c; }
@@ -56,30 +55,14 @@ public:
     _sizeInGridUnits = size;
     aspectRatioIsFixed_ = true;
   }
-
-  // Rect getBorderRect() const { return _borderRect; }
-  bool getStretchToScreenMode() const { return _stretchToScreenMode; }
   
-  Vec2 getMinDims() const {
-    if (aspectRatioIsFixed_)
-    {
-      // for a fixed ratio size window, _sizeInGridUnits is fixed.
-      return _sizeInGridUnits * _minGridSize;
-    }
-    else
-    {
-      // for a variable ratio window, _sizeInGridUnits may vary, grid size does not.
-      return _minSizeInGridUnits * _defaultGridSize;
-    }
-  }
   Vec2 getDefaultDims() const {
     return _sizeInGridUnits * _defaultGridSize;
   }
+  Vec2 getMinDims() const { return _sizeInGridUnits * _minGridSize; }
   Vec2 getMaxDims() const { return _sizeInGridUnits * _maxGridSize; }
   void setGridSizeDefault(int b) { _defaultGridSize = b; }
   void setGridSizeLimits(int a, int c) { _minGridSize = a; _maxGridSize = c; }
-  
-  void setMinSizeInGridUnits(Vec2 g) { _minSizeInGridUnits = g; }
   
   void startTimersAndActor();
   void stopTimersAndActor();
@@ -110,13 +93,11 @@ protected:
   // dimensions
   GUICoordinates _GUICoordinates;
   Vec2 _sizeInGridUnits;
-  Vec2 _minSizeInGridUnits{ 12, 9 };
   
   bool aspectRatioIsFixed_{ false };
-  size_t _minGridSize{ 48 };
-  size_t _defaultGridSize{ 96 };
-  size_t _maxGridSize{ 240 };
-  bool _stretchToScreenMode{false};
+  size_t _minGridSize{ 30 };
+  size_t _defaultGridSize{ 60 };
+  size_t _maxGridSize{ 120 };
 
   // windowing
   void* _platformHandle{ nullptr };

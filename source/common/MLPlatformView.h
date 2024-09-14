@@ -37,6 +37,9 @@ public:
   // get default point to put the center of a new window
   static Vec2 getPrimaryMonitorCenter();
   //
+  // get the scale at the point on the desktop, compared to "usual" DPI
+  static float getDeviceScaleAtPoint(Vec2 p);
+  //
   // get the scale the OS considers the window's device to be at, compared to "usual" DPI
   static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
   //
@@ -46,7 +49,8 @@ public:
   // parent: pointer to the parent window
   // platformHandle: platform-specific data
   // platformFlags: platform-specific flags
-  PlatformView(void* parent, void* platformHandle, int platformFlags);
+  // fps: target refresh rate
+  PlatformView(void* parent, void* platformHandle, int platformFlags, int fps);
   
   ~PlatformView();
   
@@ -54,14 +58,17 @@ public:
   // and notify it when window size and display scale change.
   void setAppView(AppView* pView);
   
+  // TODO only used for Mac, make internal only
   void setPlatformViewDisplayScale(float scale);
+
+  // resize the PlatformView, in system coordinates
   void resizePlatformView(int w, int h);
 
 protected:
   struct Impl;
   std::unique_ptr< Impl > _pImpl;
   float displayScale_{1.0f};
-  Vec2 displaySize{0, 0};
+  Vec2 displaySize_{0, 0};
 };
 
 } // namespace ml

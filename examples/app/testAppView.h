@@ -8,6 +8,16 @@
 #include "madronalib.h"
 #include "mlvg.h"
 
+#include "SDL.h"
+#include "SDL_syswm.h"
+#include "native/MLSDLUtils.h"
+
+#define TEST_RESIZER 1
+#define TEST_FIXED_RATIO 1
+
+const ml::Vec2 kDefaultGridUnits{ 16, 9 };
+const int kDefaultGridUnitSize{ 60 };
+
 class TestAppView final:
   public ml::AppView
 {
@@ -26,4 +36,11 @@ public:
   void onMessage(Message m) override;
   
   void makeWidgets(const ParameterDescriptionList& pdl);
+
+  void attachToWindow(SDL_Window* window);
+  void stop();
+
+private:
+	std::unique_ptr< PlatformView > _platformView;
+	ResizingEventWatcherData watcherData_;
 };

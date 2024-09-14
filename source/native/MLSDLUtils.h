@@ -12,43 +12,6 @@
 
 namespace ml {
 
-struct ResizingEventWatcherData
-{
-  SDL_Window* window{nullptr};
-  PlatformView* platformView{nullptr};
-};
-
-inline void SdlAppResize(ResizingEventWatcherData* watcherData)
-{
-  int w{ 0 };
-  int h{ 0 };
-  SDL_GetWindowSize(watcherData->window, &w, &h);
-  if ((w > 0) && (h > 0))
-  {
-    watcherData->platformView->resizePlatformView(w, h);
-  }
-}
-
-inline int resizingEventWatcher(void* data, SDL_Event* event)
-{
-  ResizingEventWatcherData* watcherData = static_cast<ResizingEventWatcherData*>(data);
-  SDL_Event& ev = *event;
-  
-  if(ev.type != SDL_WINDOWEVENT) return 0;
-  if (SDL_GetWindowFromID(ev.window.windowID) != watcherData->window) return 0;
-
-  switch(ev.window.event)
-  {
-    case SDL_WINDOWEVENT_RESIZED:// || (ev.window.event == SDL_WINDOWEVENT_MOVED ))
-    {
-      //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
-      SdlAppResize(watcherData);
-      break;
-    }
-  }
-  return 0;
-}
-
 inline uint32_t getPlatformWindowCreateFlags()
 {
 #if ML_WINDOWS
@@ -56,14 +19,14 @@ inline uint32_t getPlatformWindowCreateFlags()
 #elif ML_LINUX
   return 0;
 #elif ML_IOS
-  return SDL_WINDOW_METAL;
+  return SDL_WINDOW_METAL | SDL_WINDOW_ALLOW_HIGHDPI;
 #elif ML_MAC
-  return SDL_WINDOW_METAL;
+  return SDL_WINDOW_METAL | SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
 }
 
-
-inline SDL_Window* newSDLWindow(ml::Rect b, Vec2 minDims, Vec2 maxDims, const char* windowName)
+// create a new window. dims in system (screen) coodinates.
+inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName, int flags)
 {
   // Enable standard application logging
   SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
@@ -75,16 +38,15 @@ inline SDL_Window* newSDLWindow(ml::Rect b, Vec2 minDims, Vec2 maxDims, const ch
     return nullptr;
   }
   
-  int commonFlags = SDL_WINDOW_RESIZABLE;
-  
   // Create window
   int x = b.left();
   int y = b.top();
   int w = b.width();
   int h = b.height();
   
+  // combine user flags parameters with platform flags and make window
   SDL_Window* newWindow = SDL_CreateWindow(windowName, x, y, w, h,
-                                           commonFlags | getPlatformWindowCreateFlags());
+                                           flags | getPlatformWindowCreateFlags());
   
   if (!newWindow)
   {
@@ -92,13 +54,12 @@ inline SDL_Window* newSDLWindow(ml::Rect b, Vec2 minDims, Vec2 maxDims, const ch
     return nullptr;
   }
   
-  // set min and max sizes for window
-  SDL_SetWindowMinimumSize(newWindow, minDims.x(), minDims.y());
-  SDL_SetWindowMaximumSize(newWindow, maxDims.x(), maxDims.y());
-  
+  const int kWindowMinDim = 200;
+  SDL_SetWindowMinimumSize(newWindow, kWindowMinDim, kWindowMinDim);
+  SDL_SetWindowMaximumSize(newWindow, 10000, 10000);
+
   return newWindow;
 }
-
 
 inline void SDLAppLoop(SDL_Window* window, bool* done)
 {
@@ -194,11 +155,13 @@ inline ParentWindowInfo getParentWindowInfo(SDL_Window* window)
 #endif
     }
     
+
     SDL_Log("This program is running SDL version %d.%d.%d on %s",
             (int)info.version.major,
             (int)info.version.minor,
             (int)info.version.patch,
             subsystem);
+     
   }
   else
   {
@@ -208,7 +171,70 @@ inline ParentWindowInfo getParentWindowInfo(SDL_Window* window)
   return p;
 }
 
+
+inline Vec2 getWindowSizeInPixels(SDL_Window* window)
+{
+  int w, h;
+  SDL_GetWindowSize(window, &w, &h);
+  
+  auto p = getParentWindowInfo(window);
+  
+  float scale = PlatformView::getDeviceScaleForWindow(p.windowPtr, p.flags);
+  return Vec2(w*scale, h*scale);
 }
+
+
+inline void setWindowSizeInPixels(SDL_Window* window, Vec2 pixelSize)
+{
+  auto p = getParentWindowInfo(window);
+  
+  float scale = PlatformView::getDeviceScaleForWindow(p.windowPtr, p.flags);
+  Vec2 systemSize = pixelSize/scale;
+
+  SDL_SetWindowSize(window, systemSize.x(), systemSize.y());
+}
+
+
+struct ResizingEventWatcherData
+{
+  SDL_Window* window{nullptr};
+  PlatformView* platformView{nullptr};
+};
+
+inline void SdlAppResize(ResizingEventWatcherData* watcherData)
+{
+  int w, h;
+  SDL_GetWindowSize(watcherData->window, &w, &h);
+  if(w <= 0 || h <= 0) return;
+  
+  
+ // std::cout << "SdlAppResize: " << w << " x " << h << "\n";
+  
+  watcherData->platformView->resizePlatformView(w, h);
+  
+}
+
+inline int resizingEventWatcher(void* data, SDL_Event* event)
+{
+  ResizingEventWatcherData* watcherData = static_cast<ResizingEventWatcherData*>(data);
+  SDL_Event& ev = *event;
+  
+  if(ev.type != SDL_WINDOWEVENT) return 0;
+  if (SDL_GetWindowFromID(ev.window.windowID) != watcherData->window) return 0;
+  
+  switch(ev.window.event)
+  {
+    case SDL_WINDOWEVENT_RESIZED:// || (ev.window.event == SDL_WINDOWEVENT_MOVED ))
+    {
+      //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
+      SdlAppResize(watcherData);
+      break;
+    }
+  }
+  return 0;
+}
+
+} // namespace ml
 
 
 

@@ -42,11 +42,7 @@ struct PlatformView::Impl
 {
   static LRESULT CALLBACK appWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-  int _width{ 0 };
-  int _height{ 0 };
-
   NVGcontext* _nvg{ nullptr };
-
   ml::AppView* _appView{ nullptr };
   std::unique_ptr< DrawableImage > _nvgBackingLayer;
 
@@ -60,10 +56,11 @@ struct PlatformView::Impl
   float _deviceScale{ 0 };
   int targetFPS_{ 30 };
 
-protected:
   Vec2 _totalDrag;
+  Vec2 systemSize_;
+  Vec2 newViewSize_;
+  bool viewNeedsResize_{ false };
 
-public:
   Impl();
   ~Impl() noexcept;
 
@@ -83,6 +80,7 @@ public:
   bool lockContext();
   bool unlockContext();
   void swapBuffers();
+  void doResize();
 };
 
 // static utilities
@@ -92,6 +90,16 @@ Vec2 PlatformView::getPrimaryMonitorCenter()
     float x = GetSystemMetrics(SM_CXSCREEN);
     float y = GetSystemMetrics(SM_CYSCREEN);
     return Vec2{ x/2, y/2 };
+}
+
+float PlatformView::getDeviceScaleAtPoint(Vec2 p)
+{
+    POINT pt{ (long)p.x(), (long)p.y() };
+    HMONITOR hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+    DEVICE_SCALE_FACTOR sf;
+    GetScaleFactorForMonitor(hMonitor, &sf);
+
+    return (float)sf / 100.f;
 }
 
 float PlatformView::getDeviceScaleForWindow(void* parent, int /*platformFlags*/)
@@ -296,6 +304,38 @@ bool PlatformView::Impl::unlockContext()
   return true;
 }
 
+void PlatformView::Impl::doResize()
+{
+    if (newViewSize_ != systemSize_)
+    {
+        systemSize_ = newViewSize_;
+        float d = _deviceScale;
+
+        // resize window, GL, nanovg
+        if (_windowHandle)
+        {
+            long flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE;
+            flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
+            lockContext();
+            makeContextCurrent();
+            SetWindowPos(_windowHandle, NULL, 0, 0, newViewSize_.x(), newViewSize_.y(), flags);
+
+            // resize main backing layer
+            if (_nvg)
+            {
+                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, newViewSize_.x(), newViewSize_.y());
+            }
+            unlockContext();
+        }
+
+        // notify the renderer
+        if (_appView)
+        {
+            _appView->viewResized(_nvg, newViewSize_, _deviceScale);
+        }
+    }
+}
+
 void PlatformView::Impl::swapBuffers()
 {
   if (_deviceContext)
@@ -308,7 +348,7 @@ void PlatformView::Impl::swapBuffers()
 
 // PlatformView
 
-PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlags)
+PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlags, int fps)
 {
   if(!pParent) return;
 
@@ -322,7 +362,7 @@ PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlag
   // create child window and GL
   if (_pImpl->createWindow(parentHandle, this, platformHandle, bounds))
   {
-    _pImpl->targetFPS_ = kTargetFPS;
+    _pImpl->targetFPS_ = fps;
     
     // create nanovg
     _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
@@ -358,36 +398,12 @@ void PlatformView::setAppView(AppView* pView)
 }
 
 void PlatformView::resizePlatformView(int w, int h)
-{  
-  if (_pImpl)
-  {
-    _pImpl->_width = w;
-    _pImpl->_height = h;
-
-    // resize window, GL, nanovg
-    if (_pImpl->_windowHandle)
+{
+    if (_pImpl)
     {
-      long flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE;
-      flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
-
-      _pImpl->lockContext();
-      _pImpl->makeContextCurrent();
-      SetWindowPos(_pImpl->_windowHandle, NULL, 0, 0, w, h, flags);
-
-      // resize main backing layer
-      if (_pImpl->_nvg)
-      {
-        _pImpl->_nvgBackingLayer = std::make_unique< DrawableImage >(_pImpl->_nvg, w, h);
-      }
-      _pImpl->unlockContext();
+        _pImpl->viewNeedsResize_ = true;
+        _pImpl->newViewSize_ = Vec2(w, h);
     }
-
-    // notify the renderer
-    if (_pImpl->_appView)
-    {
-	  _pImpl->_appView->viewResized(_pImpl->_nvg, ml::Vec2{static_cast<float>(w), static_cast<float>(h)}, _pImpl->_deviceScale );
-    }
-  }
 }
 
 void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
@@ -395,7 +411,7 @@ void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUI
     // get point in view/backing coordinates
     long x = GET_X_LPARAM(lParam);
     long y = GET_Y_LPARAM(lParam);
-    vgEvent->screenPos = eventPositionOnScreen(lParam);
+    vgEvent->screenPos = eventPositionOnScreen(lParam)*_deviceScale;
     vgEvent->position = Vec2(x, y);
 }
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
@@ -405,7 +421,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
   long y = GET_Y_LPARAM(lParam);
   POINT p{ x, y };
   ScreenToClient(_windowHandle, &p);
-  vgEvent->screenPos = Vec2(x, y);
+  vgEvent->screenPos = Vec2(x, y) * _deviceScale;
   vgEvent->position = Vec2(p.x, p.y);
 }
 
@@ -485,19 +501,28 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     case WM_PAINT:
     {
       PAINTSTRUCT ps;
-
+      if ((!nvg) || (!pView)) return 0;
       if (!pGraphics->_pImpl->makeContextCurrent()) return 0;
+
+      // allow Widgets to animate. 
+      // NOTE: this might change the backing layer!
+      pView->animate(nvg);
+
+      // resize if needed.
+      if (pGraphics->_pImpl->viewNeedsResize_)
+      {
+          pGraphics->_pImpl->doResize();
+          pGraphics->_pImpl->viewNeedsResize_ = false;
+      }
+
+      // draw
+
       if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
       auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
       if (!pBackingLayer) return 0;
-      if ((!nvg) || (!pView)) return 0;
 
       size_t w = pBackingLayer->width;
       size_t h = pBackingLayer->height;
-
-      // allow Widgets to animate. 
-      // TEMP: this might change the backing layer! make that impossible
-      pView->animate(nvg);
 
       // draw the AppView to the backing Layer. The backing layer is our persistent
       // buffer, so don't clear it.
@@ -513,7 +538,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
           // clear
           glViewport(0, 0, w, h);
-          glClearColor(0.f, 1.f, 0.f, 1.f);
+          glClearColor(1.f, 1.f, 0.f, 1.f);
           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
           nvgBeginFrame(nvg, w, h, 1.0f);

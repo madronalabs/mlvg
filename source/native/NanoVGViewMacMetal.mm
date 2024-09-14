@@ -44,7 +44,7 @@ Vec2 NSPointToVec2(NSPoint p)
   PlatformView* platformView_;
   NSPoint totalDrag_;
   float displayScale;
-  NSSize displaySize;
+  NSSize displaySize_;
   bool needsResize;
 }
 
@@ -56,7 +56,7 @@ Vec2 NSPointToVec2(NSPoint p)
   {
     // initialize to default values
     displayScale = 1.0f;
-    displaySize = NSMakeSize(0, 0);
+    displaySize_ = NSMakeSize(0, 0);
     needsResize = false;
   }
   
@@ -76,7 +76,7 @@ Vec2 NSPointToVec2(NSPoint p)
 
 - (void)setFrameSize:(NSSize)size
 {
-  displaySize = size;
+  displaySize_ = size;
   [super setFrameSize:size];
 }
 
@@ -183,7 +183,7 @@ Vec2 NSPointToVec2(NSPoint p)
   [self convertEventFlags:pEvent toGUIEvent:&e];
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt);
+  e.screenPos = NSPointToVec2(pt) * displayScale;
   totalDrag_ = NSMakePoint(0, 0);
   
   if(appView_)
@@ -203,7 +203,7 @@ Vec2 NSPointToVec2(NSPoint p)
   e.keyFlags |= controlModifier;
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt);
+  e.screenPos = NSPointToVec2(pt) * displayScale;
   
   // reset drag
   totalDrag_ = NSMakePoint(0, 0);
@@ -263,7 +263,7 @@ Vec2 NSPointToVec2(NSPoint p)
     // add total drag offset to event and send
     [self convertEventPositionsWithOffset:pEvent withOffset:totalDrag_ toGUIEvent:&e];
     [self convertEventFlags:pEvent toGUIEvent:&e];
-    e.screenPos = NSPointToVec2(eventPos);
+    e.screenPos = NSPointToVec2(eventPos) * displayScale;
     appView_->pushEvent(e);
   }
 }
@@ -276,7 +276,7 @@ Vec2 NSPointToVec2(NSPoint p)
   [self convertEventFlags:pEvent toGUIEvent:&e];
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt);
+  e.screenPos = NSPointToVec2(pt) * displayScale;
 
   
   if(appView_)
@@ -293,7 +293,7 @@ Vec2 NSPointToVec2(NSPoint p)
   [self convertEventFlags:pEvent toGUIEvent:&e];
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt);
+  e.screenPos = NSPointToVec2(pt) * displayScale;
 
   // set control down for right click. TODO different event!
   e.keyFlags |= controlModifier;
@@ -321,8 +321,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     e.delta = eventDelta;
     
     NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-    e.screenPos = NSPointToVec2(pt);
-
+    e.screenPos = NSPointToVec2(pt) * displayScale;
     
     // restore device values if user has "natural scrolling" off in Prefs
     bool scrollDirectionNatural = pEvent.directionInvertedFromDevice;
@@ -453,7 +452,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // resize callback, called by the MTKView in pixel coordinates
 - (void) mtkView: (nonnull MTKView*)view drawableSizeWillChange:(CGSize)newSize
 {
-  //std::cout << "renderer drawableSizeWillChange: " << newSize.width << " x " << newSize.height << "\n";
+  // std::cout << "renderer drawableSizeWillChange: " << newSize.width << " x " << newSize.height << "\n";
   [self resize: newSize];
 }
 
@@ -499,7 +498,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 {
   Vec2 newNativeSize(size.width, size.height);
 
-  if((newNativeSize != _nativeSize) || (!_backingLayer.get()))
+//  if((newNativeSize != _nativeSize) || (!_backingLayer.get()))
   {
     _nativeSize = newNativeSize;
     _backingLayer = std::make_unique< DrawableImage >(_nvg, _nativeSize.x(), _nativeSize.y());
@@ -530,6 +529,12 @@ Vec2 PlatformView::getPrimaryMonitorCenter()
   float x = frm.origin.x + frm.size.width/2;
   float y = frm.origin.y + frm.size.height/2;
   return Vec2{x, y};
+}
+
+// get the scale the OS considers the window's device to be at, compared to "usual" DPI
+float PlatformView::getDeviceScaleAtPoint(Vec2 p)
+{
+  return 1.0f;
 }
 
 // get the scale the OS considers the window's device to be at, compared to "usual" DPI
@@ -589,7 +594,7 @@ struct PlatformView::Impl
   MetalNanoVGRenderer* _renderer{nullptr};
 };
 
-PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platformFlags)
+PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platformFlags, int targetFPS)
 {
   if(!pParent) return;
   
@@ -655,7 +660,7 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   [view setFrameOrigin:CGPointMake(0, 0)];
   
   // We should set this to a frame rate that we think our renderer can consistently maintain.
-  view.preferredFramesPerSecond = ml::kTargetFPS;
+  view.preferredFramesPerSecond = targetFPS;
 
 
   _pImpl = std::make_unique< Impl >();
@@ -697,22 +702,25 @@ void PlatformView::setPlatformViewDisplayScale(float scale)
 void PlatformView::resizePlatformView(int w, int h)
 {
   Vec2 newSizeVec(w, h);
-  if(newSizeVec != displaySize)
+  
+  // std::cout << "resizePlatformView: " << newSizeVec << "\n";
+  
+  //if(newSizeVec != displaySize_) // TEMP
   {
-    displaySize = newSizeVec;
-    CGSize newSize = CGSizeMake(w, h);
-    CGSize displaySize = CGSizeMake(w*displayScale_, h*displayScale_);
+    displaySize_ = newSizeVec;
+    CGSize newScreenSize = CGSizeMake(w, h);
+    CGSize newPixelSize = CGSizeMake(w*displayScale_, h*displayScale_);
     
     if (_pImpl->_mtkView)
     {
       // set view frame size, which will trigger the renderer's drawableSizeWillChange call
-      [_pImpl->_mtkView setFrameSize:newSize];
+      [_pImpl->_mtkView setFrameSize:newScreenSize];
     }
     
     if (_pImpl->_renderer)
     {
       // this will resize the renderer if it exists but is not yet connected via drawableSizeWillChange (first time)
-      [_pImpl->_renderer resize:displaySize];
+      [_pImpl->_renderer resize:newPixelSize];
     }
   }
 }
