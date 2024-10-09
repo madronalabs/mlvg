@@ -363,6 +363,10 @@ File ml::FileUtils::getApplicationDataFile(TextFragment maker, TextFragment app,
   {
     extension = "scl";
   }
+  else if(type == "mappings")
+  {
+    extension = "kbm";
+  }
   else if(type == "partials")
   {
     extension = "sumu";
