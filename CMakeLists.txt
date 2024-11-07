@@ -1,20 +1,20 @@
- # root CMakeLists.txt for mlvg examples.
- # for example:
- # mkdir build
- # cd build
- # cmake -GXcode ..
- #
- # Windows:
- # cmake -G"Visual Studio 14 2015 Win64" ..
- 
- # for windows validator debug:
- # debugging / command: C:\Users\Randy\dev\mlvg\build\bin\Debug\validator.exe
- # debugging / command arguments: C:\Users\Randy\dev\mlvg\build\VST3\Debug\aaltoverb.vst3\Contents\x86_64-win\aaltoverb.vst3
+# root CMakeLists.txt for mlvg examples.
+# for example:
+# mkdir build
+# cd build
+# cmake -GXcode ..
+#
+# Windows:
+# cmake -G"Visual Studio 14 2015 Win64" ..
+
+# for windows validator debug:
+# debugging / command: C:\Users\Randy\dev\mlvg\build\bin\Debug\validator.exe
+# debugging / command arguments: C:\Users\Randy\dev\mlvg\build\VST3\Debug\aaltoverb.vst3\Contents\x86_64-win\aaltoverb.vst3
 
 
-  #--------------------------------------------------------------------
-  # set min version and deployment target -- before project
-  #--------------------------------------------------------------------
+#--------------------------------------------------------------------
+# set min version and deployment target -- before project
+#--------------------------------------------------------------------
     
  cmake_minimum_required (VERSION 3.5)
     
@@ -108,7 +108,7 @@ message("madronalib library should be in: " ${MADRONALIB_LIBRARY_DIR}/${madronal
 
 
  #--------------------------------------------------------------------
- # find mlvg sources including our juce-core subset 
+ # find mlvg sources including our juce-core subset
  #--------------------------------------------------------------------
  
  set (MLVG_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/source")
@@ -235,7 +235,6 @@ set(cjson_include_dirs ${MLVG_SOURCE_DIR}/external/cJSON)
 #--------------------------------------------------------------------
 
 set(miniz_sources ${MLVG_SOURCE_DIR}/external/miniz/miniz.c)
-
 
 #--------------------------------------------------------------------
 # add filesystem library
@@ -487,7 +486,7 @@ if(BUILD_SDL2_APP)
     
     # add the package info
     if(APPLE)
-        set_target_properties( 
+        set_target_properties(
             ${target} PROPERTIES
             # these settings allow the bundle version to be updated from the buildApp script.
             # the stale version from when the XCode project was made will still appear in the
@@ -537,6 +536,7 @@ set(NATIVE2 "${MLVG_SOURCE_DIR}/external/osdialog/osdialog_mac.m")
 set(NATIVE3 "${MLVG_SOURCE_DIR}/external/MetalNanoVG/src/*.*")
 source_group(native REGULAR_EXPRESSION "${NATIVE1}|${NATIVE2}|${NATIVE3}")
 # source_group(native REGULAR_EXPRESSION "*.m")
+
 
 
 

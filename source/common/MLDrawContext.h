@@ -453,11 +453,18 @@ struct VGTransform
 
 // TODO: compose(a, b, c...)
 
-inline VGTransform compose(VGTransform a, VGTransform b)
+inline VGTransform compose(const VGTransform a, const VGTransform b)
 {
   VGMatrix m = a.transMatrix;
   nvgTransformMultiply(m.data(), b.transMatrix.data());
   return VGTransform(m);
+}
+
+inline VGTransform inverse(const VGTransform a)
+{
+  VGTransform t;
+  nvgTransformInverse(t.transMatrix.data(), a.transMatrix.data());
+  return t;
 }
 
 inline VGTransform translate(Vec2 p)
