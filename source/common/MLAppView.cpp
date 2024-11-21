@@ -163,13 +163,25 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
   // build index of any widgets that need signals, and subscribe to those signals.
   for(auto& w : _view->_widgets)
   {
-    if(w->hasProperty("signal_name"))
+    for(int i = 1; i <= 9; ++i)
     {
-      const Path sigName(w->getTextProperty("signal_name"));
-      _widgetsBySignal[sigName].push_back(w.get());
-      
-      // message the controller to subscribe to the signal.
-      sendMessageToActor(_controllerName, Message{"do/subscribe_to_signal", pathToText(sigName)});
+      Symbol signalNameNSym;
+      if ( i == 1 )
+      {
+        signalNameNSym = Symbol("signal_name");
+      }
+      else
+      {
+        signalNameNSym = Symbol(TextFragment("signal_name_", textUtils::naturalNumberToText(i)));
+      }
+      if(w->hasProperty(signalNameNSym))
+      {
+        const Path sigName(w->getTextProperty(signalNameNSym));
+        _widgetsBySignal[sigName].push_back(w.get());
+        
+        // message the controller to subscribe to the signal.
+        sendMessageToActor(_controllerName, Message{"do/subscribe_to_signal", pathToText(sigName)});
+      }
     }
   }
   

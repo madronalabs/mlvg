@@ -141,7 +141,6 @@ void TestAppView::attachToWindow(SDL_Window* window)
    makeWidgets(pdl);
    startTimersAndActor();
 
-
    // resize will trigger layout of widgets, so wait until after making widgets to resize for the first time
    int w, h;
    SDL_GetWindowSize(window, &w, &h);

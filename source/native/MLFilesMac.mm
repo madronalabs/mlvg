@@ -54,6 +54,7 @@ Path getApplicationDataPath(TextFragment maker, TextFragment app, Symbol type)
         break;
       }
       case(hash("scales")):
+      case(hash("mappings")):
       {
         result = Path(makerPath, "Scales");
         break;

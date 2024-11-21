@@ -178,7 +178,7 @@ namespace ml {
         virtual MessageList processGUIEvent(const GUICoordinates& gc, GUIEvent e) { return MessageList{}; }
 
         // process data from a published Signal, for signal viewers. Most Widgets don't implement this.
-        virtual void processPublishedSignal(Value sigVal) {}
+        virtual void processPublishedSignal(Value sigVal, Symbol sigType) {}
 
         // called by the editor each frame just before drawing. This allows Widgets to
         // update any properties based on the time elapsed since the last frame.
