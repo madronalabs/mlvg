@@ -123,14 +123,15 @@ protected:
   Vec2 _clickAndHoldStartPosition;
   Vec2 _doubleClickStartPosition;
   
+  // called every second
+  virtual void debugAppView() {}
+
   // why underscores?! TODO clean up.
   void _deleteWidgets();
   void _setupWidgets(const ParameterDescriptionList& pdl);
   void _updateParameterDescription(const ParameterDescriptionList& pdl, Path pname);
   void _handleGUIEvents();
 
-  
-  void _debug();
   void _sendParameterMessageToWidgets(const Message& msg);
   GUIEvent _detectDoubleClicks(GUIEvent e);
   

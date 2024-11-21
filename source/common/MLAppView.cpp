@@ -210,11 +210,6 @@ void AppView::clearWidgets()
 }
 
 
-void AppView::_debug()
-{
-
-}
-
 void AppView::_sendParameterMessageToWidgets(const Message& msg)
 {
   if(msg.value)
@@ -291,15 +286,17 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
   return r;
 }
 
-// given a window size in systen coordinates, tweak it to be a valid window size.
+// given a window size in system coordinates, tweak it to be a valid window size.
 Vec2 AppView::constrainSize(Vec2 size) const
 {
   Vec2 newSize = size;
 
-  // TODO fix cross-platform
+
+  // TODO fix cross-platform stuff. is this really system size input? Doesn't make sense as currently commented.
 #if ML_WINDOWS
   newSize = _GUICoordinates.pixelToSystem(newSize);
 #endif
+
 
     Vec2 minDims = getMinDims();
     Vec2 maxDims = getMaxDims();
@@ -307,7 +304,7 @@ Vec2 AppView::constrainSize(Vec2 size) const
     newSize = vmin(newSize, maxDims);
 
 #if ML_WINDOWS
-    newSize = _GUICoordinates.systemToPixel(newSize);
+   newSize = _GUICoordinates.systemToPixel(newSize);
 #endif
   return newSize;
 }
@@ -362,7 +359,7 @@ void AppView::startTimersAndActor()
 {
   _previousFrameTime = system_clock::now();
   _ioTimer.start([=](){ _handleGUIEvents(); }, milliseconds(1000/60));
-  _debugTimer.start([=]() { _debug(); }, milliseconds(1000));
+  _debugTimer.start([=]() { debugAppView(); }, milliseconds(1000));
   Actor::start();
 }
 

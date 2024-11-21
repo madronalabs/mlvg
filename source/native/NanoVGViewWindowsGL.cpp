@@ -54,7 +54,7 @@ struct PlatformView::Impl
   CRITICAL_SECTION _drawLock{ nullptr };
 
   float _deviceScale{ 0 };
-  int targetFPS_{ 30 };
+  int targetFPS_{ 60 };
 
   Vec2 _totalDrag;
   Vec2 systemSize_;
@@ -358,7 +358,6 @@ PlatformView::PlatformView(void* pParent, void* platformHandle, int platformFlag
   HWND parentHandle = (HWND)pParent;
   Rect bounds = getWindowRect(pParent, 0);
 
-
   // create child window and GL
   if (_pImpl->createWindow(parentHandle, this, platformHandle, bounds))
   {
@@ -462,7 +461,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
   {
     // targetFPS_needs to be a little higher than actual preferred rate
     // because of window sync
-      float fFps = 30;// pGraphics->_pImpl->targetFPS_;
+      float fFps = 60; // NOT WORKING NULLPTR pGraphics->_pImpl->targetFPS_;
     int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f )));
     UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
     SetFocus(hWnd);
