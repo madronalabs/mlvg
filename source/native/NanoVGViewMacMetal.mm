@@ -428,8 +428,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 
 - (void)setDisplayScale:(float)scale
 {
-  std::cout << "renderer setDisplayScale: " << displayScale << "\n";
-
   if(displayScale != scale)
   {
     displayScale = scale;
