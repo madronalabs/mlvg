@@ -11,193 +11,92 @@
 #include <cmath>
 #include <algorithm>
 
-#include "mldsp.h"
-#include "MLMatrix.h"
+#include "MLDSPScalarMath.h"
 
 namespace ml {
 
-using V4 = std::array<float, 4>;
+// internal V4 type with math that should be auto-vectorized.
 
-//inline bool operator==(const V4& a, const V4& b) { return (a == b); }
-
-class MLVec
+struct alignas(16) V4
 {
-public:
-  V4 val;
+  union
+  {
+    std::array<float, 4> val;
+    struct {
+      float x;
+      float y;
+      float z;
+      float w;
+    };
+  };
   
-  static const V4 kZeroValue;
+  V4() : x(0.f), y(0.f), z(0.f), w(0.f) {}
+  V4(float a) : x(a), y(0.f), z(0.f), w(0.f) {}
+  V4(float a, float b) : x(a), y(b), z(0.f), w(0.f) {}
+  V4(float a, float b, float c) : x(a), y(b), z(c), w(0.f) {}
+  V4(float a, float b, float c, float d) : x(a), y(b), z(c), w(d) {}
+
+  inline V4 & operator+=(const V4& b)
+  {
+    for(unsigned int i=0; i<4; ++i) { val[i] += b.val[i]; }
+    return *this;
+  }
+  inline V4 & operator-=(const V4& b)
+  {
+    for(unsigned int i=0; i<4; ++i) { val[i] -= b.val[i]; }
+    return *this;
+  }
+  inline V4 & operator*=(const V4& b)
+  {
+    for(unsigned int i=0; i<4; ++i) { val[i] *= b.val[i]; }
+    return *this;
+  }
+  inline V4 & operator/=(const V4& b)
+  {
+    for(unsigned int i=0; i<4; ++i) { val[i] /= b.val[i]; }
+    return *this;
+  }
+
+  inline const V4 operator+ (const V4& b) const { return V4(*this) += b; }
+  inline const V4 operator- (const V4& b) const { return V4(*this) -= b; }
+  inline const V4 operator* (const V4& b) const { return V4(*this) *= b; }
+  inline const V4 operator/ (const V4& b) const { return V4(*this) /= b; }
   
-  MLVec() : val(kZeroValue) {}
-  MLVec(V4 v) : val(v) {}
-  MLVec(const float f) { val = {f, f, f, f}; }
-  MLVec(const MLVec& b) : val(b.val) {}
-  MLVec(const float a, const float b, const float c, const float d) { val = {a, b, c, d}; }
-  MLVec(const float* p) { val = {p[0], p[1], p[2], p[3]}; }
+  inline const V4 operator-() const { return V4{-val[0], -val[1], -val[2], -val[3]}; }
   
-  virtual ~MLVec() = default;
-  
-  //static MLVec null() { return MLVec(kNullValue); }
-  explicit operator bool() const { return !(val == kZeroValue); }
-  
-  inline void clear() { val = {0}; }
-  inline void set(float f) { val = {f, f, f, f}; }
-  
-  inline MLVec & operator+=(const MLVec& b)
-  { val[0]+=b.val[0]; val[1]+=b.val[1]; val[2]+=b.val[2]; val[3]+=b.val[3];
-    return *this; }
-  inline MLVec & operator-=(const MLVec& b)
-  { val[0]-=b.val[0]; val[1]-=b.val[1]; val[2]-=b.val[2]; val[3]-=b.val[3];
-    return *this; }
-  inline MLVec & operator*=(const MLVec& b)
-  { val[0]*=b.val[0]; val[1]*=b.val[1]; val[2]*=b.val[2]; val[3]*=b.val[3];
-    return *this; }
-  inline MLVec & operator/=(const MLVec& b)
-  { val[0]/=b.val[0]; val[1]/=b.val[1]; val[2]/=b.val[2]; val[3]/=b.val[3];
-    return *this; }
-  inline const MLVec operator-() const { return MLVec{-val[0], -val[1], -val[2], -val[3]}; }
-  
-  // inspector, return by value
-  inline float operator[] (int i) const { return val[i]; }
-  // mutator, return by reference
-  inline float& operator[] (int i) { return val[i]; }
-  
-  bool operator==(const MLVec& b) const;
-  bool operator!=(const MLVec& b) const;
-  
-  inline const MLVec operator+ (const MLVec& b) const { return MLVec(*this) += b; }
-  inline const MLVec operator- (const MLVec& b) const { return MLVec(*this) -= b; }
-  inline const MLVec operator* (const MLVec& b) const { return MLVec(*this) *= b; }
-  inline const MLVec operator/ (const MLVec& b) const { return MLVec(*this) /= b; }
-  
-  inline MLVec & operator*=(const float f) { (*this) *= MLVec(f); return *this; }
-  inline const MLVec operator* (const float f) const { return MLVec(*this) *= MLVec(f, f, f, f); }
-  inline const MLVec operator/ (const float f) const { return MLVec(*this) /= MLVec(f, f, f, f); }
   void quantize(int q);
   
-  MLVec getIntPart() const;
-  MLVec getFracPart() const;
-  void getIntAndFracParts(MLVec& intPart, MLVec& fracPart) const;
+  V4 getIntPart() const;
+  V4 getFracPart() const;
+  void getIntAndFracParts(V4& intPart, V4& fracPart) const;
 };
 
-inline const MLVec vmin(const MLVec&a, const MLVec&b)
-{ return MLVec(std::min(a.val[0],b.val[0]),std::min(a.val[1],b.val[1]),
-               std::min(a.val[2],b.val[2]),std::min(a.val[3],b.val[3])); }
-inline const MLVec vmax(const MLVec&a, const MLVec&b)
-{ return MLVec(std::max(a.val[0],b.val[0]),std::max(a.val[1],b.val[1]),
-               std::max(a.val[2],b.val[2]),std::max(a.val[3],b.val[3])); }
-inline const MLVec vclamp(const MLVec&a, const MLVec&b, const MLVec&c) { return vmin(c, vmax(a, b)); }
-
-inline const MLVec vsqrt(const MLVec& a)
-{ return MLVec(sqrtf(a.val[0]), sqrtf(a.val[1]), sqrtf(a.val[2]), sqrtf(a.val[3])); }
-
-inline const MLVec lerp(const MLVec& a, const MLVec&b, const float m)
-{ return a + MLVec(m)*(b - a); }
-
-class Vec2 : public MLVec
+inline V4 vmin(V4 a, V4 b)
 {
-public:
-  Vec2() : MLVec() {}
-  Vec2(const MLVec& b) : MLVec(b) {};
-  Vec2(float px, float py) { val[0] = px; val[1] = py; val[2] = 0.; val[3] = 0.; }
-  float x() const { return val[0]; }
-  float y() const { return val[1]; }
-  
-  float& x() { return val[0]; }
-  float& y() { return val[1]; }
-  
-  // deprecated!
-  void setX(float f) { val[0] = f; }
-  void setY(float f) { val[1] = f; }
-};
-
-class Vec3 : public MLVec
-{
-public:
-  Vec3() : MLVec() {}
-  Vec3(const MLVec& b) : MLVec(b) {};
-  Vec3(float px, float py, float pz) { val[0] = px; val[1] = py; val[2] = pz; val[3] = 0.; }
-
-  float x() const { return val[0]; }
-  float y() const { return val[1]; }
-  float z() const { return val[2]; }
-  
-  float& x() { return val[0]; }
-  float& y() { return val[1]; }
-  float& z() { return val[2]; }
-
-  // deprecated!
-  void setX(float f) { val[0] = f; }
-  void setY(float f) { val[1] = f; }
-  void setZ(float f) { val[2] = f; }
-};
-
-class Vec4 : public MLVec
-{
-public:
-  Vec4() : MLVec() {}
-  Vec4(const MLVec& b) : MLVec(b) {};
-  Vec4(float px, float py, float pz, float pw) { val[0] = px; val[1] = py; val[2] = pz; val[3] = pw; }
-
-  float x() const { return val[0]; }
-  float y() const { return val[1]; }
-  float z() const { return val[2]; }
-  float w() const { return val[3]; }
-  
-  float& x() { return val[0]; }
-  float& y() { return val[1]; }
-  float& z() { return val[2]; }
-  float& w() { return val[3]; }
-
-  // deprecated!
-  void setX(float f) { val[0] = f; }
-  void setY(float f) { val[1] = f; }
-  void setZ(float f) { val[2] = f; }
-  void setW(float f) { val[3] = f; }
-};
-
-const Vec2 kHalfPixel{0.5f, 0.5f};
-
-inline float magnitude(Vec2 v)
-{
-  float a = v.val[0];
-  float b = v.val[1];
-  return sqrtf(a*a + b*b);
+  V4 r;
+  for(unsigned int i=0; i<4; ++i) { r.val[i] = std::min(a.val[i], b.val[i]); }
+  return r;
 }
 
-inline float magnitude(Vec3 v)
+inline V4 vmax(V4 a, V4 b)
 {
-  float a = v.val[0];
-  float b = v.val[1];
-  float c = v.val[2];
-  return sqrtf(a*a + b*b + c*c);
+  V4 r;
+  for(unsigned int i=0; i<4; ++i) { r.val[i] = std::max(a.val[i], b.val[i]); }
+  return r;
 }
 
-inline float magnitude(Vec4 v)
+inline const V4 vclamp(const V4&a, const V4&b, const V4&c) { return vmin(c, vmax(a, b)); }
+
+inline V4 vsqrt(V4 a)
 {
-  float a = v.val[0];
-  float b = v.val[1];
-  float c = v.val[2];
-  float d = v.val[3];
-  return sqrtf(a*a + b*b + c*c + d*d);
+  V4 r;
+  for(unsigned int i=0; i<4; ++i) { r.val[i] = sqrtf(a.val[i]); }
+  return r;
 }
 
+inline const V4 lerp(const V4& a, const V4&b, const float m) { return a + V4{m, m, m, m}*(b - a); }
 
-inline float magnitudeSquared(Vec2 v)
-{
-  float a = v.val[0];
-  float b = v.val[1];
-  return (a*a + b*b);
-}
-
-inline float magnitudeSquared(Vec3 v)
-{
-  float a = v.val[0];
-  float b = v.val[1];
-  float c = v.val[2];
-  return (a*a + b*b + c*c);
-}
-
-inline float magnitudeSquared(Vec4 v)
+inline float magnitudeSquared(V4 v)
 {
   float a = v.val[0];
   float b = v.val[1];
@@ -206,28 +105,44 @@ inline float magnitudeSquared(Vec4 v)
   return (a*a + b*b + c*c + d*d);
 }
 
-
-inline MLVec normalize(MLVec a)
+inline float sum(V4 v)
 {
-  return MLVec(a/magnitude(Vec4(a)));
+  float a = v.val[0];
+  float b = v.val[1];
+  float c = v.val[2];
+  float d = v.val[3];
+  return (a + b + c + d);
 }
 
+inline float magnitude(V4 v) { return sqrtf(magnitudeSquared(v)); }
+inline V4 normalize(V4 v) { return (v/magnitude(v)); }
+inline float dotProduct(V4 v, V4 w) { return sum(v*w); }
 
-inline float dotProduct(Vec2 v, Vec2 w)
+// derived types
+
+struct Vec2 : public V4
 {
-  return v.x()*w.x() + v.y()*w.y();
-}
+  Vec2(float x, float y) : V4(x, y) {}
+  Vec2(V4 v) : V4(v.x, v.y) {}
+};
 
-inline float dotProduct(Vec3 v, Vec3 w)
+struct Vec3 : public V4
 {
-  return v.x()*w.x() + v.y()*w.y() + v.z()*w.z();
-}
+  Vec3(float x, float y, float z) : V4(x, y, z) {}
+  Vec3(V4 v) : V4(v.x, v.y, v.z) {}
+};
 
-inline float dotProduct(Vec4 v, Vec4 w)
+struct Vec4 : public V4
 {
-  return v.x()*w.x() + v.y()*w.y() + v.z()*w.z() + v.w()*w.w();
-}
+  Vec4(float x, float y, float z, float w) : V4(x, y, z, w) {}
+  Vec4(V4 v) : V4(v.x, v.y, v.z, v.w) {}
+};
 
+struct Mat22 : public V4
+{
+  Mat22(float x, float y, float z, float w) : V4(x, y, z, w) {}
+  Mat22(V4 v) : V4(v.x, v.y, v.z, v.w) {}
+};
 
 struct LineSegment
 {
@@ -236,15 +151,9 @@ struct LineSegment
   Vec2 end;
 };
 
-struct Mat22
-{
-  Mat22(float a, float b, float c, float d) : a00(a), a10(b), a01(c), a11(d) {}
-  float a00, a10, a01, a11;
-};
-
 inline Vec2 multiply(Mat22 m, Vec2 a)
 {
-  return Vec2(m.a00*a.x() + m.a10*a.y(), m.a01*a.x() + m.a11*a.y());
+  return Vec2(m.x*a.x + m.y*a.y, m.z*a.x + m.w*a.y);
 }
 
 inline LineSegment multiply(Mat22 m, LineSegment a)
@@ -257,14 +166,9 @@ inline LineSegment translate(LineSegment a, Vec2 p)
   return LineSegment(a.start + p, a.end + p);
 }
 
-inline bool lengthIsZero(LineSegment a)
-{
-  return((a.start.x() == a.end.x())&&(a.start.y() == a.end.y()));
-}
-
 inline float length(LineSegment a)
 {
-  return magnitude(Vec2(a.end - a.start)); // TODO fix type for operator- and other operations
+  return magnitude(Vec2(a.end - a.start));
 }
 
 struct Rotation
@@ -295,13 +199,13 @@ struct Rotation
 Vec2 intersect(const LineSegment& a, const LineSegment& b);
 
 // rectangle stored in left / top / width / height format.
-class Rect : public MLVec
+class Rect : public V4
 {
 public:
-  Rect() : MLVec() {}
-  Rect(const MLVec& b) : MLVec(b) {};
-  Rect(float w, float h) : MLVec(0, 0, w, h) {}
-  Rect(float x, float y, float w, float h) : MLVec(x, y, w, h) {}
+  Rect() : V4() {}
+  Rect(const V4& b) : V4(b) {}
+  Rect(float w, float h) : V4(0, 0, w, h) {}
+  Rect(float x, float y, float w, float h) : V4(x, y, w, h) {}
   
   Rect(const Vec2& corner1, const Vec2& corner2);
   float left() const { return val[0]; }
@@ -318,7 +222,7 @@ public:
   float& height() { return val[3]; }
 
   inline float area() const { return width()*height(); }
-  inline bool contains(const Vec2& p) const { return (ml::within(p.x(), left(), right()) && ml::within(p.y(), top(), bottom())); }
+  inline bool contains(const Vec2& p) const { return (ml::within(p.x, left(), right()) && ml::within(p.y, top(), bottom())); }
   Rect intersect(const Rect& b) const;
   Rect unionWith(const Rect& b) const;
   bool intersects(const Rect& p) const;
@@ -355,12 +259,6 @@ public:
   inline bool contains(int px, int py) const { return (ml::within(px, (int)left(), (int)right()) && ml::within(py, (int)top(), (int)bottom())); }
 };
 
-inline Rect matrixToRect(Matrix m) { return Rect(m[0], m[1], m[2], m[3]); }
-inline Matrix rectToMatrix(Rect r) { return Matrix{r.left(), r.top(), r.width(), r.height()}; }
-
-inline Vec2 matrixToVec2(Matrix m) { return Vec2(m[0], m[1]); }
-inline Matrix vec2ToMatrix(Vec2 v) { return Matrix{ v[0], v[1] }; }
-
 inline Vec2 getTopLeft(Rect r) { return Vec2(r.left(), r.top()); }
 inline Vec2 getTopCenter(Rect r) { return Vec2(r.left() + r.width()*0.5f, r.top()); }
 inline Vec2 getTopRight(Rect r) { return Vec2(r.right(), r.top()); }
@@ -387,12 +285,12 @@ inline Vec2 getSize(Rect r)
 
 inline Rect translate(Rect r, Vec2 p)
 {
-  return Rect(p[0] + r[0], p[1] + r[1], r[2], r[3]);
+  return r + p;
 }
 
-inline bool within(const Vec2& p, const Rect& r)
+inline bool within(Vec2 p, Rect r)
 {
-  return (ml::within(p.x(), r.left(), r.right()) && ml::within(p.y(), r.top(), r.bottom()));
+  return (ml::within(p.x, r.left(), r.right()) && ml::within(p.y, r.top(), r.bottom()));
 }
 
 Rect intersectRects(const Rect& a, const Rect& b);
@@ -410,12 +308,15 @@ Rect constrainInside(Rect a, Rect b);
 inline Rect centerOnOrigin(const Rect& a) { return Rect(-a.width()/2, -a.height()/2, a.width(), a.height()); }
 inline Rect alignTopLeftToOrigin(const Rect& a) { return Rect(0, 0, a.width(), a.height()); }
 
+#if(0)
 inline Rect alignTopLeftToPoint(Rect a, Vec2 b) { return Rect(b.x(), b.y(), a.width(), a.height()); }
 inline Rect alignTopRightToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width(), b.y(), a.width(), a.height()); }
 inline Rect alignTopCenterToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width()/2, b.y(), a.width(), a.height()); }
 
 inline Rect alignMiddleLeftToPoint(Rect a, Vec2 b) { return Rect(b.x(), b.y() - a.height()/2, a.width(), a.height()); }
 inline Rect alignMiddleRightToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width(), b.y() - a.height()/2, a.width(), a.height()); }
+
+
 
 inline Rect alignBottomLeftToPoint(Rect a, Vec2 b) { return Rect(b.x(), b.y() - a.height(), a.width(), a.height()); }
 inline Rect alignBottomRightToPoint(Rect a, Vec2 b) { return Rect(b.x() - a.width(), b.y() - a.height(), a.width(), a.height()); }
@@ -483,6 +384,9 @@ inline float sinApprox1(float x)
   float m = x - floorf(x) - 0.5f;
   return 2*m*(1.f - fabs(2*m));
 }
+
+
+#endif
 
 } // namespace ml
 

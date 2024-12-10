@@ -21,8 +21,6 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 
   if(type == "down")
   {
-   
-
     engaged = true;
 
 // TODO fix cross-platform coords and remove this
@@ -58,7 +56,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 
      // generate a view size change request,
      // and constrain to the fixed ratio if one exists
-      Vec2 newSize = _sizeStart + newDragDelta;
+      Point newSize = _sizeStart + newDragDelta;
       if (getProperty("fix_ratio"))
       {
         float ratio = getFloatProperty("fix_ratio");
@@ -76,7 +74,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       }
 
       // send new size in system coordinates to the editor
-      reqList.push_back(Message("set_param/view_size", vec2ToMatrix(newSize)));
+      reqList.push_back(Message("set_param/view_size", pointToValue(newSize)));
     }
   }
   else if(type == "up")

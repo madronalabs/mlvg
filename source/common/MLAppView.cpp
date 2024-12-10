@@ -83,7 +83,8 @@ void AppView::layoutFixedSizeWidgets_()
     {
       // get anchor point for widget in system coords from anchor param on (0, 1)
       Vec2 systemViewSize = _GUICoordinates.pixelToSystem(_GUICoordinates.viewSizeInPixels);
-      Vec2 systemAnchor = matrixToVec2(w.getProperty("anchor").getMatrixValue());
+      
+      Vec2 systemAnchor = valueToType<Point>(w.getProperty("anchor"));
       systemAnchor = systemAnchor * systemViewSize;
       
       // fixed widget bounds are in system coords (for same apparent size)
@@ -180,7 +181,7 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
         _widgetsBySignal[sigName].push_back(w.get());
         
         // message the controller to subscribe to the signal.
-        sendMessageToActor(_controllerName, Message{"do/subscribe_to_signal", pathToText(sigName)});
+        sendMessageToActor(_controllerName, Message{"do/subscribe_to_signal", Value(pathToText(sigName))});
       }
     }
   }

@@ -27,7 +27,7 @@ struct GUIEvent
 //  time_point<system_clock> time;
   
   GUIEvent() = default;
-  GUIEvent(Symbol t, Vec2 p=Vec2(), Vec2 d=Vec2(), int k=0, int s=0) : type(t), position(p), delta(d), keyFlags(k), sourceIndex(s) {}
+  GUIEvent(Symbol t, Vec2 p=Vec2(0, 0), Vec2 d=Vec2(0, 0), int k=0, int s=0) : type(t), position(p), delta(d), keyFlags(k), sourceIndex(s) {}
 };
 
 

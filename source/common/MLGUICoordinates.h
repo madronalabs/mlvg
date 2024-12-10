@@ -22,7 +22,7 @@ struct GUICoordinates
   float gridSizeInPixels{0};
 
   // width and height of entire view in pixels.
-  Vec2 viewSizeInPixels{};
+  Vec2 viewSizeInPixels{0, 0};
   
   // number of native pixels per system coordinate unit. often 1. or 2.
   float displayScale{1.f};

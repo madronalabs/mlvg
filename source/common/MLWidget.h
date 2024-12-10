@@ -17,6 +17,7 @@
 #include "MLPropertyTree.h"
 #include "MLMessage.h"
 #include "MLParameters.h"
+#include "GXPropertyTree.h"
 
 namespace ml {
 
@@ -30,12 +31,11 @@ namespace ml {
     // Properties are variables that change the appearance of
     // the Widget. To store them, Widget inherits from PropertyTree.
     //
-    class Widget : public PropertyTree, public MessageReceiver
+    class Widget : public GXPropertyTree, public MessageReceiver
     {
     public:
 
-        Widget(WithValues p) : PropertyTree(p) {}
-        Widget() = default;
+        Widget(WithValues p) : GXPropertyTree(p) {}
         virtual ~Widget() = default;
 
         // engaged should be true when the Widget is currently responding to an ongoing gesture,
@@ -196,21 +196,6 @@ namespace ml {
         // will be set up for this Widget with the origin on the top left of its bounding box.
         // the context will be restored to its current state after the call.
         virtual void draw(DrawContext d) {}
-
-        // property helpers
-        inline ml::Rect getRectProperty(Path p, ml::Rect r = Rect()) const { return matrixToRect(getMatrixPropertyWithDefault(p, rectToMatrix(r))); }
-        inline void setRectProperty(Path p, ml::Rect r) { setProperty(p, rectToMatrix(r)); }
-
-        inline ml::Rect getBounds() const { return getRectProperty("bounds"); }
-        inline void setBounds(ml::Rect r) { setProperty("bounds", rectToMatrix(r)); }
-
-        inline ml::Vec2 getPointProperty(Path p) const { return matrixToVec2(getMatrixProperty(p)); }
-        inline ml::Vec2 getPointPropertyWithDefault(Path p, ml::Vec2 r) const { return matrixToVec2(getMatrixPropertyWithDefault(p, vec2ToMatrix(r))); }
-        inline void setPointProperty(Path p, ml::Vec2 r) { setProperty(p, vec2ToMatrix(r)); }
-
-        inline NVGcolor getColorProperty(Path p) const { return matrixToColor(getMatrixProperty(p)); }
-        inline NVGcolor getColorPropertyWithDefault(Path p, NVGcolor r) const { return matrixToColor(getMatrixPropertyWithDefault(p, colorToMatrix(r))); }
-        inline void setColorProperty(Path p, NVGcolor r) { setProperty(p, colorToMatrix(r)); }
     };
 
     // utilities
@@ -233,7 +218,7 @@ namespace ml {
         ml::Rect currentBounds = w.getBounds();
         if (w.getProperty("previous_bounds"))
         {
-            ml::Rect previousBounds = matrixToRect(w.getProperty("previous_bounds").getMatrixValue());
+            ml::Rect previousBounds = w.getRectProperty("previous_bounds");
             currentBounds = rectEnclosing(currentBounds, previousBounds);
         }
         return currentBounds;

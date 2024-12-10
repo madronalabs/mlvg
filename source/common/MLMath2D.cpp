@@ -13,10 +13,11 @@
 namespace ml
 {
 
-//const float kMLMinSample = std::numeric_limits<float>::lowest();
-const V4 MLVec::kZeroValue = { {0, 0, 0, 0} }; 
+// const float kMLMinSample = std::numeric_limits<float>::lowest();
+// const V4 MLVec::kZeroValue = { {0, 0, 0, 0} };
 // MLTESTconst V4 MLVec::kNullValue = { {kMLMinSample, kMLMinSample, kMLMinSample, kMLMinSample} };
 
+/*
 
 MLVec MLVec::getIntPart() const
 {
@@ -44,6 +45,10 @@ bool MLVec::operator!=(const MLVec& b) const
 {	
 	return !operator==(b);  
 }
+*/
+
+#if 0
+
 
 void MLVec::quantize(int q)
 {
@@ -67,7 +72,7 @@ void MLVec::quantize(int q)
 
 Vec2 intersect(const LineSegment& a, const LineSegment& b)
 {
-	if((lengthIsZero(a)) || (lengthIsZero(b)))
+	if(a.start == a.end) || (b.start == b.end))
 	{
 		return Vec2();
 	}
@@ -462,6 +467,9 @@ std::ostream& operator<< (std::ostream& out, const Rect& r)
 	out << "]";
 	return out;
 }
+
+
+#endif 
 
 
 // namespace ml

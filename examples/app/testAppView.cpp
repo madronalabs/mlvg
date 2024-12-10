@@ -76,9 +76,9 @@ void TestAppView::layoutView(DrawContext dc)
 void TestAppView::initializeResources(NativeDrawContext* nvg)
 {
     // initialize drawing properties before controls are made
-  _drawingProperties.setProperty("mark", colorToMatrix({ 0.01, 0.01, 0.01, 1.0 }));
-  _drawingProperties.setProperty("mark_bright", colorToMatrix({ 0.9, 0.9, 0.9, 1.0 }));
-    _drawingProperties.setProperty("background", colorToMatrix({ 0.8, 0.8, 0.8, 1.0 }));
+  _drawingProperties.setColorProperty("mark", { 0.01, 0.01, 0.01, 1.0 });
+  _drawingProperties.setColorProperty("mark_bright", { 0.9, 0.9, 0.9, 1.0 });
+    _drawingProperties.setColorProperty("background", { 0.8, 0.8, 0.8, 1.0 });
     _drawingProperties.setProperty("draw_background_grid", true);
     _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
 
@@ -249,11 +249,11 @@ void TestAppView::onMessage(Message msg)
           {
               // TODO better API for all this, no matrixes
               Value v = msg.value;
-              Matrix m = v.getMatrixValue();
-              if (m.getSize() == 2)
+
+              if(v && (v.getType() == Value::kBlob))
               {
                 // resize platform view
-                Vec2 c (m[0], m[1]);
+                Point c = valueToType<Point>(v);
                 Vec2 cs = constrainSize(c);
                 _platformView->resizePlatformView(cs[0], cs[1]);
                 onResize(cs);
@@ -265,8 +265,7 @@ void TestAppView::onMessage(Message msg)
                   // if size change is not from the controller, send it there so it will be saved with controller params.
                   if (!(msg.flags & kMsgFromController))
                   {
-                      Value constrainedSize(vec2ToMatrix(cs));
-                      sendMessageToActor(_controllerName, Message{ "set_param/view_size" , constrainedSize });
+                      sendMessageToActor(_controllerName, Message{ "set_param/view_size", valueFromType<Point>(cs) });
                   }
               }
               break;

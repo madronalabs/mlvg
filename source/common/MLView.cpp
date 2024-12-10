@@ -171,7 +171,7 @@ void View::draw(ml::DrawContext dc)
   
   if(hasProperty("position"))
   {
-    nvgTranslate(nvg, dc.coords.gridToPixel(matrixToVec2(getMatrixProperty("position"))));
+    nvgTranslate(nvg, dc.coords.gridToPixel(getPointProperty("position")));
   }
   
   // if the View itself is dirty, all the Widgets in it must be redrawn.
@@ -198,7 +198,7 @@ std::vector< Widget* > View::findWidgetsForEvent(const GUIEvent& e)
   forEachChild< Widget >
   (_widgets, [&](Widget& w)
    {
-    if(w.getProperty("visible").getBoolValueWithDefault(true))
+    if(w.getBoolPropertyWithDefault("visible", true))
     {
       if(w.hasProperty("bounds"))
       {
@@ -232,7 +232,7 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
   w->setDirty(false);
   nvgRestore(nvg);
   
-  bool kShowWidgetBounds = dc.pProperties->getBoolPropertyWithDefault("draw_widget_bounds", false);
+  bool kShowWidgetBounds = dc.properties->getBoolPropertyWithDefault("draw_widget_bounds", false);
   if(kShowWidgetBounds)
   {
     nvgBeginPath(nvg);
@@ -242,7 +242,7 @@ void View::drawWidget(const ml::DrawContext& dc, Widget* w)
     nvgStroke(nvg);
   }
   
-  bool kShowDirtyWidgets = dc.pProperties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
+  bool kShowDirtyWidgets = dc.properties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
   if(kShowDirtyWidgets)
   {
     // make a pulsing color
@@ -341,7 +341,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
   NativeDrawContext* nvg = getNativeContext(dc);
   
   // erase periodically when debugging dirty widgets visually
-  bool kShowDirtyWidgets = dc.pProperties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
+  bool kShowDirtyWidgets = dc.properties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
   if(kShowDirtyWidgets)
   {
     if ((_frameCounter&0x1F) == 0)
@@ -534,7 +534,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
       }
     };
     
-    bool drawGrid = dc.pProperties->getBoolPropertyWithDefault("draw_background_grid", false);
+    bool drawGrid = dc.properties->getBoolPropertyWithDefault("draw_background_grid", false);
     
     if(drawGrid)
     {

@@ -12,6 +12,7 @@
 #include "MLGUIEvent.h"
 #include "MLView.h"
 #include "MLWidget.h"
+#include "GXPropertyTree.h"
 
 namespace ml {
 
@@ -83,7 +84,7 @@ protected:
   // order is important for default destructor!
   std::unique_ptr< ml::View > _view;
   DrawingResources _resources;
-  PropertyTree _drawingProperties;
+  GXPropertyTree _drawingProperties;
   ParameterTree _params;
   
   // Actors

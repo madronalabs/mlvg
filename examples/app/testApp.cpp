@@ -84,10 +84,7 @@ public:
               case(hash("view_size")):
               {
                   // set our new view size from system coordinates
-                  // TODO better API for all this, no matrixes
-                  Value v = m.value;
-                  Matrix m = v.getMatrixValue();
-                  Vec2 c (m[0], m[1]);
+                  auto c = valueToType<Point>(m.value);
 
                   if (window_)
                   {

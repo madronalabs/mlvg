@@ -11,54 +11,15 @@
 #include <string.h>
 #include <math.h>
 
-#include "mldsp.h"
+//#include "mldsp.h"
 #include "madronalib.h"
 #include "MLMath2D.h"
 #include "MLGUICoordinates.h"
+#include "GXEngine.h"
+#include "GXTypes.h"
+#include "GXPropertyTree.h"
 
-
-// TODO clean up cross-platform code
-
-#ifdef __APPLE__
-
-#include "nanovg_mtl.h"
-// TODO runtime metal / GL switch? #include <OpenGL/gl.h> // OpenGL v.2
-#define NANOVG_GL2 1
-#define NANOVG_FBO_VALID 1
-#include <OpenGL/gl.h>
-#include "nanovg.h"
-#include "nanovg_gl_utils.h"
-#include "nanosvg.h"
-using NativeDrawBuffer = MNVGframebuffer;
-using NativeDrawContext = NVGcontext;
-
-#define nvgCreateContext(flags) nvgCreateGL2(flags)
-#define nvgDeleteContext(context) nvgDeleteGL2(context)
-#define nvgBindFramebuffer(fb) mnvgBindFramebuffer(fb)
-#define nvgCreateFramebuffer(ctx, w, h, flags) mnvgCreateFramebuffer(ctx, w, h, flags)
-#define nvgDeleteFramebuffer(fb) mnvgDeleteFramebuffer(fb)
-
-#elif defined WIN32
-
-#define NANOVG_GL3 1
-#define NANOVG_FBO_VALID 1
-
-#include "glad.h"
-#include "nanovg.h"
-#include "nanovg_gl_utils.h"
-#include "nanosvg.h"
-using NativeDrawBuffer = NVGLUframebuffer;
-using NativeDrawContext = NVGcontext;
-
-#define nvgCreateContext(flags) nvgCreateGL3(flags)
-#define nvgDeleteContext(context) nvgDeleteGL3(context)
-#define nvgBindFramebuffer(fb) nvgluBindFramebuffer(fb)
-#define nvgCreateFramebuffer(ctx, w, h, flags) nvgluCreateFramebuffer(ctx, w, h, flags)
-#define nvgDeleteFramebuffer(fb) nvgluDeleteFramebuffer(fb)
-
-#elif defined LINUX // TODO
-
-#endif
+using namespace gx;
 
 namespace ml {
 
@@ -212,8 +173,7 @@ struct FontResource
 
 
 
-// DrawingResources holds all the resources owned by a View. Any resource is available
-// to a View and its subviews.
+// DrawingResources holds all the resources owned by a View. Any resource is available to a View and its subviews.
 
 struct DrawingResources
 {
@@ -225,19 +185,17 @@ struct DrawingResources
 };
 
 
+// To draw a frame, animate a frame, or layout the view, views create a DrawContext that is passed to the tree of Widgets.
 
-// To draw a frame, animate a frame, or layout the view, views create a DrawContext that is passed to
-// the tree of Widgets.
 struct DrawContext
 {
-  void* pNativeContext;
-  DrawingResources* pResources;
-  PropertyTree* pProperties;
+  void* nativeContext;
+  DrawingResources* resources;
+  GXPropertyTree* properties;
   GUICoordinates coords;
 };
 
-
-inline NativeDrawContext* getNativeContext(const DrawContext& dc) { return static_cast<NativeDrawContext*>(dc.pNativeContext); }
+inline NativeDrawContext* getNativeContext(const DrawContext& dc) { return static_cast<NativeDrawContext*>(dc.nativeContext); }
 
 inline DrawContext translate(const DrawContext& dc, Vec2 topLeft)
 {
@@ -246,66 +204,35 @@ inline DrawContext translate(const DrawContext& dc, Vec2 topLeft)
   return dc2;
 }
 
-
 // resource helpers
-
 
 inline VectorImage* getVectorImage(const DrawContext& dc, Path name)
 {
-  const auto& t = (dc.pResources->vectorImages);
+  const auto& t = (dc.resources->vectorImages);
   auto& res(t[name]);
-  if (res)
-  {
-    return res.get();
-  }
-  else
-  {
-    return nullptr;
-  }
+  return res ? res.get() : nullptr;
 }
 
 inline FontResource* getFontResource(const DrawContext& dc, Path name)
 {
-  const auto& t = (dc.pResources->fonts);
+  const auto& t = (dc.resources->fonts);
   auto& res(t[name]);
-  if (res)
-  {
-    return res.get();
-  }
-  else
-  {
-    return nullptr;
-  }
+  return res ? res.get() : nullptr;
 }
 
 inline RasterImage* getRasterImage(const DrawContext& dc, Path name)
 {
-  const auto& t = (dc.pResources->rasterImages);
+  const auto& t = (dc.resources->rasterImages);
   auto& res(t[name]);
-  if (res)
-  {
-    return res.get();
-  }
-  else
-  {
-    return nullptr;
-  }
+  return res ? res.get() : nullptr;
 }
 
 inline DrawableImage* getDrawableImage(const DrawContext& dc, Path name)
 {
-  const auto& t = (dc.pResources->drawableImages);
+  const auto& t = (dc.resources->drawableImages);
   auto& res(t[name]);
-  if (res)
-  {
-    return res.get();
-  }
-  else
-  {
-    return nullptr;
-  }
+  return res ? res.get() : nullptr;
 }
-
 
 // nanovg + mlvg helpers
 
@@ -316,17 +243,17 @@ inline Vec2 nvgAngle2Vec(float a)
 
 inline void nvgLineTo(NativeDrawContext* nvg, Vec2 p)
 {
-  nvgLineTo(nvg, p.x(), p.y());
+  nvgLineTo(nvg, p.x, p.y);
 }
 
 inline void nvgMoveTo(NativeDrawContext* nvg, Vec2 p)
 {
-  nvgMoveTo(nvg, p.x(), p.y());
+  nvgMoveTo(nvg, p.x, p.y);
 }
 
 inline void nvgArcTo(NativeDrawContext* nvg, Vec2 p1, Vec2 p2, float r)
 {
-  nvgArcTo(nvg, p1.x(), p1.y(), p2.x(), p2.y(), r);
+  nvgArcTo(nvg, p1.x, p1.y, p2.x, p2.y, r);
 }
 
 inline void nvgBezierTo(NativeDrawContext* nvg, Vec2 c1, Vec2 c2, Vec2 dest)
@@ -371,19 +298,6 @@ inline void nvgIntersectScissor(NativeDrawContext* nvg, ml::Rect r)
 inline void nvgTranslate(NativeDrawContext* nvg, Vec2 p)
 {
   nvgTranslate(nvg, p.x(), p.y());
-}
-
-constexpr inline NVGcolor rgba(float pr, float pg, float pb, float pa)
-{
-  return NVGcolor{ {{pr, pg, pb, pa}} };
-}
-
-constexpr inline NVGcolor rgba(const uint32_t hexRGB)
-{
-  int r = (hexRGB & 0xFF0000) >> 16;
-  int g = (hexRGB & 0xFF00) >> 8;
-  int b = (hexRGB & 0xFF);
-  return NVGcolor{ {{r / 255.f, g / 255.f, b / 255.f, 1.0f}} };
 }
 
 inline void drawBrackets(NativeDrawContext* nvg, ml::Rect b, int width)
@@ -539,24 +453,6 @@ inline float getNvgLabelKerning(float textSize)
   //float kc = k / textSize;
   //std::cout << " text size: " << textSize << " -> " << kc << "\n";
   return p(textSize);
-}
-
-inline NVGcolor matrixToColor(const ml::Matrix& m)
-{
-  // TODO no more matrix here
-  if(m.getWidth() >= 4)
-  {
-    return nvgRGBAf(m[0], m[1], m[2], m[3]);
-  }
-  else
-  {
-    return nvgRGBAf(0, 0, 0, 0);
-  }
-}
-
-inline Matrix colorToMatrix(const NVGcolor& c)
-{
-  return { c.r, c.g, c.b, c.a };
 }
 
 inline NVGcolor multiplyAlpha(const NVGcolor& c, float p)
@@ -745,16 +641,13 @@ Rect floatNearby(Rect floatingRect, Rect fixedRect, Rect windowRect, float margi
 
 // drawing property helpers
 
-inline float getFloat(DrawContext t, Path p) { return t.pProperties->getFloatProperty(p); }
-inline float getFloatWithDefault(DrawContext t, Path p, float d) { return t.pProperties->getFloatPropertyWithDefault(p, d); }
+inline float getFloat(DrawContext t, Path p) { return t.properties->getFloatProperty(p); }
+inline float getFloatWithDefault(DrawContext t, Path p, float d) { return t.properties->getFloatPropertyWithDefault(p, d); }
 
-inline NVGcolor getColor(DrawContext t, Path p) { return matrixToColor(t.pProperties->getMatrixProperty(p)); }
-
-inline NVGcolor getColorWithDefault(DrawContext t, Path p, NVGcolor r) { return matrixToColor(t.pProperties->getMatrixPropertyWithDefault(p, colorToMatrix(r))); }
+inline NVGcolor getColor(DrawContext t, Path p) { return t.properties->getColorProperty(p); }
+inline NVGcolor getColorWithDefault(DrawContext t, Path p, Color d)  { return t.properties->getColorPropertyWithDefault(p, d); }
 
 inline NVGcolor lerp(NVGcolor a, NVGcolor b, float mix) { return nvgLerpRGBA(a, b, mix); }
-
-// void setColorProperty(Path p, NVGcolor r) { setProperty(p, colorToMatrix(r)); }
 
 
 // some colors.
