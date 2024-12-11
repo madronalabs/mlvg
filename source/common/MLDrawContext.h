@@ -258,54 +258,54 @@ inline void nvgArcTo(NativeDrawContext* nvg, Vec2 p1, Vec2 p2, float r)
 
 inline void nvgBezierTo(NativeDrawContext* nvg, Vec2 c1, Vec2 c2, Vec2 dest)
 {
-  nvgBezierTo(nvg, c1.x(), c1.y(), c2.x(), c2.y(), dest.x(), dest.y());
+  nvgBezierTo(nvg, c1.x, c1.y, c2.x, c2.y, dest.x, dest.y);
 }
 
 inline void nvgQuadTo(NativeDrawContext* nvg, Vec2 ctrl, Vec2 dest)
 {
-  nvgQuadTo(nvg, ctrl.x(), ctrl.y(), dest.x(), dest.y());
+  nvgQuadTo(nvg, ctrl.x, ctrl.y, dest.x, dest.y);
 }
 
 inline void nvgRect(NativeDrawContext* nvg, ml::Rect r)
 {
-  nvgRect(nvg, r.left(), r.top(), r.width(), r.height());
+  nvgRect(nvg, r.left, r.top, r.width, r.height);
 }
 
 inline void nvgX(NativeDrawContext* nvg, ml::Rect r)
 {
-  nvgMoveTo(nvg, r.left(), r.top());
+  nvgMoveTo(nvg, r.left, r.top);
   nvgLineTo(nvg, r.right(), r.bottom());
   
-  nvgMoveTo(nvg, r.right(), r.top());
-  nvgLineTo(nvg, r.left(), r.bottom());
+  nvgMoveTo(nvg, r.right(), r.top);
+  nvgLineTo(nvg, r.left, r.bottom());
 }
 
 inline void nvgRoundedRect(NativeDrawContext* nvg, ml::Rect r, float radius)
 {
-  nvgRoundedRect(nvg, r.left(), r.top(), r.width(), r.height(), radius);
+  nvgRoundedRect(nvg, r.left, r.top, r.width, r.height, radius);
 }
 
 inline void nvgScissor(NativeDrawContext* nvg, ml::Rect r)
 {
-  nvgScissor(nvg, r.left(), r.top(), r.width(), r.height());
+  nvgScissor(nvg, r.left, r.top, r.width, r.height);
 }
 
 inline void nvgIntersectScissor(NativeDrawContext* nvg, ml::Rect r)
 {
-  nvgIntersectScissor(nvg, r.left(), r.top(), r.width(), r.height());
+  nvgIntersectScissor(nvg, r.left, r.top, r.width, r.height);
 }
 
 inline void nvgTranslate(NativeDrawContext* nvg, Vec2 p)
 {
-  nvgTranslate(nvg, p.x(), p.y());
+  nvgTranslate(nvg, p.x, p.y);
 }
 
 inline void drawBrackets(NativeDrawContext* nvg, ml::Rect b, int width)
 {
-  float bl = b.left();
-  float bt = b.top();
-  float br = b.left() + b.width();
-  float bb = b.top() + b.height();
+  float bl = b.left;
+  float bt = b.top;
+  float br = b.left + b.width;
+  float bb = b.top + b.height;
   nvgBeginPath(nvg);
   
   nvgMoveTo(nvg, bl + width, bb);
@@ -339,7 +339,7 @@ inline void drawLabel(NativeDrawContext* nvg, TextFragment t, int gridSizeInPixe
     nvgTextAlign(nvg, NVG_ALIGN_CENTER | NVG_ALIGN_BOTTOM);
     
     Vec2 center = getCenter(nativeBounds);
-    nvgText(nvg, center.x() + offset.x(), nativeBounds.bottom() + offset.y(), t.getText(), nullptr);
+    nvgText(nvg, center.x + offset.x, nativeBounds.bottom() + offset.y, t.getText(), nullptr);
   }
 }
 
@@ -360,7 +360,7 @@ struct VGTransform
   Vec2 operator()(Vec2 srcPoint)
   {
     Vec2 destPoint;
-    nvgTransformPoint(&destPoint[0], &destPoint[1], transMatrix.data(), srcPoint.x(), srcPoint.y());
+    nvgTransformPoint(&destPoint.x, &destPoint.y, transMatrix.data(), srcPoint.x, srcPoint.y);
     return destPoint;
   }
 };
@@ -384,7 +384,7 @@ inline VGTransform inverse(const VGTransform a)
 inline VGTransform translate(Vec2 p)
 {
   VGTransform t;
-  nvgTransformTranslate(t.transMatrix.data(), p.x(), p.y());
+  nvgTransformTranslate(t.transMatrix.data(), p.x, p.y);
   return t;
 }
 
@@ -398,7 +398,7 @@ inline VGTransform rotate(float theta)
 inline VGTransform scale(Vec2 xy)
 {
   VGTransform t;
-  nvgTransformScale(t.transMatrix.data(), xy.x(), xy.y());
+  nvgTransformScale(t.transMatrix.data(), xy.x, xy.y);
   return t;
 }
 
@@ -431,7 +431,7 @@ struct UsingScissor
   UsingScissor(NativeDrawContext* nvg, Rect r) : _nvg(nvg)
   {
     nvgSave(_nvg);
-    nvgIntersectScissor(nvg, r.left(), r.top(), r.width(), r.height());
+    nvgIntersectScissor(nvg, r.left, r.top, r.width, r.height);
   }
   ~UsingScissor()
   {
@@ -541,8 +541,8 @@ inline void drawShadowArc(NativeDrawContext* nvg, float a0, float a1, float r0, 
 // use clockwise rule in the 2d plane to place shadow
 inline void drawShadowLine(NativeDrawContext* nvg, Vec2 p1, Vec2 p2, float r1, NVGcolor shadowColor, float alpha)
 {
-  float dx = p2.x() - p1.x();
-  float dy = p2.y() - p1.y();
+  float dx = p2.x - p1.x;
+  float dy = p2.y - p1.y;
   Vec2 p3(dy, -dx);
   Vec2 p3u = p3 / magnitude(p3);
   
@@ -565,8 +565,8 @@ inline void drawShadowLine(NativeDrawContext* nvg, Vec2 p1, Vec2 p2, float r1, N
     Vec2 p1r = p1 + p3u * r;
     Vec2 p2r = p2 + p3u * r;
     
-    nvgMoveTo(nvg, p1r.x(), p1r.y());
-    nvgLineTo(nvg, p2r.x(), p2r.y());
+    nvgMoveTo(nvg, p1r.x, p1r.y);
+    nvgLineTo(nvg, p2r.x, p2r.y);
     nvgStroke(nvg);
     
     std::cout << "o: " << c.a << "\n";
@@ -583,7 +583,7 @@ inline void drawCircleShadow(NativeDrawContext* nvg, Vec2 center, float r0, floa
     if (c.a < kMinVisibleAlpha) break;
     nvgStrokeColor(nvg, c);
     nvgBeginPath(nvg);
-    nvgCircle(nvg, center.x(), center.y(), r);
+    nvgCircle(nvg, center.x, center.y, r);
     nvgStroke(nvg);
   }
 }
@@ -608,8 +608,8 @@ inline void drawRoundRectShadow(NativeDrawContext* nvg, ml::Rect r, int width, i
 
 inline void drawGrid(NativeDrawContext* nvg, float gridSizeInPixels, Rect bounds)
 {
-  const int xIters = bounds.width() / gridSizeInPixels;
-  const int yIters = bounds.height() / gridSizeInPixels;
+  const int xIters = bounds.width / gridSizeInPixels;
+  const int yIters = bounds.height / gridSizeInPixels;
   
   float xStart = -xIters / 2 * gridSizeInPixels;
   float yStart = -yIters / 2 * gridSizeInPixels;
@@ -618,7 +618,7 @@ inline void drawGrid(NativeDrawContext* nvg, float gridSizeInPixels, Rect bounds
   {
     nvgBeginPath(nvg);
     float x = xStart + gridSizeInPixels * i;
-    nvgMoveTo(nvg, Vec2(x, bounds.top()));
+    nvgMoveTo(nvg, Vec2(x, bounds.top));
     nvgLineTo(nvg, Vec2(x, bounds.bottom()));
     nvgStroke(nvg);
   }
@@ -626,7 +626,7 @@ inline void drawGrid(NativeDrawContext* nvg, float gridSizeInPixels, Rect bounds
   {
     nvgBeginPath(nvg);
     float y = yStart + gridSizeInPixels * i;
-    nvgMoveTo(nvg, Vec2(bounds.left(), y));
+    nvgMoveTo(nvg, Vec2(bounds.left, y));
     nvgLineTo(nvg, Vec2(bounds.right(), y));
     nvgStroke(nvg);
   }

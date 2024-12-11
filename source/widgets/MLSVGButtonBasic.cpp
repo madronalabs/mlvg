@@ -79,18 +79,18 @@ void SVGButtonBasic::draw(ml::DrawContext dc)
   {
     // get max rectangle for SVG image
     float imageAspect = image->width/image->height;
-    float boundsAspect = bounds.width()/bounds.height();
+    float boundsAspect = bounds.width/bounds.height;
     
     float imgScale;
     Vec2 imageSize{image->width, image->height};
     
     if(imageAspect >= boundsAspect)
     {
-      imgScale = bounds.width()/imageSize.x();
+      imgScale = bounds.width/imageSize.x;
     }
     else
     {
-      imgScale = bounds.height()/imageSize.y();
+      imgScale = bounds.height/imageSize.y;
     }
 
     nvgTranslate(nvg, getCenter(bounds) - imageSize*imgScale/2);

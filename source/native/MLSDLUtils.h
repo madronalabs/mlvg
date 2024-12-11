@@ -39,10 +39,10 @@ inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName, int flags)
   }
   
   // Create window
-  int x = b.left();
-  int y = b.top();
-  int w = b.width();
-  int h = b.height();
+  int x = b.left;
+  int y = b.top;
+  int w = b.width;
+  int h = b.height;
   
   // combine user flags parameters with platform flags and make window
   SDL_Window* newWindow = SDL_CreateWindow(windowName, x, y, w, h,
@@ -191,7 +191,7 @@ inline void setWindowSizeInPixels(SDL_Window* window, Vec2 pixelSize)
   float scale = PlatformView::getDeviceScaleForWindow(p.windowPtr, p.flags);
   Vec2 systemSize = pixelSize/scale;
 
-  SDL_SetWindowSize(window, systemSize.x(), systemSize.y());
+  SDL_SetWindowSize(window, systemSize.x, systemSize.y);
 }
 
 

@@ -89,8 +89,8 @@ void DrawableImageView::draw(ml::DrawContext dc)
 
     if (pImage)
     {
-        float bw = bounds.width();
-        float bh = bounds.height();
+        float bw = bounds.width;
+        float bh = bounds.height;
         float iw = pImage->width;
         float ih = pImage->height;
 

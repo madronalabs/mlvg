@@ -30,14 +30,14 @@ void TextLabelBasic::draw(ml::DrawContext dc)
 
   auto hAlign = NVG_ALIGN_LEFT;
   auto vAlign = NVG_ALIGN_TOP;
-  float textX = bounds.left();
-  float textY = bounds.top();
+  float textX = bounds.left;
+  float textY = bounds.top;
 
   auto hProp = getTextProperty("h_align");
   if(hProp == "center")
   {
     hAlign = NVG_ALIGN_CENTER;
-    textX = bounds.center().x();
+    textX = getCenter(bounds).x;
   }
   else if(hProp == "right")
   {
@@ -49,7 +49,7 @@ void TextLabelBasic::draw(ml::DrawContext dc)
   if(vProp == "middle")
   {
     vAlign = NVG_ALIGN_MIDDLE;
-    textY = bounds.center().y();
+    textY = getCenter(bounds).y;
   }
   else if(vProp == "bottom")
   {
@@ -64,7 +64,7 @@ void TextLabelBasic::draw(ml::DrawContext dc)
   
   if(multiLine)
   {
-    drawTextBox(nvg, {textX, textY}, bounds.width(), text, hAlign | vAlign);
+    drawTextBox(nvg, {textX, textY}, bounds.width, text, hAlign | vAlign);
   }
   else
   {

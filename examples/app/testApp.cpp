@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 
   // get window size in system coords
   Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
-  Rect boundsRectInPixels(0, 0, defaultSize.x(), defaultSize.y());
+  Rect boundsRectInPixels(0, 0, defaultSize.x, defaultSize.y);
   Rect defaultRectInPixels = alignCenterToPoint(boundsRectInPixels, c);
 
   // make controller and get instance number. The Controller

@@ -22,7 +22,7 @@ float DialBasic::_trackPositionToNormalValue(Vec2 p)
   // if far enough from center
   if (within(magnitude(p), 0.05f, r))
   {
-    float angle = atan2 ((float) p.y(), (float) p.x());
+    float angle = atan2 ((float) p.y, (float) p.x);
     while (angle < a0)
       angle += kTwoPi;
 
@@ -119,7 +119,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     float valueToSend{_params.getNormalizedFloatValue(pname)};
     if (!(e.keyFlags & commandModifier))
     {
-      _dragY1 = componentPosition.y();
+      _dragY1 = componentPosition.y;
 
       // on click: if in track, jump
       float trackVal = _trackPositionToNormalValue(centeredPos);
@@ -149,7 +149,7 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   else if(type == "drag")
   {
     // change value
-    float dragY0 = componentPosition.y();
+    float dragY0 = componentPosition.y;
     float delta = dragY0 - _dragY1;
     _dragY1 = dragY0;
 
@@ -194,9 +194,9 @@ MessageList DialBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   }
   else if(type == "scroll")
   {
-    if(e.delta.y() != 0.f)
+    if(e.delta.y != 0.f)
     {
-      float scaledDelta = e.delta.y() * kScrollScale;
+      float scaledDelta = e.delta.y * kScrollScale;
       if(doFineDrag) scaledDelta *= kFineDragScale;
 
       // keep track of raw value before quantize

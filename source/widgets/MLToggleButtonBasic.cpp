@@ -109,7 +109,7 @@ void ToggleButtonBasic::draw(ml::DrawContext dc)
     }
     else
     {
-      auto fillGradient = nvgLinearGradient(nvg, 0, buttonRect.top(), 0, buttonRect.bottom(), fillColor2, fillColor );
+      auto fillGradient = nvgLinearGradient(nvg, 0, buttonRect.top, 0, buttonRect.bottom(), fillColor2, fillColor );
       nvgFillPaint(nvg, fillGradient);
       nvgFill(nvg);
     }

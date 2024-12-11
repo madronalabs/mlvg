@@ -26,8 +26,8 @@ void TestAppView::layoutView(DrawContext dc)
   Vec2 pixelSize = dc.coords.viewSizeInPixels;
   float gridSize = dc.coords.gridSizeInPixels;
   
-  int gx = pixelSize.x() / gridSize;
-  int gy = pixelSize.y() / gridSize;
+  int gx = pixelSize.x / gridSize;
+  int gy = pixelSize.y / gridSize;
 
   
   // layout dials

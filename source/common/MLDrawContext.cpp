@@ -314,7 +314,7 @@ Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWi
   {
     case(hash("left")):
     {
-      float floatingRectLeft = fixedRect.left() - margin - floatingRect.width();
+      float floatingRectLeft = fixedRect.left - margin - floatingRect.width;
       
       // if offscreen left, place to right instead
       if(floatingRectLeft < 0) floatingRectLeft = fixedRect.right() + margin;
@@ -323,10 +323,10 @@ Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWi
       break;
     case(hash("right")):
     {
-      float floatingRectRight = fixedRect.right() + margin + floatingRect.width();
+      float floatingRectRight = fixedRect.right() + margin + floatingRect.width;
       
       // if offscreen right, place to left
-      if(floatingRectRight > windowWidth) floatingRectRight = fixedRect.left() - margin;
+      if(floatingRectRight > windowWidth) floatingRectRight = fixedRect.left - margin;
       result.setRight(floatingRectRight);
     }
       break;
@@ -334,7 +334,7 @@ Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWi
   
   // center in window vertically, hopefully under header
   const float kHeaderHeight = 0.5f;
-  result.setTop((windowHeight + kHeaderHeight - floatingRect.height())/2);
+  result.setTop((windowHeight + kHeaderHeight - floatingRect.height)/2);
   
   if(result.bottom() > windowHeight - margin)
   {
@@ -384,8 +384,8 @@ Rect floatNearby(Rect floatingRect, Rect fixedRect, Rect windowRect, float margi
 void drawText(NativeDrawContext* nvg, Vec2 location, ml::Text t, int align)
 {
   nvgTextAlign(nvg, align);
-  float tx = roundf(location.x());
-  float ty = roundf(location.y());
+  float tx = roundf(location.x);
+  float ty = roundf(location.y);
   nvgText(nvg, tx, ty, t.getText(), nullptr);
 }
 
@@ -398,7 +398,7 @@ void drawTextToFit(NativeDrawContext* nvg, const ml::Text& t, Vec2 location, flo
   
   const char* textToDraw = t.getText();
   nvgTextAlign(nvg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-  float textWidth = nvgTextBounds(nvg, location.x(), location.y(), textToDraw, 0x00, nullptr);
+  float textWidth = nvgTextBounds(nvg, location.x, location.y, textToDraw, 0x00, nullptr);
   
   // if width is larger than display area, scale text to fit
   int scaledTextSize = desiredSize;
@@ -419,8 +419,8 @@ void drawTextBox(NativeDrawContext* nvg, Vec2 location, float rowWidth, ml::Text
 {
   constexpr float kLineHeight{1.25f};
   nvgTextAlign(nvg, align);
-  float tx = roundf(location.x());
-  float ty = roundf(location.y());
+  float tx = roundf(location.x);
+  float ty = roundf(location.y);
   
   // get line height
   float lineHeight;

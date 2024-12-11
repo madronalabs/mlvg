@@ -499,7 +499,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 //  if((newNativeSize != _nativeSize) || (!_backingLayer.get()))
   {
     _nativeSize = newNativeSize;
-    _backingLayer = std::make_unique< DrawableImage >(_nvg, _nativeSize.x(), _nativeSize.y());
+    _backingLayer = std::make_unique< DrawableImage >(_nvg, _nativeSize.x, _nativeSize.y);
     [self resizeAppView];
   }
 }
@@ -615,10 +615,10 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   ml::Rect bounds{(float)parentFrame.origin.x, (float)parentFrame.origin.y,
     (float)parentFrame.size.width, (float)parentFrame.size.height};
 
-  NSRect boundsRectDefault = NSMakeRect(0, 0, bounds.width(), bounds.height());
+  NSRect boundsRectDefault = NSMakeRect(0, 0, bounds.width, bounds.height);
   NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
   
-  NSRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
+  NSRect boundsRect = NSMakeRect(0, 0, bounds.width, bounds.height);
   displayScale_ = boundsRectBacking.size.width / boundsRectDefault.size.width;
   
   // make the new view
@@ -640,7 +640,7 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   view.layer.opaque = true;
 
   // create a new renderer for our view.
-  CGSize rendererSize = CGSizeMake(bounds.width(), bounds.height());
+  CGSize rendererSize = CGSizeMake(bounds.width, bounds.height);
 
   [view setFrameSize:rendererSize];
   

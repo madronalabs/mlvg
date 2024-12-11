@@ -387,7 +387,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
             // safety in case widget has not received bounds property yet
             Rect w2Bounds = w2.getRectProperty("bounds");
             
-            if((!w2._needsDraw) && w2.getBoolProperty("visible") && intersectRects(newGroup.bounds, w2Bounds))
+            if((!w2._needsDraw) && w2.getBoolProperty("visible") && intersects(newGroup.bounds, w2Bounds))
             {
               w2._needsDraw = true;
               newGroup.addAndExpand(&w2);
@@ -401,7 +401,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
           for(auto it = widgetGroups.begin(); it != widgetGroups.end(); )
           {
             WidgetGroup& wg2 = *it;
-            if(intersectRects(newGroup.bounds, wg2.bounds))
+            if(intersects(newGroup.bounds, wg2.bounds))
             {
               newGroup.mergeWithGroup(wg2);
               it = widgetGroups.erase(it);
@@ -473,8 +473,8 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   Vec2 pixelSize = dc.coords.viewSizeInPixels;
   float gridSize = dc.coords.gridSizeInPixels;
   
-  int gx = pixelSize.x() / gridSize;
-  int gy = pixelSize.y() / gridSize;
+  int gx = pixelSize.x / gridSize;
+  int gy = pixelSize.y / gridSize;
   
   
   // black background for testing / promo
@@ -506,12 +506,12 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
   auto pr = getRasterImage(dc, "background");
   if(pr)
   {
-    paintPattern = nvgImagePattern(nvg, -u, -u, dc.coords.viewSizeInPixels.x() + u, dc.coords.viewSizeInPixels.y() + u, 0, pr->handle, 1.0f);
+    paintPattern = nvgImagePattern(nvg, -u, -u, dc.coords.viewSizeInPixels.x + u, dc.coords.viewSizeInPixels.y + u, 0, pr->handle, 1.0f);
   }
   else
   {
     auto bgColor = getColor(dc, "background");
-    paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.viewSizeInPixels.y() + u, bgColor, bgColor);
+    paintPattern = nvgLinearGradient(nvg, 0, -u, 0, dc.coords.viewSizeInPixels.y + u, bgColor, bgColor);
   }
   
   // do the drawing
@@ -528,7 +528,7 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
     // draw background Widgets intersecting rect
     for(const auto& w : _backgroundWidgets)
     {
-      if(intersectRects(dc.coords.gridToPixel(w->getBounds()), nativeRect))
+      if(intersects(dc.coords.gridToPixel(w->getBounds()), nativeRect))
       {
         drawBackgroundWidget(dc, w.get());
       }
@@ -548,15 +548,15 @@ void View::drawBackground(DrawContext dc, ml::Rect nativeRect)
       {
         Vec2 a = dc.coords.gridToPixel(Vec2(i, 0));
         Vec2 b = dc.coords.gridToPixel(Vec2(i, gy + 1));
-        nvgMoveTo(nvg, a.x(), a.y());
-        nvgLineTo(nvg, b.x(), b.y());
+        nvgMoveTo(nvg, a.x, a.y);
+        nvgLineTo(nvg, b.x, b.y);
       }
       for(int j=0; j <= gy + 1; ++j)
       {
         Vec2 a = dc.coords.gridToPixel(Vec2(0, j));
         Vec2 b = dc.coords.gridToPixel(Vec2(gx + 1, j));
-        nvgMoveTo(nvg, a.x(), a.y());
-        nvgLineTo(nvg, b.x(), b.y());
+        nvgMoveTo(nvg, a.x, a.y);
+        nvgLineTo(nvg, b.x, b.y);
       }
       nvgStroke(nvg);
     }

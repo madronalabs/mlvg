@@ -94,7 +94,7 @@ Vec2 PlatformView::getPrimaryMonitorCenter()
 
 float PlatformView::getDeviceScaleAtPoint(Vec2 p)
 {
-    POINT pt{ (long)p.x(), (long)p.y() };
+    POINT pt{ (long)p.x, (long)p.y };
     HMONITOR hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
     DEVICE_SCALE_FACTOR sf;
     GetScaleFactorForMonitor(hMonitor, &sf);
@@ -209,10 +209,10 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* userData, void* p
   if (_windowHandle)
     return false;
 
-  int x = bounds.left();
-  int y = bounds.top();
-  int w = bounds.width();
-  int h = bounds.height();
+  int x = bounds.left;
+  int y = bounds.top;
+  int w = bounds.width;
+  int h = bounds.height;
 
   // get monitor device scale
   _deviceScale = getDeviceScaleForWindow(parentWindow);
@@ -318,12 +318,12 @@ void PlatformView::Impl::doResize()
             flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
             lockContext();
             makeContextCurrent();
-            SetWindowPos(_windowHandle, NULL, 0, 0, newViewSize_.x(), newViewSize_.y(), flags);
+            SetWindowPos(_windowHandle, NULL, 0, 0, newViewSize_.x, newViewSize_.y, flags);
 
             // resize main backing layer
             if (_nvg)
             {
-                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, newViewSize_.x(), newViewSize_.y());
+                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, newViewSize_.x, newViewSize_.y);
             }
             unlockContext();
         }
@@ -450,7 +450,7 @@ void PlatformView::Impl::convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEven
 
 void PlatformView::Impl::setMousePosition(Vec2 newPos)
 {
-  SetCursorPos(newPos.x(), newPos.y());
+  SetCursorPos(newPos.x, newPos.y);
 }
 
 // static
@@ -627,12 +627,12 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         const float kDragMargin{ 50.f };
         Vec2 moveDelta;
         
-        if (pv.y() < 1)
+        if (pv.y < 1)
         {
           moveDelta = { 0, kDragMargin };
           repositioned = true;
         }
-        else if (pv.y() > screenMaxY - 2)
+        else if (pv.y > screenMaxY - 2)
         {
           moveDelta = { 0, -kDragMargin };
           repositioned = true;

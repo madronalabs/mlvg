@@ -45,10 +45,10 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   {
     if(!engaged) return reqList;
 
-    constexpr int kDragQuantum = 1;
+   // constexpr int kDragQuantum = 1;
     Vec2 newDragDelta = gc.pixelToSystem(eventScreenPos - _dragStart);
 
-    newDragDelta.quantize(kDragQuantum);
+    //newDragDelta.quantize(kDragQuantum);
 
     if (newDragDelta != _dragDelta)
     {
@@ -60,16 +60,14 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
       if (getProperty("fix_ratio"))
       {
         float ratio = getFloatProperty("fix_ratio");
-        float freeRatio = newSize.x()/ newSize.y();
+        float freeRatio = newSize.x/newSize.y;
         if (freeRatio < ratio)
         {
-          float newY = newSize[1];
-          newSize[0] = newY * ratio;       
+          newSize.x = newSize.y * ratio;
         }
         else
         {
-          float newX = newSize[0];
-          newSize[1] = newX / ratio;
+          newSize.y = newSize.x / ratio;
         }      
       }
 
@@ -99,9 +97,9 @@ void Resizer::draw(ml::DrawContext dc)
 
   //  paint triangle
   nvgBeginPath(nvg);
-  nvgMoveTo(nvg, bounds.right(), bounds.top());
+  nvgMoveTo(nvg, bounds.right(), bounds.top);
   nvgLineTo(nvg, bounds.right(), bounds.bottom());
-  nvgLineTo(nvg, bounds.left(), bounds.bottom());
+  nvgLineTo(nvg, bounds.left, bounds.bottom());
   nvgClosePath(nvg);
   nvgFillColor(nvg, fillColor);
   nvgFill(nvg);

@@ -102,7 +102,7 @@ void TextButtonBasic::draw(ml::DrawContext dc)
   nvgFontFaceId(nvg, font->handle);
   nvgFontSize(nvg, textSize);
   nvgFillColor(nvg, textColor);
-  drawText(nvg, bounds.center() - Vec2(0, gridSizeInPixels/64.f), getTextProperty("text"), NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+  drawText(nvg, getCenter(bounds) - Vec2(0, gridSizeInPixels/64.f), getTextProperty("text"), NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
 
   return;
 }

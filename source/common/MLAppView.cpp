@@ -42,8 +42,8 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
     // the app aspect ratio is fixed. grid size may be fractional.
     // Normally we will only use this mode if the size of the window is also constrained.
 
-    float ux = newSize.x()/_sizeInGridUnits.x();
-    float uy = newSize.y()/_sizeInGridUnits.y();
+    float ux = newSize.x/_sizeInGridUnits.x;
+    float uy = newSize.y/_sizeInGridUnits.y;
     gridSizeInPixels = std::min(ux, uy);
   }
   else
@@ -52,8 +52,8 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
     // TODO user-adjustable grid size?
     gridSizeInPixels = _defaultGridSize * displayScale;
     
-    _sizeInGridUnits.x() = newSize.x()/gridSizeInPixels;
-    _sizeInGridUnits.y() = newSize.y()/gridSizeInPixels;
+    _sizeInGridUnits.x = newSize.x/gridSizeInPixels;
+    _sizeInGridUnits.y = newSize.y/gridSizeInPixels;
   }
   
   Vec2 origin (0, 0);
@@ -62,7 +62,7 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
   
   // set bounds for top-level View in grid coordinates
   Vec4 newGridSize = newCoords.pixelToGrid(newCoords.viewSizeInPixels);
-  _view->setBounds({0, 0, newGridSize.x(), newGridSize.y()});
+  _view->setBounds({0, 0, newGridSize.x, newGridSize.y});
   
   layoutFixedSizeWidgets_();
   
@@ -84,7 +84,7 @@ void AppView::layoutFixedSizeWidgets_()
       // get anchor point for widget in system coords from anchor param on (0, 1)
       Vec2 systemViewSize = _GUICoordinates.pixelToSystem(_GUICoordinates.viewSizeInPixels);
       
-      Vec2 systemAnchor = valueToType<Point>(w.getProperty("anchor"));
+      Vec2 systemAnchor = valueToPODType<Point>(w.getProperty("anchor"));
       systemAnchor = systemAnchor * systemViewSize;
       
       // fixed widget bounds are in system coords (for same apparent size)
@@ -353,8 +353,8 @@ void AppView::render(NativeDrawContext* nvg)
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
   
   // begin the frame on the backing layer
-  int w = layerSize.x();
-  int h = layerSize.y();
+  int w = layerSize.x;
+  int h = layerSize.y;
   nvgBeginFrame(nvg, w, h, 1.0);
   
   // translate the draw context to top level view bounds and draw.
