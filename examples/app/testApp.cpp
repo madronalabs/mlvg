@@ -84,11 +84,11 @@ public:
               case(hash("view_size")):
               {
                   // set our new view size from system coordinates
-                  auto c = valueToType<Point>(m.value);
+                  auto c = valueToPoint(m.value);
 
                   if (window_)
                   {
-                      SDL_SetWindowSize(window_, c[0], c[1]);
+                    SDL_SetWindowSize(window_, c.x, c.y);
                   }
                   break;
               }

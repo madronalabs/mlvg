@@ -5,7 +5,7 @@
 
 #include "testAppView.h"
 #include "testAppParameters.h"
-#include "../build/resources/testapp/resources.c"
+#include "build/resources/resources.c"
 
 TestAppView::TestAppView(TextFragment appName, size_t instanceNum) :
   AppView(appName, instanceNum)
@@ -46,7 +46,7 @@ void TestAppView::layoutView(DrawContext dc)
     Path labelName (TextFragment(pathToText(dialName), "_label"));
     ml::Rect dialRect = _view->_widgets[dialName]->getRectProperty("bounds");
     _view->_backgroundWidgets[labelName]->setRectProperty
-    ("bounds", alignCenterToPoint(labelRect, dialRect.bottomCenter() - Vec2(0, 0.125)));
+    ("bounds", alignCenterToPoint(labelRect, getBottomCenter(dialRect) - Vec2(0, 0.125)));
   };
   for(auto dialName : {"freq1", "freq2", "gain"})
   {
@@ -210,7 +210,7 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
 
 #if TEST_RESIZER
   _view->_widgets.add_unique< Resizer >("resizer", WithValues{
-    {"fix_ratio", (kDefaultGridUnits[0]) / (kDefaultGridUnits[1])},
+    {"fix_ratio", (kDefaultGridUnits.x) / (kDefaultGridUnits.y)},
     {"z", -3}, // stay on top of popups
     {"fixed_size", true},
     {"fixed_bounds", { -16, -16, 16, 16 }}, // fixed size rect in system coords
@@ -253,9 +253,9 @@ void TestAppView::onMessage(Message msg)
               if(v && (v.getType() == Value::kBlob))
               {
                 // resize platform view
-                Point c = valueToType<Point>(v);
+                Point c = valueToPoint(v);
                 Vec2 cs = constrainSize(c);
-                _platformView->resizePlatformView(cs[0], cs[1]);
+                _platformView->resizePlatformView(cs.x, cs.y);
                 onResize(cs);
 
                   // set constrained value and send it back to Controller
@@ -265,13 +265,11 @@ void TestAppView::onMessage(Message msg)
                   // if size change is not from the controller, send it there so it will be saved with controller params.
                   if (!(msg.flags & kMsgFromController))
                   {
-                      sendMessageToActor(_controllerName, Message{ "set_param/view_size", valueFromType<Point>(cs) });
+                      sendMessageToActor(_controllerName, Message{ "set_param/view_size", pointToValue(cs) });
                   }
               }
               break;
           }
-
-
         default:
         {
           // no local parameter was found, set a plugin parameter

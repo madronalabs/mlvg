@@ -18,7 +18,7 @@
 
 Vec2 NSPointToVec2(NSPoint p)
 {
-  return Vec2{float(p.x), float(p.y)};
+  return Vec2(float(p.x), float(p.y));
 }
 
 // MyMTKView
@@ -508,7 +508,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 {
   if(appView_ && _nvg)
   {
-    appView_->viewResized(_nvg, _nativeSize, displayScale);
+    appView_->viewResizedNew(_nvg, _nativeSize, displayScale);
   }
 }
 

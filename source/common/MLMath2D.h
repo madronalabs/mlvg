@@ -10,6 +10,7 @@
 #include <array>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 #include "MLDSPScalarMath.h"
 
@@ -240,7 +241,7 @@ struct Rotation
 
 // returns the point where a intersects b, or a null object if no intersection exists.
 
-Vec2 intersect(LineSegment a, LineSegment b)
+inline Vec2 intersect(LineSegment a, LineSegment b)
 {
   if((a.start == a.end) || (b.start == b.end))
   {
@@ -372,20 +373,67 @@ inline bool within(Vec2 p, Rect r)
   return (ml::within(p.x, r.left, r.right()) && ml::within(p.y, r.top, r.bottom()));
 }
 
+inline Rect rectEnclosing(Rect a, Rect b)
+{
+  Rect ret;
+  if (area(a) > 0.)
+  {
+    float l, r, t, bot;
+    l = ml::min(a.left, b.left);
+    r = ml::max(a.right(), b.right());
+    t = ml::min(a.top, b.top);
+    bot = ml::max(a.bottom(), b.bottom());
+    ret = Rect(l, t, r - l, bot - t);
+  }
+  else
+  {
+    ret = b;
+  }
+  return ret;
+}
 
-Rect rectEnclosing(Rect a, Rect b);
-Rect grow(Rect a, float amount);
-Rect growWidth(Rect a, float amount);
-Rect growHeight(Rect a, float amount);
-Rect shrink(Rect a, float amount);
-Rect shrinkWidth(Rect a, float amount);
-Rect shrinkHeight(Rect a, float amount);
+inline Rect grow(Rect a, float m)
+{
+  return a + Rect(-m, -m, 2*m, 2*m);
+}
 
-Rect constrainInside(Rect a, Rect b);
+inline Rect growWidth(Rect a, float m)
+{
+  return a + Rect(-m, 0, 2*m, 0);
+}
+
+inline Rect growHeight(Rect a, float m)
+{
+  return a + Rect(0, -m, 0, 2*m);
+}
+
+inline Rect shrink(Rect a, float m)
+{
+  return a + Rect(m, m, -2*m, -2*m);
+}
+
+inline Rect shrinkWidth(Rect a, float m)
+{
+  return a + Rect(m, 0, -2*m, 0);
+}
+
+inline Rect shrinkHeight(Rect a, float m)
+{
+  return a + Rect(0, m, 0, -2*m);
+}
+
+inline Rect constrainInside(Rect a, Rect b)
+{
+  Rect r{a};
+  r.top -= max(r.bottom() - b.bottom(), 0.f);
+  r.top = max(r.top, b.top);
+  r.left -= max(r.right() - b.right(), 0.f);
+  r.left = max(r.left, b.left);
+  return r;
+}
 
 inline Rect centerOnOrigin(Rect a) { return Rect(-a.width/2, -a.height/2, a.width, a.height); }
 inline Rect alignTopLeftToOrigin(Rect a) { return Rect(0, 0, a.width, a.height); }
-
 
 inline Rect alignTopLeftToPoint(Rect a, Vec2 b) { return Rect(b.x, b.y, a.width, a.height); }
 inline Rect alignTopRightToPoint(Rect a, Vec2 b) { return Rect(b.x - a.width, b.y, a.width, a.height); }
@@ -393,8 +441,6 @@ inline Rect alignTopCenterToPoint(Rect a, Vec2 b) { return Rect(b.x - a.width/2,
 
 inline Rect alignMiddleLeftToPoint(Rect a, Vec2 b) { return Rect(b.x, b.y - a.height/2, a.width, a.height); }
 inline Rect alignMiddleRightToPoint(Rect a, Vec2 b) { return Rect(b.x - a.width, b.y - a.height/2, a.width, a.height); }
-
-
 
 inline Rect alignBottomLeftToPoint(Rect a, Vec2 b) { return Rect(b.x, b.y - a.height, a.width, a.height); }
 inline Rect alignBottomRightToPoint(Rect a, Vec2 b) { return Rect(b.x - a.width, b.y - a.height, a.width, a.height); }
@@ -409,23 +455,11 @@ inline Rect alignTopLeftToRect(Rect a, Rect b) { return Rect(b.left, b.top, a.wi
 inline Rect alignTopRightToRect(Rect a, Rect b) { return Rect(b.right() - a.width, b.top, a.width, a.height); }
 
 inline Rect alignMiddleLeftToRect(Rect a, Rect b) { return alignMiddleLeftToPoint(a, getMiddleLeft(b)); }
+inline Rect alignCenterToRect(Rect a, Rect b) { return alignCenterToPoint(a, getCenter(b)); }
 inline Rect alignMiddleRightToRect(Rect a, Rect b) { return alignMiddleRightToPoint(a, getMiddleRight(b)); }
 
 inline Rect alignBottomLeftToRect(Rect a, Rect b) { return Rect(b.left, b.bottom() - a.height, a.width, a.height); }
 inline Rect alignBottomRightToRect(Rect a, Rect b) { return Rect(b.right() - a.width, b.bottom() - a.height, a.width, a.height); }
-
-inline Rect alignCenterToRect(Rect a, Rect b) { return alignCenterToPoint(a, getCenter(b)); }
-
-
-inline Rect portionOfRect(Rect ru, Rect bounds)
-{
-  Rect r;
-  r.left = bounds.left + ru.left*bounds.width;
-  r.top = bounds.top + ru.top*bounds.height;
-  r.width =  ru.width*bounds.width;
-  r.height =  ru.height*bounds.height;
-  return r;
-}
 
 enum alignFlags
 {
@@ -440,13 +474,114 @@ enum alignFlags
   kBottomRight
 };
 
-Rect alignRect(Rect rectToAlign, Rect fixedRect, alignFlags flags);
-/*
- std::ostream& operator<< (std::ostream& out, const Vec2& r);
- std::ostream& operator<< (std::ostream& out, const Vec3& r);
- std::ostream& operator<< (std::ostream& out, const Vec4& r);
- */
-std::ostream& operator<< (std::ostream& out, const ml::Rect& r);
+Rect alignRect(Rect a, Rect b, alignFlags flags)
+{
+  float x, y;
+  switch(flags)
+  {
+    case kTopLeft:
+      x = b.left;
+      y = b.top;
+      break;
+    case kTopCenter:
+      x = b.left + b.width/2 - a.width/2;
+      y = b.top;
+      break;
+    case kTopRight:
+      x = b.right() - a.width;
+      y = b.top;
+      break;
+    case kLeft:
+      x = b.left;
+      y = b.top + b.height/2 - a.height/2;
+      break;
+    case kCenter:
+      x = b.left + b.width/2 - a.width/2;
+      y = b.top + b.height/2 - a.height/2;
+      break;
+    case kRight:
+      x = b.right() - a.width;
+      y = b.top + b.height/2 - a.height/2;
+      break;
+    case kBottomLeft:
+      x = b.left;
+      y = b.bottom() - a.height;
+      break;
+    case kBottomCenter:
+      x = b.left + b.width/2 - a.width/2;
+      y = b.bottom() - a.height;
+      break;
+    case kBottomRight:
+      x = b.right() - a.width;
+      y = b.bottom() - a.height;
+      break;
+  }
+  return {x, y, a.width, a.height};
+}
+
+
+// return the portion ru of the whole rect bounds. each coordinate in ru is relative to the width or height of the whole.
+// so portionOfRect({0, 0, 1, 1}, whole) is the whole rect. portionOfRect({0.5, 0, 0.5, 1}, whole) is the right half, and so on.
+
+inline Rect portionOfRect(Rect ru, Rect whole)
+{
+  Rect r;
+  r.left = whole.left + ru.left*whole.width;
+  r.top = whole.top + ru.top*whole.height;
+  r.width = ru.width*whole.width;
+  r.height = ru.height*whole.height;
+  return r;
+}
+
+inline std::ostream& operator<< (std::ostream& out, const Vec2& r)
+{
+  out << "[";
+  out << r.x;
+  out << ", ";
+  out << r.y;
+  out << "]";
+  return out;
+}
+
+inline std::ostream& operator<< (std::ostream& out, const Vec3& r)
+{
+  out << "[";
+  out << r.x;
+  out << ", ";
+  out << r.y;
+  out << ", ";
+  out << r.z;
+  out << "]";
+  return out;
+}
+
+inline std::ostream& operator<< (std::ostream& out, const Vec4& r)
+{
+  out << "[";
+  out << r.x;
+  out << ", ";
+  out << r.y;
+  out << ", ";
+  out << r.z;
+  out << ", ";
+  out << r.w;
+  out << "]";
+  return out;
+}
+
+inline std::ostream& operator<< (std::ostream& out, const Rect& r)
+{
+  out << "[";
+  out << r.left;
+  out << ", ";
+  out << r.top;
+  out << ", ";
+  out << r.width;
+  out << ", ";
+  out << r.height;
+  out << "]";
+  return out;
+}
 
 inline Rect roundToInt(Rect r)
 {

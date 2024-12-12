@@ -72,17 +72,12 @@ void DialBasic::setupParams()
   if(hasProperty("detents"))
   {
     Path pname{getTextProperty("param")};
-    Matrix detents = getMatrixProperty("detents");
-    
-    // NOT getSize()! TODO look at removing Matrix property.
-    // replace with float array maybe.
-    size_t nDetents = detents.getWidth();
-    
+    auto detents = getFloatVectorProperty("detents");
+    size_t nDetents = detents.size();
     _normDetents.resize(nDetents);
     for(int i=0; i<nDetents; ++i)
     {
       _normDetents[i] = _params.projections[pname].realToNormalized(detents[i]);
-      
     }
   }
   
@@ -271,7 +266,8 @@ void DialBasic::draw(ml::DrawContext dc)
   float textScale = getFloatPropertyWithDefault("text_size",0.625);
   float normalizedValue = enabled ? currentNormalizedValue : 0.f;
   float opacity = enabled ? 1.0f : 0.25f;
-  float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
+  float contextStrokeWidth = dc.properties->getFloatPropertyWithDefault("common_stroke_width", 1/16.f);
+  float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", contextStrokeWidth);
 
   // colors
   auto markColor = multiplyAlpha(getColor(dc, "mark"), opacity);
@@ -407,8 +403,8 @@ void DialBasic::draw(ml::DrawContext dc)
     // detents
     if(hasProperty("detents"))
     {
-      Matrix detents = getMatrixProperty("detents");
-      size_t nDetents = detents.getSize();
+      auto detents = getFloatVectorProperty("detents");
+      size_t nDetents = detents.size();
       for(int i=0; i<nDetents; ++i)
       {
         float detentValuePlain = detents[i];

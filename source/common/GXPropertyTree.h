@@ -28,23 +28,20 @@ public:
   GXPropertyTree(WithValues p) : PropertyTree(p) {}
   GXPropertyTree() : PropertyTree() {}
 
+  ml::Rect getRectProperty(Path p) const { return valueToPODType<ml::Rect>(getProperty(p)); }
+  ml::Rect getPointPropertyWithDefault(Path p, ml::Rect d) const { return hasProperty(p) ? getRectProperty(p) : d; }
+  void setRectProperty(Path p, ml::Rect v) { setProperty(p, valueFromPODType<ml::Rect>(v)); }
 
-  inline ml::Rect getRectProperty(Path p) const { return valueToPODType<ml::Rect>(getProperty(p)); }
-  inline ml::Rect getPointPropertyWithDefault(Path p, ml::Rect d) const { return hasProperty(p) ? getRectProperty(p) : d; }
-  inline void setRectProperty(Path p, ml::Rect v) { setProperty(p, valueFromPODType<ml::Rect>(v)); }
-  
+  ml::Rect getBounds() const { return getRectProperty("bounds"); }
+  void setBounds(ml::Rect r) { setRectProperty("bounds", r); }
 
-  inline ml::Rect getBounds() const { return getRectProperty("bounds"); }
-  inline void setBounds(ml::Rect r) { setRectProperty("bounds", r); }
-
+  Point getPointProperty(Path p) const { return valueToPODType<Point>(getProperty(p)); }
+  Point getPointPropertyWithDefault(Path p, Point d) const { return hasProperty(p) ? getPointProperty(p) : d; }
+  void setPointProperty(Path p, Point v) { setProperty(p, valueFromPODType<Point>(v)); }
   
-  inline Point getPointProperty(Path p) const { return valueToPODType<Point>(getProperty(p)); }
-  inline Point getPointPropertyWithDefault(Path p, Point d) const { return hasProperty(p) ? getPointProperty(p) : d; }
-  inline void setPointProperty(Path p, Point v) { setProperty(p, valueFromPODType<Point>(v)); }
-  
-  inline Color getColorProperty(Path p) const { return valueToPODType<Color>(getProperty(p)); }
-  inline Color getColorPropertyWithDefault(Path p, Color d) const { return hasProperty(p) ? getColorProperty(p) : d; }
-  inline void setColorProperty(Path p, Color c) { setProperty(p, valueFromPODType<Color>(c)); }
+  Color getColorProperty(Path p) const { return valueToPODType<Color>(getProperty(p)); }
+  Color getColorPropertyWithDefault(Path p, Color d) const { return hasProperty(p) ? getColorProperty(p) : d; }
+  void setColorProperty(Path p, Color c) { setProperty(p, valueFromPODType<Color>(c)); }
 };
 
 

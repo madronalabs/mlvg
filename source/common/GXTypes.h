@@ -7,6 +7,7 @@
 #pragma once
 
 #include "MLMath2D.h"
+#include "MLValue.h"
 
 using namespace ml;
 
@@ -17,6 +18,7 @@ namespace gx {
 using Point = Vec2;
 
 inline Value pointToValue(Point p){ return valueFromPODType<Point>(p); }
+inline Point valueToPoint(Value v){ return valueToPODType<Point>(v); }
 
 // Rect
 
@@ -39,6 +41,7 @@ constexpr inline Color rgba(const uint32_t hexRGB)
   return NVGcolor{ {{r / 255.f, g / 255.f, b / 255.f, 1.0f}} };
 }
 
+inline Color lerp(Color a, Color b, float mix) { return nvgLerpRGBA(a, b, mix); }
 
 } // namespace ml
 

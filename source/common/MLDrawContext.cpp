@@ -318,7 +318,7 @@ Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWi
       
       // if offscreen left, place to right instead
       if(floatingRectLeft < 0) floatingRectLeft = fixedRect.right() + margin;
-      result.setLeft(floatingRectLeft);
+      result.left = floatingRectLeft;
     }
       break;
     case(hash("right")):
@@ -327,18 +327,18 @@ Rect floatToSide(Rect fixedRect, Rect floatingRect, float margin, float windowWi
       
       // if offscreen right, place to left
       if(floatingRectRight > windowWidth) floatingRectRight = fixedRect.left - margin;
-      result.setRight(floatingRectRight);
+      result.width = floatingRectRight - result.left;
     }
       break;
   }
   
   // center in window vertically, hopefully under header
   const float kHeaderHeight = 0.5f;
-  result.setTop((windowHeight + kHeaderHeight - floatingRect.height)/2);
+  result.top = ((windowHeight + kHeaderHeight - floatingRect.height)/2);
   
   if(result.bottom() > windowHeight - margin)
   {
-    result.setBottom(windowHeight - margin);
+    result.height = (windowHeight - margin) - result.top;
   }
   
   return result;
@@ -353,22 +353,22 @@ Rect floatNearby(Rect floatingRect, Rect fixedRect, Rect windowRect, float margi
   {
     case(hash("left")):
     {
-      result = alignMiddleRightToPoint(floatingRect, fixedRect.middleLeft() - Vec2(margin, 0));
+      result = alignMiddleRightToPoint(floatingRect, getMiddleLeft(fixedRect) - Vec2(margin, 0));
       break;
     }
     case(hash("right")):
     {
-      result = alignMiddleLeftToPoint(floatingRect, fixedRect.middleRight() + Vec2(margin, 0));
+      result = alignMiddleLeftToPoint(floatingRect, getMiddleRight(fixedRect) + Vec2(margin, 0));
       break;
     }
     case(hash("top")):
     {
-      result = alignBottomCenterToPoint(floatingRect, fixedRect.topCenter() - Vec2(0, margin));
+      result = alignBottomCenterToPoint(floatingRect, getTopCenter(fixedRect) - Vec2(0, margin));
       break;
     }
     case(hash("bottom")):
     {
-      result = alignTopCenterToPoint(floatingRect, fixedRect.bottomCenter() + Vec2(0, margin));
+      result = alignTopCenterToPoint(floatingRect, getBottomCenter(fixedRect) + Vec2(0, margin));
       break;
     }
   }

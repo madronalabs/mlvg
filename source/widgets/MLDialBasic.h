@@ -7,6 +7,7 @@
 
 #include "MLWidget.h"
 #include "MLValue.h"
+#include "MLTimer.h"
 #include "MLTree.h"
 
 using namespace ml;

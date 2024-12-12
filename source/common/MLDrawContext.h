@@ -10,14 +10,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-
-//#include "mldsp.h"
-#include "madronalib.h"
-#include "MLMath2D.h"
-#include "MLGUICoordinates.h"
 #include "GXEngine.h"
 #include "GXTypes.h"
 #include "GXPropertyTree.h"
+
+//#include "madronalib.h"
+//#include "MLMath2D.h"
+//#include "MLGUICoordinates.h"
+
 
 using namespace gx;
 
@@ -641,13 +641,9 @@ Rect floatNearby(Rect floatingRect, Rect fixedRect, Rect windowRect, float margi
 
 // drawing property helpers
 
-inline float getFloat(DrawContext t, Path p) { return t.properties->getFloatProperty(p); }
-inline float getFloatWithDefault(DrawContext t, Path p, float d) { return t.properties->getFloatPropertyWithDefault(p, d); }
 
 inline NVGcolor getColor(DrawContext t, Path p) { return t.properties->getColorProperty(p); }
 inline NVGcolor getColorWithDefault(DrawContext t, Path p, Color d)  { return t.properties->getColorPropertyWithDefault(p, d); }
-
-inline NVGcolor lerp(NVGcolor a, NVGcolor b, float mix) { return nvgLerpRGBA(a, b, mix); }
 
 
 // some colors.

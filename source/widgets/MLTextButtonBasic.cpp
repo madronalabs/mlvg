@@ -75,7 +75,8 @@ void TextButtonBasic::draw(ml::DrawContext dc)
     backgroundColor = multiplyAlpha(backgroundColor, kDisabledAlpha);
   }
   
-  float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", getFloat(dc, "common_stroke_width"));
+  float contextStrokeWidth = dc.properties->getFloatPropertyWithDefault("common_stroke_width", 1/16.f);
+  float strokeWidthMul = getFloatPropertyWithDefault("stroke_width", contextStrokeWidth);
   float strokeWidth = gridSizeInPixels*strokeWidthMul;
   float margin = gridSizeInPixels/8.f;
   float textSizeGrid = getFloatPropertyWithDefault("text_size", 0.6f);

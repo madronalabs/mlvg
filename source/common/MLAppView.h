@@ -12,7 +12,9 @@
 #include "MLGUIEvent.h"
 #include "MLView.h"
 #include "MLWidget.h"
+#include "GXEngine.h"
 #include "GXPropertyTree.h"
+#include "GXTypes.h"
 
 namespace ml {
 
@@ -44,11 +46,14 @@ public:
   virtual void render(NativeDrawContext* nvg);
   
   // called by the PlatformView to set our size in pixel coordinates.
-  void viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
+//  void viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
+  void viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
+  
+  void viewResizedTest(float displayScale);
   
   void setCoords(const GUICoordinates& c) { _GUICoordinates = c; }
   const GUICoordinates& getCoords() { return _GUICoordinates; }
-
+  
   // for a fixed ratio layout, get (width, height) of window in grid units.
   Vec2 getFixedAspectRatio() const { return _sizeInGridUnits; }
   void setFixedAspectRatio(Vec2 size)
@@ -80,6 +85,7 @@ public:
   
 protected:
   
+  
   // main view and top-level things.
   // order is important for default destructor!
   std::unique_ptr< ml::View > _view;
@@ -99,7 +105,7 @@ protected:
   size_t _minGridSize{ 30 };
   size_t _defaultGridSize{ 60 };
   size_t _maxGridSize{ 120 };
-
+  
   // windowing
   void* _platformHandle{ nullptr };
   
@@ -129,12 +135,9 @@ protected:
   void _setupWidgets(const ParameterDescriptionList& pdl);
   void _updateParameterDescription(const ParameterDescriptionList& pdl, Path pname);
   void _handleGUIEvents();
-
-  
   void _debug();
   void _sendParameterMessageToWidgets(const Message& msg);
   GUIEvent _detectDoubleClicks(GUIEvent e);
-  
   size_t _getElapsedTime();
   void layoutFixedSizeWidgets_();
   
@@ -145,6 +148,7 @@ private:
   
   // temp
   int queueSize{ 0 };
+   
 };
 
 }

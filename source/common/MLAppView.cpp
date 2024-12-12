@@ -30,10 +30,14 @@ AppView::~AppView()
   removeActor(this);
 }
 
+
 // called when native view size changes in the PlatformView callback.
 // newSize is in pixel coordinates. displayScale is pixels per system size unit.
-void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
+//void AppView::viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
+void AppView::viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
+  /*
+  Vec2 newSize(640, 480);
   float gridSizeInPixels{0};
   
   if(aspectRatioIsFixed_)
@@ -68,7 +72,12 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
   
   DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
   layoutView(dc);
-  
+  */
+  _view->setDirty(true);
+}
+
+void AppView::viewResizedTest(float displayScale)
+{
   _view->setDirty(true);
 }
 
@@ -336,12 +345,12 @@ size_t AppView::_getElapsedTime()
 
 void AppView::animate(NativeDrawContext* nvg)
 {
-    // Allow Widgets to draw any needed animations outside of main nvgBeginFrame().
-    // Do animations and handle any resulting messages immediately.
-    DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates };
-    MessageList ml = _view->animate((int)_getElapsedTime(), dc);
-    enqueueMessageList(ml);
-    handleMessagesInQueue();
+  // Allow Widgets to draw any needed animations outside of main nvgBeginFrame().
+  // Do animations and handle any resulting messages immediately.
+  DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates };
+  MessageList ml = _view->animate((int)_getElapsedTime(), dc);
+  enqueueMessageList(ml);
+  handleMessagesInQueue();
 }
 
 void AppView::render(NativeDrawContext* nvg)
@@ -369,7 +378,6 @@ void AppView::render(NativeDrawContext* nvg)
   nvgEndFrame(nvg);
   _view->setDirty(false);
 }
-
 
 void AppView::startTimersAndActor()
 {

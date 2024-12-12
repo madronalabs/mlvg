@@ -8,7 +8,6 @@
 
 namespace ml {
 
-
 #ifdef __APPLE__
 
 #include "nanovg_mtl.h"
