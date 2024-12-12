@@ -39,11 +39,11 @@ public:
   Point getPointPropertyWithDefault(Path p, Point d) const { return hasProperty(p) ? getPointProperty(p) : d; }
   void setPointProperty(Path p, Point v) { setProperty(p, valueFromPODType<Point>(v)); }
   
-  Color getColorProperty(Path p) const { return valueToPODType<Color>(getProperty(p)); }
+  gx::Color getColorProperty(Path p) const { return valueToPODType<Color>(getProperty(p)); }
   Color getColorPropertyWithDefault(Path p, Color d) const { return hasProperty(p) ? getColorProperty(p) : d; }
   void setColorProperty(Path p, Color c) { setProperty(p, valueFromPODType<Color>(c)); }
 };
 
 
-} // namespace ml
+} // namespace gx
 

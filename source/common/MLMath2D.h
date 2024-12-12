@@ -474,7 +474,7 @@ enum alignFlags
   kBottomRight
 };
 
-Rect alignRect(Rect a, Rect b, alignFlags flags)
+inline Rect alignRect(Rect a, Rect b, alignFlags flags)
 {
   float x, y;
   switch(flags)

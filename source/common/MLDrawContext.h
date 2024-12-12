@@ -10,16 +10,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "GXEngine.h"
 #include "GXTypes.h"
 #include "GXPropertyTree.h"
 
-//#include "madronalib.h"
-//#include "MLMath2D.h"
-//#include "MLGUICoordinates.h"
-
 
 using namespace gx;
+
+
 
 namespace ml {
 

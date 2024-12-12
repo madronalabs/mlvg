@@ -6,7 +6,7 @@
 
 #pragma once
 
-namespace ml {
+// TODO clean up cross-platform code
 
 #ifdef __APPLE__
 
@@ -48,6 +48,4 @@ using NativeDrawContext = NVGcontext;
 #elif defined LINUX // TODO
 
 #endif
-
-} // namespace ml
 

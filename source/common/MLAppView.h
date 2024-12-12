@@ -46,10 +46,7 @@ public:
   virtual void render(NativeDrawContext* nvg);
   
   // called by the PlatformView to set our size in pixel coordinates.
-//  void viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
   void viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
-  
-  void viewResizedTest(float displayScale);
   
   void setCoords(const GUICoordinates& c) { _GUICoordinates = c; }
   const GUICoordinates& getCoords() { return _GUICoordinates; }

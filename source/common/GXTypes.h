@@ -9,6 +9,8 @@
 #include "MLMath2D.h"
 #include "MLValue.h"
 
+#include "GXEngine.h"
+
 using namespace ml;
 
 namespace gx {
@@ -43,5 +45,5 @@ constexpr inline Color rgba(const uint32_t hexRGB)
 
 inline Color lerp(Color a, Color b, float mix) { return nvgLerpRGBA(a, b, mix); }
 
-} // namespace ml
+} // namespace gx
 

@@ -24,7 +24,6 @@ list(APPEND test_app_sources ${LOCAL_SOURCES} )
 list(APPEND test_app_sources ${LOCAL_INCLUDES} )
 list(APPEND test_app_sources ${RESOURCES} )
 list(APPEND test_app_sources "${MLVG_SOURCE_DIR}/native/MLSDLUtils.h" )
-list(APPEND test_app_sources "${CMAKE_SOURCE_DIR}/examples/app/build/resources/resources.c" )
 
 if(APPLE)
 elseif(WIN32)

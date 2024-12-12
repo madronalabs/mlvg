@@ -33,11 +33,8 @@ AppView::~AppView()
 
 // called when native view size changes in the PlatformView callback.
 // newSize is in pixel coordinates. displayScale is pixels per system size unit.
-//void AppView::viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 void AppView::viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
-  /*
-  Vec2 newSize(640, 480);
   float gridSizeInPixels{0};
   
   if(aspectRatioIsFixed_)
@@ -72,12 +69,7 @@ void AppView::viewResizedNew(NativeDrawContext* nvg, Vec2 newSize, float display
   
   DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
   layoutView(dc);
-  */
-  _view->setDirty(true);
-}
 
-void AppView::viewResizedTest(float displayScale)
-{
   _view->setDirty(true);
 }
 
