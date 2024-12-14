@@ -508,7 +508,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 {
   if(appView_ && _nvg)
   {
-    appView_->viewResizedNew(_nvg, _nativeSize, displayScale);
+    appView_->viewResized(_nvg, _nativeSize, displayScale);
   }
 }
 

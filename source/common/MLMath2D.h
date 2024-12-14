@@ -18,8 +18,9 @@ namespace ml {
 
 // internal V4 type with math that should be auto-vectorized.
 
-struct alignas(16) V4
+class alignas(16) V4
 {
+public:
   union
   {
     std::array<float, 4> val;
@@ -39,13 +40,19 @@ struct alignas(16) V4
   
   
   V4() : x(0.f), y(0.f), z(0.f), w(0.f) {}
-  V4(float a) : x(a), y(0.f), z(0.f), w(0.f) {}
+  
+  // the float constructor fills all elements, which allows V4 * float -> V4.
+  V4(float a) : x(a), y(a), z(a), w(a) {}
+  
   V4(float a, float b) : x(a), y(b), z(0.f), w(0.f) {}
   V4(float a, float b, float c) : x(a), y(b), z(c), w(0.f) {}
   constexpr V4(float a, float b, float c, float d) : x(a), y(b), z(c), w(d) {}
 
   static constexpr float kMinFloat = std::numeric_limits<float>::lowest();
-  explicit operator bool() const { return !(*this == V4{ kMinFloat, kMinFloat, kMinFloat, kMinFloat }); }
+  
+  static const V4 kNullObject;
+
+  explicit operator bool() const { return !(*this == kNullObject); }
 
   bool operator==(const V4& b) const
   {
@@ -100,8 +107,7 @@ struct alignas(16) V4
   }
 };
 
-constexpr V4 kNullV4{ V4::kMinFloat, V4::kMinFloat, V4::kMinFloat, V4::kMinFloat };
-
+inline constexpr V4 V4::kNullObject( kMinFloat, kMinFloat, kMinFloat, kMinFloat );
 
 inline V4 roundToInt(V4 a)
 {
@@ -245,13 +251,13 @@ inline Vec2 intersect(LineSegment a, LineSegment b)
 {
   if((a.start == a.end) || (b.start == b.end))
   {
-    return kNullV4;
+    return V4::kNullObject;
   }
   
   if( (a.start == b.start) || (a.start == b.end) ||
      (a.end == b.start) || (a.end == b.end) )
   {
-    return kNullV4;
+    return V4::kNullObject;
   }
   
   LineSegment a2 = translate(a, -a.start);
@@ -260,9 +266,9 @@ inline Vec2 intersect(LineSegment a, LineSegment b)
   float cosTheta = a2.end.x/aLen;
   float sinTheta = -(a2.end.y/aLen);
   LineSegment b3 = multiply(Mat22(cosTheta, -sinTheta, sinTheta, cosTheta), b2);
-  if(ml::sign(b3.start.y) == ml::sign(b3.end.y)) return kNullV4;
+  if(ml::sign(b3.start.y) == ml::sign(b3.end.y)) return V4::kNullObject;
   float sectX = b3.end.x + (b3.start.x - b3.end.x)*b3.end.y/(b3.end.y - b3.start.y);
-  if(!ml::within(sectX, 0.f, aLen)) return kNullV4;
+  if(!ml::within(sectX, 0.f, aLen)) return V4::kNullObject;
   return Vec2(a.start + Vec2(sectX*cosTheta, sectX*-sinTheta));
 }
 

@@ -154,6 +154,10 @@ int main(int argc, char *argv[])
   // get monitor and scale for making window. if there is no persistent rect, use defaults
   // we have a few utilities in PlatformView that apps can use to make their own default strategies.
   Vec2 c = PlatformView::getPrimaryMonitorCenter(); // TODO -> platformViewUtils
+  
+  Vec2 gSize(kDefaultGridUnitSize);
+  Vec3 gSize3(kDefaultGridUnitSize);
+  Vec4 gSize4(kDefaultGridUnitSize);
 
   // get window size in system coords
   Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;

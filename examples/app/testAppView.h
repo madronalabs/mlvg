@@ -32,6 +32,9 @@ public:
   void onGUIEvent(const GUIEvent& event) override {};
   void onResize(Vec2 newSize) override {};
 
+  void animate(NativeDrawContext* nvg) override;
+  void render(NativeDrawContext* nvg) override;
+  
   // Actor interface
   void onMessage(Message m) override;
   

@@ -207,7 +207,6 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"action", "open" }
   } );
 
-
 #if TEST_RESIZER
   _view->_widgets.add_unique< Resizer >("resizer", WithValues{
     {"fix_ratio", (kDefaultGridUnits.x) / (kDefaultGridUnits.y)},
@@ -228,6 +227,19 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
   
   _setupWidgets(pdl);
 }
+
+void TestAppView::animate(NativeDrawContext* nvg)
+{
+  
+  AppView::animate(nvg);
+}
+
+void TestAppView::render(NativeDrawContext * nvg)
+{
+  AppView::render(nvg);
+}
+
+
 
 // Actor implementation
 

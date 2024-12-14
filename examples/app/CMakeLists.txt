@@ -123,7 +123,6 @@ set(NATIVE2 "${MLVG_SOURCE_DIR}/external/osdialog/osdialog_mac.m")
 set(NATIVE3 "${MLVG_SOURCE_DIR}/external/MetalNanoVG/src/*.*")
 source_group(native REGULAR_EXPRESSION "${NATIVE1}|${NATIVE2}|${NATIVE3}")
 
-source_group(resources REGULAR_EXPRESSION "${MLVG_SOURCE_DIR}/../examples/app/build/resources/*.*")
 
 
 
