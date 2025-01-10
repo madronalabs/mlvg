@@ -21,12 +21,28 @@ Vec2 NSPointToVec2(NSPoint p)
   return Vec2{float(p.x), float(p.y)};
 }
 
+
+
+// convert CoreGraphics coordinate rect from Apple (origin at bottom left of main window, y=up)
+// to rest of world coords (origin = top left of main window, y=down)
+ml::Rect NSToMLRect(NSRect nsr)
+{
+  NSRect mainWindowRect =  [[NSScreen mainScreen] frame];
+  
+  float x = nsr.origin.x;
+  float nsRectTop = nsr.origin.y + nsr.size.height;
+  float y = mainWindowRect.size.height - nsRectTop;
+  float width = nsr.size.width;
+  float height = nsr.size.height;
+  return ml::Rect(x, y, width, height);
+}
+
+
 // MyMTKView
 
 @interface MyMTKView : MTKView
 
 - (void)setAppView:(AppView*) pView;
-//- (AppView*)getAppView;
 - (NSPoint) convertPointToScreen:(NSPoint)point;
 - (void)convertEventPositions:(NSEvent *)appKitEvent toGUIEvent:(GUIEvent*)vgEvent;
 - (void)convertEventPositionsWithOffset:(NSEvent *)appKitEvent withOffset:(NSPoint)offset toGUIEvent:(GUIEvent*)vgEvent;
@@ -34,6 +50,7 @@ Vec2 NSPointToVec2(NSPoint p)
 - (id)initWithFrame:(CGRect)aRect device:(id<MTLDevice>) device;
 - (void) setFrameSize:(NSSize)size;
 - (void) setPlatformView:(PlatformView *)view;
+- (float) getDisplayScale;
 
 @end
 
@@ -54,7 +71,7 @@ Vec2 NSPointToVec2(NSPoint p)
   
   if(self)
   {
-    // initialize to default values
+    // initialize to default values - TEMP
     displayScale = 1.0f;
     displaySize_ = NSMakeSize(0, 0);
     needsResize = false;
@@ -73,6 +90,10 @@ Vec2 NSPointToVec2(NSPoint p)
   platformView_ = view;
 }
 
+- (float) getDisplayScale
+{
+  return displayScale;
+}
 
 - (void)setFrameSize:(NSSize)size
 {
@@ -87,8 +108,6 @@ Vec2 NSPointToVec2(NSPoint p)
   
   float x = screenRect.origin.x;
   float y = screenSize.height - screenRect.origin.y;
-  x = clamp(x, 0.f, float(screenSize.width));
-  y = clamp(y, 0.f, float(screenSize.height));
 
   return NSMakePoint(x, y);
 }
@@ -101,7 +120,6 @@ Vec2 NSPointToVec2(NSPoint p)
   NSPoint fromBottom = NSMakePoint(pt.x, self.frame.size.height - pt.y);
   NSPoint fromBottomBacking = [self convertPointToBacking:fromBottom ];
 
-   
   vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y);
 }
 
@@ -142,13 +160,12 @@ Vec2 NSPointToVec2(NSPoint p)
 - (void)viewDidChangeBackingProperties
 {
   displayScale = [[self window] backingScaleFactor];
-  
-  NSLog(@"NEW display scale %f", displayScale);
-  
+  NSRect frame = [[self window] frame];
+
   // send scale up to platform view, this is why we had to set the pointer with setPlatformView()
   if(platformView_)
   {
-    platformView_->setPlatformViewDisplayScale(displayScale);
+    platformView_->resizePlatformView(frame.size.width, frame.size.height);
   }
 }
 
@@ -183,7 +200,7 @@ Vec2 NSPointToVec2(NSPoint p)
   [self convertEventFlags:pEvent toGUIEvent:&e];
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt) * displayScale;
+  e.screenPos = NSPointToVec2(pt);
   totalDrag_ = NSMakePoint(0, 0);
   
   if(appView_)
@@ -203,7 +220,7 @@ Vec2 NSPointToVec2(NSPoint p)
   e.keyFlags |= controlModifier;
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt) * displayScale;
+  e.screenPos = NSPointToVec2(pt);
   
   // reset drag
   totalDrag_ = NSMakePoint(0, 0);
@@ -263,7 +280,7 @@ Vec2 NSPointToVec2(NSPoint p)
     // add total drag offset to event and send
     [self convertEventPositionsWithOffset:pEvent withOffset:totalDrag_ toGUIEvent:&e];
     [self convertEventFlags:pEvent toGUIEvent:&e];
-    e.screenPos = NSPointToVec2(eventPos) * displayScale;
+    e.screenPos = NSPointToVec2(eventPos);
     appView_->pushEvent(e);
   }
 }
@@ -276,7 +293,7 @@ Vec2 NSPointToVec2(NSPoint p)
   [self convertEventFlags:pEvent toGUIEvent:&e];
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt) * displayScale;
+  e.screenPos = NSPointToVec2(pt);
 
   
   if(appView_)
@@ -293,7 +310,7 @@ Vec2 NSPointToVec2(NSPoint p)
   [self convertEventFlags:pEvent toGUIEvent:&e];
   
   NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-  e.screenPos = NSPointToVec2(pt) * displayScale;
+  e.screenPos = NSPointToVec2(pt);
 
   // set control down for right click. TODO different event!
   e.keyFlags |= controlModifier;
@@ -321,7 +338,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     e.delta = eventDelta;
     
     NSPoint pt = [self convertPointToScreen:[pEvent locationInWindow]];
-    e.screenPos = NSPointToVec2(pt) * displayScale;
+    e.screenPos = NSPointToVec2(pt);
     
     // restore device values if user has "natural scrolling" off in Prefs
     bool scrollDirectionNatural = pEvent.directionInvertedFromDevice;
@@ -413,9 +430,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     CGSize pixelSize = CGSizeMake(width*displayScale, height*displayScale);
     
     // dont resize here when creating because app view is not attached yet
-    // [self resize:pixelSize];
     [self setDisplayScale:displayScale];
-    
   }
   return self;
 }
@@ -431,7 +446,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   if(displayScale != scale)
   {
     displayScale = scale;
-    [self resizeAppView];
+//    [self resizeAppView];
   }
 }
 
@@ -450,7 +465,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // resize callback, called by the MTKView in pixel coordinates
 - (void) mtkView: (nonnull MTKView*)view drawableSizeWillChange:(CGSize)newSize
 {
-  // std::cout << "renderer drawableSizeWillChange: " << newSize.width << " x " << newSize.height << "\n";
   [self resize: newSize];
 }
 
@@ -494,14 +508,17 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // internal resize, in pixel size
 - (void) resize:(CGSize)size
 {
-  Vec2 newNativeSize(size.width, size.height);
-
-//  if((newNativeSize != _nativeSize) || (!_backingLayer.get()))
+  _nativeSize = Vec2(size.width, size.height);
+  
+  Vec2 layerSize(0, 0);
+  if(_backingLayer.get()) layerSize = Vec2(_backingLayer->width, _backingLayer->height);
+  
+  if(_nativeSize != layerSize)
   {
-    _nativeSize = newNativeSize;
     _backingLayer = std::make_unique< DrawableImage >(_nvg, _nativeSize.x(), _nativeSize.y());
-    [self resizeAppView];
   }
+  
+  [self resizeAppView];
 }
 
 - (void) resizeAppView
@@ -522,17 +539,9 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // get default point to put the center of a new window
 Vec2 PlatformView::getPrimaryMonitorCenter()
 {
-  NSScreen* screen =[NSScreen mainScreen];
+  NSScreen* screen = [NSScreen mainScreen]; // NSScreen.screens[1]; //
   NSRect frm = [screen frame];
-  float x = frm.origin.x + frm.size.width/2;
-  float y = frm.origin.y + frm.size.height/2;
-  return Vec2{x, y};
-}
-
-// get the scale the OS considers the window's device to be at, compared to "usual" DPI
-float PlatformView::getDeviceScaleAtPoint(Vec2 p)
-{
-  return 1.0f;
+  return getCenter(NSToMLRect(frm));
 }
 
 // get the scale the OS considers the window's device to be at, compared to "usual" DPI
@@ -614,17 +623,11 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   
   ml::Rect bounds{(float)parentFrame.origin.x, (float)parentFrame.origin.y,
     (float)parentFrame.size.width, (float)parentFrame.size.height};
-
-  NSRect boundsRectDefault = NSMakeRect(0, 0, bounds.width(), bounds.height());
-  NSRect boundsRectBacking = [parentView convertRectToBacking: boundsRectDefault];
-  
   NSRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
-  displayScale_ = boundsRectBacking.size.width / boundsRectDefault.size.width;
+
   
   // make the new view
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
-  [view setPlatformView:this];
-  
   if(!view)
   {
     NSLog(@"Failed to allocate MTK View!");
@@ -635,6 +638,10 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
     NSLog(@"Metal is not supported on this device.");
     return;
   }
+  
+  [view setPlatformView:this];
+  displayScale_ = [view getDisplayScale];
+
 
   // view.framebufferOnly = NO; // set to NO if readback is needed
   view.layer.opaque = true;
@@ -660,7 +667,6 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   // We should set this to a frame rate that we think our renderer can consistently maintain.
   view.preferredFramesPerSecond = targetFPS;
 
-
   _pImpl = std::make_unique< Impl >();
   _pImpl->_mtkView = view;
   _pImpl->_renderer = renderer;
@@ -668,7 +674,6 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   // add the new view to our parent view supplied by the host.
   // will call viewDidChangeBackingProperties.
   [parentView addSubview: view];
-
 }
 
 PlatformView::~PlatformView()
@@ -688,36 +693,27 @@ void PlatformView::setAppView(AppView* pView)
   [_pImpl->_renderer setAppView: pView];
 }
 
-void PlatformView::setPlatformViewDisplayScale(float scale)
-{
-  if (_pImpl->_renderer)
-  {
-    [_pImpl->_renderer setDisplayScale:scale];
-  }
-}
-                     
 // resize view, in system coordinates
 void PlatformView::resizePlatformView(int w, int h)
 {
+  if (!_pImpl->_mtkView) return;
+  
   Vec2 newSizeVec(w, h);
-  
-  // std::cout << "resizePlatformView: " << newSizeVec << "\n";
-  
-  //if(newSizeVec != displaySize_) // TEMP
+  float newDisplayScale = [_pImpl->_mtkView getDisplayScale];
+    
+  if((newSizeVec != displaySize_) || (newDisplayScale != displayScale_))
   {
     displaySize_ = newSizeVec;
-    CGSize newScreenSize = CGSizeMake(w, h);
-    CGSize newPixelSize = CGSizeMake(w*displayScale_, h*displayScale_);
-    
-    if (_pImpl->_mtkView)
-    {
-      // set view frame size, which will trigger the renderer's drawableSizeWillChange call
-      [_pImpl->_mtkView setFrameSize:newScreenSize];
-    }
+    displayScale_ = newDisplayScale;
+  
+    // set view frame size, which will trigger the renderer's drawableSizeWillChange call
+    [_pImpl->_mtkView setFrameSize:CGSizeMake(w, h)];
     
     if (_pImpl->_renderer)
     {
       // this will resize the renderer if it exists but is not yet connected via drawableSizeWillChange (first time)
+      CGSize newPixelSize = CGSizeMake(w*displayScale_, h*displayScale_);
+      [_pImpl->_renderer setDisplayScale:displayScale_];
       [_pImpl->_renderer resize:newPixelSize];
     }
   }

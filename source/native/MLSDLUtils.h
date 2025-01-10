@@ -54,10 +54,6 @@ inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName, int flags)
     return nullptr;
   }
   
-  const int kWindowMinDim = 200;
-  SDL_SetWindowMinimumSize(newWindow, kWindowMinDim, kWindowMinDim);
-  SDL_SetWindowMaximumSize(newWindow, 10000, 10000);
-
   return newWindow;
 }
 
@@ -172,6 +168,7 @@ inline ParentWindowInfo getParentWindowInfo(SDL_Window* window)
 }
 
 
+/*
 inline Vec2 getWindowSizeInPixels(SDL_Window* window)
 {
   int w, h;
@@ -193,7 +190,7 @@ inline void setWindowSizeInPixels(SDL_Window* window, Vec2 pixelSize)
 
   SDL_SetWindowSize(window, systemSize.x(), systemSize.y());
 }
-
+*/
 
 struct ResizingEventWatcherData
 {
@@ -204,14 +201,11 @@ struct ResizingEventWatcherData
 inline void SdlAppResize(ResizingEventWatcherData* watcherData)
 {
   int w, h;
+  int pw, ph;
   SDL_GetWindowSize(watcherData->window, &w, &h);
-  if(w <= 0 || h <= 0) return;
-  
-  
- // std::cout << "SdlAppResize: " << w << " x " << h << "\n";
-  
+  SDL_GetWindowSizeInPixels(watcherData->window, &pw, &ph);
+  if(w <= 0 || h <= 0 || pw <= 0 || ph <= 0) return;
   watcherData->platformView->resizePlatformView(w, h);
-  
 }
 
 inline int resizingEventWatcher(void* data, SDL_Event* event)
@@ -224,10 +218,17 @@ inline int resizingEventWatcher(void* data, SDL_Event* event)
   
   switch(ev.window.event)
   {
-    case SDL_WINDOWEVENT_RESIZED:// || (ev.window.event == SDL_WINDOWEVENT_MOVED ))
+    case SDL_WINDOWEVENT_EXPOSED:
+    case SDL_WINDOWEVENT_RESIZED:
+    case SDL_WINDOWEVENT_SIZE_CHANGED:
     {
       //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
       SdlAppResize(watcherData);
+      break;
+    }
+    default:
+    {
+      // std::cout << "unhandled SDL event: " << (int)ev.window.event << "\n";
       break;
     }
   }

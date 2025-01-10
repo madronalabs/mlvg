@@ -92,16 +92,6 @@ Vec2 PlatformView::getPrimaryMonitorCenter()
     return Vec2{ x/2, y/2 };
 }
 
-float PlatformView::getDeviceScaleAtPoint(Vec2 p)
-{
-    POINT pt{ (long)p.x(), (long)p.y() };
-    HMONITOR hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-    DEVICE_SCALE_FACTOR sf;
-    GetScaleFactorForMonitor(hMonitor, &sf);
-
-    return (float)sf / 100.f;
-}
-
 float PlatformView::getDeviceScaleForWindow(void* parent, int /*platformFlags*/)
 {
     HWND parentWindow = static_cast<HWND>(parent);

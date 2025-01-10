@@ -14,21 +14,20 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   auto type = e.type;
   
   // resizer needs actual screen position otherwise it gets chaotic when we resize the window
+  // screen position is in system coordinates.
   Vec2 eventScreenPos = e.screenPos;
   bool wasEngaged = engaged;
   
-  // std::cout << "screen pos: " << eventScreenPos << "\n";
-
   if(type == "down")
   {
-   
-
     engaged = true;
 
-// TODO fix cross-platform coords and remove this
 #if ML_MAC
     _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
+        
+    
 #elif ML_WINDOWS
+    // TODO this should be gc.pixelToSystem also.
     _sizeStart = (gc.viewSizeInPixels); 
 #endif
 
@@ -36,10 +35,6 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     _dragStart = eventScreenPos;
     _dragDelta = Vec2(0, 0);
 
-    //std::cout << "DOWN: viewSizeInPixels" << gc.viewSizeInPixels << "\n";
-   // std::cout << "DOWN: _sizeStart" << _sizeStart << "\n\n";
-
-    
     // this ValueChange does nothing but indicate that we got the event
     reqList.push_back({"ack"});
   }
@@ -47,9 +42,8 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   {
     if(!engaged) return reqList;
 
-    constexpr int kDragQuantum = 1;
-    Vec2 newDragDelta = gc.pixelToSystem(eventScreenPos - _dragStart);
-
+    constexpr int kDragQuantum = 4;
+    Vec2 newDragDelta = eventScreenPos - _dragStart;
     newDragDelta.quantize(kDragQuantum);
 
     if (newDragDelta != _dragDelta)

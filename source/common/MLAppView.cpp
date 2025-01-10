@@ -57,11 +57,11 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
   }
   
   Vec2 origin (0, 0);
-  GUICoordinates newCoords{gridSizeInPixels, newSize, displayScale, origin};
-  setCoords(newCoords);
+  _GUICoordinates = {gridSizeInPixels, newSize, displayScale, origin};
+  
   
   // set bounds for top-level View in grid coordinates
-  Vec4 newGridSize = newCoords.pixelToGrid(newCoords.viewSizeInPixels);
+  Vec4 newGridSize = _GUICoordinates.pixelToGrid(_GUICoordinates.viewSizeInPixels);
   _view->setBounds({0, 0, newGridSize.x(), newGridSize.y()});
   
   layoutFixedSizeWidgets_();
@@ -384,6 +384,8 @@ void AppView::stopTimersAndActor()
 
 bool AppView::willHandleEvent(GUIEvent g)
 {
+  bool r(true);
+  
   // Just check against types of events we return. These checks are stateless.
   // Future checks that look for example at "are we editing text?" may require
   // all events in queue to be handled before deciding.
@@ -391,14 +393,14 @@ bool AppView::willHandleEvent(GUIEvent g)
   {
     if(g.keyCode == KeyCodes::deleteKey)
     {
-      return true;
+      r = true;
     }
     else
     {
-      return false;
+      r = false;
     }
   }
-  return true;
+  return r;
 }
 
 bool AppView::pushEvent(GUIEvent g)

@@ -88,10 +88,9 @@ public:
                   Value v = m.value;
                   Matrix m = v.getMatrixValue();
                   Vec2 c (m[0], m[1]);
-
                   if (window_)
                   {
-                      SDL_SetWindowSize(window_, c[0], c[1]);
+                    SDL_SetWindowSize(window_, c[0], c[1]);
                   }
                   break;
               }
@@ -139,7 +138,6 @@ public:
     }
   }
 
-
    SDL_Window* window_{ nullptr };
    std::unique_ptr<TestAppView> appView_;
 };
@@ -152,11 +150,7 @@ int main(int argc, char *argv[])
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
 
-  // TODO get persistent window rect from AppData if available
-
-  // get monitor and scale for making window. if there is no persistent rect, use defaults
-  // we have a few utilities in PlatformView that apps can use to make their own default strategies.
-  Vec2 c = PlatformView::getPrimaryMonitorCenter(); // TODO -> platformViewUtils
+  Vec2 c = PlatformView::getPrimaryMonitorCenter();
 
   // get window size in system coords
   Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
@@ -169,9 +163,10 @@ int main(int argc, char *argv[])
   auto appInstanceNum = appController.getInstanceNum();
 
   // make SDL window
-  int windowFlags = SDL_WINDOW_RESIZABLE;
-#if TEST_RESIZER
-  windowFlags = 0;
+  int windowFlags = SDL_WINDOW_METAL;
+  
+#if !TEST_RESIZER
+  windowFlags |= SDL_WINDOW_RESIZABLE;
 #endif
   
   appController.window_ = ml::newSDLWindow(defaultRectInPixels, "mlvg test", windowFlags);
@@ -204,6 +199,7 @@ int main(int argc, char *argv[])
   }
   
   // stop doing things, clean up and return
+  // TODO make more symmetrical with creation API
   appProcessor.stopAudio();
   appProcessor.stop();
   appController.appView_->stop();

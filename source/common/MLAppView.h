@@ -45,7 +45,6 @@ public:
   // called by the PlatformView to set our size in pixel coordinates.
   void viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale);
   
-  void setCoords(const GUICoordinates& c) { _GUICoordinates = c; }
   const GUICoordinates& getCoords() { return _GUICoordinates; }
 
   // for a fixed ratio layout, get (width, height) of window in grid units.
