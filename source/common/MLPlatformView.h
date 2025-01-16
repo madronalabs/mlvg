@@ -18,7 +18,7 @@
 
 namespace ml
 {
-// forward declaration of a class that has a render() method.
+// forward declaration of a class that can animate(), render(), and initializeResources().
 class AppView;
 
 // declare PlatformView, which draws our application into an AppView.
@@ -42,18 +42,19 @@ public:
   //
   static Rect getWindowRect(void* parent, int platformFlags);
   
-  // make a platform view for the given parent window.
+  // make a platform view to draw the application to the given parent window.
   // parent: pointer to the parent window
+  // pView: existing appView to draw
   // platformHandle: platform-specific data
   // platformFlags: platform-specific flags
   // fps: target refresh rate
-  PlatformView(void* parent, void* platformHandle, int platformFlags, int fps);
+  // side effect: AppView is given a chance to initialize resources using the new native drawing context.
+  PlatformView(void* parent, AppView* pView, void* platformHandle, int platformFlags, int fps);
   
   ~PlatformView();
-  
-  // set a non-owning pointer to the AppView. We will call the AppView to animate and render,
-  // and notify it when window size and display scale change.
-  void setAppView(AppView* pView);
+
+  // attach view to the parent context, which will make it visible and allow resizing.
+  void attachViewToParent();
   
   // TODO only used for Mac, make internal only
   void setPlatformViewDisplayScale(float scale);

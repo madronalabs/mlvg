@@ -37,10 +37,9 @@ public:
   
   void makeWidgets(const ParameterDescriptionList& pdl);
 
-  void attachToWindow(SDL_Window* window);
   void stop();
 
 private:
-	std::unique_ptr< PlatformView > _platformView;
-	ResizingEventWatcherData watcherData_;
+	//std::unique_ptr< PlatformView > _platformView;
+	//ResizingEventWatcherData watcherData_;
 };

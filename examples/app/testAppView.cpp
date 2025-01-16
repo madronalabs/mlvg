@@ -75,28 +75,28 @@ void TestAppView::layoutView(DrawContext dc)
 
 void TestAppView::initializeResources(NativeDrawContext* nvg)
 {
-    // initialize drawing properties before controls are made
+  // initialize drawing properties before controls are made
   _drawingProperties.setProperty("mark", colorToMatrix({ 0.01, 0.01, 0.01, 1.0 }));
   _drawingProperties.setProperty("mark_bright", colorToMatrix({ 0.9, 0.9, 0.9, 1.0 }));
-    _drawingProperties.setProperty("background", colorToMatrix({ 0.8, 0.8, 0.8, 1.0 }));
-    _drawingProperties.setProperty("draw_background_grid", true);
-    _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
-
-    // _drawingProperties.setProperty("draw_widget_bounds", true);
-    _drawingProperties.setProperty("draw_dirty_widgets", true);
-
-    // fonts
-    _resources.fonts["d_din"] = std::make_unique< FontResource >(nvg, "MLVG_sans", resources::D_DIN_otf, resources::D_DIN_otf_size);
-    _resources.fonts["d_din_italic"] = std::make_unique< FontResource >(nvg, "MLVG_italic", resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size);
-
-    // raster images
-    _resources.rasterImages["vignette"] = std::make_unique< RasterImage >(nvg, resources::vignette_jpg, resources::vignette_jpg_size);
-
-    // SVG images
-    _resources.vectorImages["tesseract"] = std::make_unique< VectorImage >(nvg, resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
-
-    // drawable images
-    _resources.drawableImages["screen1"] = std::make_unique< DrawableImage >(nvg, 320, 240);
+  _drawingProperties.setProperty("background", colorToMatrix({ 0.8, 0.8, 0.8, 1.0 }));
+  _drawingProperties.setProperty("draw_background_grid", true);
+  _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
+  
+  // _drawingProperties.setProperty("draw_widget_bounds", true);
+  _drawingProperties.setProperty("draw_dirty_widgets", true);
+  
+  // fonts
+  _resources.fonts["d_din"] = std::make_unique< FontResource >(nvg, "MLVG_sans", resources::D_DIN_otf, resources::D_DIN_otf_size);
+  _resources.fonts["d_din_italic"] = std::make_unique< FontResource >(nvg, "MLVG_italic", resources::D_DIN_Italic_otf, resources::D_DIN_Italic_otf_size);
+  
+  // raster images
+  _resources.rasterImages["vignette"] = std::make_unique< RasterImage >(nvg, resources::vignette_jpg, resources::vignette_jpg_size);
+  
+  // SVG images
+  _resources.vectorImages["tesseract"] = std::make_unique< VectorImage >(nvg, resources::Tesseract_Mark_svg, resources::Tesseract_Mark_svg_size);
+  
+  // drawable images
+  _resources.drawableImages["screen1"] = std::make_unique< DrawableImage >(nvg, 320, 240);
 }
 
 void TestAppView::clearResources()
@@ -113,43 +113,9 @@ void TestAppView::stop()
     clearResources();
     clearWidgets();
 
-    _platformView = nullptr;
+  //  _platformView = nullptr;
 }
 
-void TestAppView::attachToWindow(SDL_Window* window)
-{
-    // read parameter descriptions into a list
-    ParameterDescriptionList pdl;
-    readParameterDescriptions(pdl);
-
-    ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
-
-    _platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, nullptr, windowInfo.flags, 60);
-
-    // set initial size. When this is not a fixed-ratio app, the window sizes
-    // freely and the grid unit size remains constant.
-    setGridSizeDefault(kDefaultGridUnitSize);
-
-#if TEST_FIXED_RATIO
-    setFixedAspectRatio(kDefaultGridUnits);
-#endif
-
-   // connect PlatformView to the AppView before making widgets, to initialize resources
-   _platformView->setAppView(this);
-
-   // make UI and startup
-   makeWidgets(pdl);
-   startTimersAndActor();
-
-   // resize will trigger layout of widgets, so wait until after making widgets to resize for the first time
-   int w, h;
-   SDL_GetWindowSize(window, &w, &h);
-  _platformView->resizePlatformView(w, h);
-
-   // connect window to the PlatformView: watch for window resize events during drag
-   watcherData_ = ResizingEventWatcherData{ window, _platformView.get() };
-   SDL_AddEventWatch(resizingEventWatcher, &watcherData_);
-}
 
 void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
 {
@@ -255,7 +221,7 @@ void TestAppView::onMessage(Message msg)
                 // resize platform view
                 Vec2 c (m[0], m[1]);
                 Vec2 cs = constrainSize(c);
-                _platformView->resizePlatformView(cs[0], cs[1]);
+            //    _platformView->resizePlatformView(cs[0], cs[1]);
                 onResize(cs);
 
                   // set constrained value and send it back to Controller

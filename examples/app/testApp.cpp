@@ -88,9 +88,9 @@ public:
                   Value v = m.value;
                   Matrix m = v.getMatrixValue();
                   Vec2 c (m[0], m[1]);
-                  if (window_)
+                  if (window)
                   {
-                    SDL_SetWindowSize(window_, c[0], c[1]);
+                    SDL_SetWindowSize(window, c[0], c[1]);
                   }
                   break;
               }
@@ -137,16 +137,65 @@ public:
       AppController::onMessage(m);
     }
   }
+  
+  int createView(Rect defaultSize)
+  {
+    int r{1};
+    
+    // make SDL window
+    int windowFlags = SDL_WINDOW_METAL;
+#if !TEST_RESIZER
+    windowFlags |= SDL_WINDOW_RESIZABLE;
+#endif
+    window = ml::newSDLWindow(defaultSize, "mlvg test", windowFlags);
+    if(!window)
+    {
+      std::cout << "newSDLWindow failed!\n";
+      r = 0;
+    }
+    
+    // make AppView (holds widgets, runs UI)
+    if(r)
+    {
+      appView = std::make_unique< TestAppView > (getAppName(), _instanceNum);
+      
+      // set initial size. When this is not a fixed-ratio app, the window sizes
+      // freely and the grid unit size remains constant.
+      appView->setGridSizeDefault(kDefaultGridUnitSize);
+      
+#if TEST_FIXED_RATIO
+      appView->setFixedAspectRatio(kDefaultGridUnits);
+#endif
+    }
+    
+    // make PlatformView (drawing apparatus connecting AppView to Window)
+    if(r)
+    {
+      ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
+      platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, appView.get(), nullptr, windowInfo.flags, 60);
+    }
 
-   SDL_Window* window_{ nullptr };
-   std::unique_ptr<TestAppView> appView_;
+    return r;
+  }
+  
+  void watchForResize()
+  {
+    // connect window to the PlatformView: watch for window resize events during drag
+    // this does not trigger immediate resize
+    watcherData = ResizingEventWatcherData{ window, platformView.get() };
+    SDL_AddEventWatch(resizingEventWatcher, &watcherData);
+  }
+
+  SDL_Window* window{ nullptr };
+  std::unique_ptr< PlatformView > platformView;
+  std::unique_ptr< TestAppView > appView;
+  ResizingEventWatcherData watcherData;
 };
+
 
 int main(int argc, char *argv[])
 {
   bool doneFlag{false};
-  
-  // read parameter descriptions into a list
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
 
@@ -162,23 +211,17 @@ int main(int argc, char *argv[])
   TestAppController appController(getAppName(), pdl);
   auto appInstanceNum = appController.getInstanceNum();
 
-  // make SDL window
-  int windowFlags = SDL_WINDOW_METAL;
+  // make view and initialize drawing resources
+  if (!appController.createView(defaultRectInPixels)) return 1;
+
+  appController.appView->makeWidgets(pdl);
   
-#if !TEST_RESIZER
-  windowFlags |= SDL_WINDOW_RESIZABLE;
-#endif
-  
-  appController.window_ = ml::newSDLWindow(defaultRectInPixels, "mlvg test", windowFlags);
-  if(!appController.window_)
-  {
-    std::cout << "newSDLWindow failed!\n";
-    return -1;
-  }
-  
-  // make app view for this instance of our app
-  appController.appView_ = std::make_unique<TestAppView> (getAppName(), appInstanceNum);
-  appController.appView_->attachToWindow(appController.window_);
+  // attach view to parent window, allowing resizing
+  appController.platformView->attachViewToParent();
+
+  appController.watchForResize();
+
+  appController.appView->startTimersAndActor();
 
   // make Processor and register Actor
   TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
@@ -195,15 +238,19 @@ int main(int argc, char *argv[])
   // just vibe
   while(!doneFlag)
   {
-    SDLAppLoop(appController.window_, &doneFlag);
+    SDLAppLoop(appController.window, &doneFlag);
   }
   
   // stop doing things, clean up and return
   // TODO make more symmetrical with creation API
   appProcessor.stopAudio();
   appProcessor.stop();
-  appController.appView_->stop();
-  SDL_DestroyWindow(appController.window_);
+  appController.appView->stop();
+  SDL_DestroyWindow(appController.window);
   SDL_Quit();
   return 0;
 }
+
+
+
+

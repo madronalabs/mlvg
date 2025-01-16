@@ -34,6 +34,7 @@ AppView::~AppView()
 // newSize is in pixel coordinates. displayScale is pixels per system size unit.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
+  std::cout << "viewResized: " << newSize << "\n"; // TEMP
   float gridSizeInPixels{0};
   
   if(aspectRatioIsFixed_)
@@ -346,6 +347,11 @@ void AppView::render(NativeDrawContext* nvg)
   DrawContext dc{nvg, &_resources, &_drawingProperties, _GUICoordinates};
 
   auto layerSize = _GUICoordinates.viewSizeInPixels;
+  if((layerSize.x() == 0) || (layerSize.y() == 0))
+  {
+    return;
+    //std::cout << "render: bad size! \n"; // TEMP
+  }
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
   
   // begin the frame on the backing layer

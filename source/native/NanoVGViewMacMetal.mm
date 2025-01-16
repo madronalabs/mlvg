@@ -22,7 +22,6 @@ Vec2 NSPointToVec2(NSPoint p)
 }
 
 
-
 // convert CoreGraphics coordinate rect from Apple (origin at bottom left of main window, y=up)
 // to rest of world coords (origin = top left of main window, y=down)
 ml::Rect NSToMLRect(NSRect nsr)
@@ -390,7 +389,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 
 @interface MetalNanoVGRenderer : NSObject < MTKViewDelegate >
 - (nonnull instancetype)initWithMetalKitView:(nonnull MyMTKView*)mtkView withBounds:(NSRect)b withScale:(float)scale;
-- (void)setAppView:(AppView*) pView;
+- (void)setAndInitializeAppView:(AppView*) pView;
 - (void) resize:(CGSize)size;
 - (void) setDisplayScale:(float)scale;
 - (void) resizeAppView;
@@ -401,7 +400,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 @private
   id<MTLDevice> _device;
   NVGcontext* _nvg;
-  AppView* appView_;
+  AppView* appView_; // non-owning pointer
   std::unique_ptr< DrawableImage > _backingLayer;
   Vec2 _nativeSize;
   float displayScale;
@@ -409,11 +408,15 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 
 - (nonnull instancetype)initWithMetalKitView:(nonnull MyMTKView*)mtkView withBounds:(NSRect)bounds withScale:(float)scale
 {
+  
+  std::cout << "initWithMetalKitView \n"; // TEMP
   if (self = [super init])
   {
     _device = mtkView.device;
-    int width = bounds.size.width;
-    int height = bounds.size.height;
+    int w = bounds.size.width;
+    int h = bounds.size.height;
+
+    std::cout << "initWithMetalKitView 2 \n"; // TEMP
 
     // NVG_STENCIL_STROKES looks bad
     // NVG_TRIPLE_BUFFER has been recommended, NVG_DOUBLE_BUFFER seems to work as well
@@ -426,16 +429,15 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     
     appView_ = nullptr;
     displayScale = scale;
-    
-    CGSize pixelSize = CGSizeMake(width*displayScale, height*displayScale);
-    
-    // dont resize here when creating because app view is not attached yet
+
+    CGSize newPixelSize = CGSizeMake(w*displayScale, h*displayScale);
     [self setDisplayScale:displayScale];
+    [self resize:newPixelSize];
   }
   return self;
 }
 
-- (void)setAppView:(AppView*) pView
+- (void)setAndInitializeAppView:(AppView*) pView
 {
   appView_ = pView;
   appView_->initializeResources(_nvg);
@@ -443,18 +445,19 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 
 - (void)setDisplayScale:(float)scale
 {
-  if(displayScale != scale)
+  std::cout << "setDisplayScale: " << scale << "\n"; // TEMP
+ // if(displayScale != scale) // TEMP
   {
     displayScale = scale;
-//    [self resizeAppView];
+    [self resizeAppView];
   }
 }
 
 -(void)dealloc
 {
+  _backingLayer = nullptr;
   if(_nvg)
   {
-    _backingLayer = nullptr;
     nvgDeleteMTL(_nvg);
   }
 }
@@ -465,6 +468,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // resize callback, called by the MTKView in pixel coordinates
 - (void) mtkView: (nonnull MTKView*)view drawableSizeWillChange:(CGSize)newSize
 {
+  std::cout << "drawableSizeWillChange 1: \n"; // TEMP
   [self resize: newSize];
 }
 
@@ -508,6 +512,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 // internal resize, in pixel size
 - (void) resize:(CGSize)size
 {
+  std::cout << "resize: " << size.width << " x " << size.height << "\n"; // TEMP
   _nativeSize = Vec2(size.width, size.height);
   
   Vec2 layerSize(0, 0);
@@ -523,6 +528,10 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 
 - (void) resizeAppView
 {
+//  std::cout << std::dec;
+  std::cout << "resizeAppView: appView = " << (long)appView_ << ", nvg = " << (long)_nvg << "\n"; // TEMP
+ // std::cout << std::hex;
+  
   if(appView_ && _nvg)
   {
     appView_->viewResized(_nvg, _nativeSize, displayScale);
@@ -599,11 +608,18 @@ struct PlatformView::Impl
 {
   MyMTKView* _mtkView{nullptr};
   MetalNanoVGRenderer* _renderer{nullptr};
+  NSView* parentView{nullptr};
+  AppView* pAppView{nullptr};
 };
 
-PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platformFlags, int targetFPS)
+PlatformView::PlatformView(void* pParent, AppView* pView, void* /*platformHandle*/, int platformFlags, int targetFPS)
 {
+  std::cout << "P01\n"; // TEMP
   if(!pParent) return;
+  
+  std::cout << "P02\n"; // TEMP
+  
+  // set app view here?
   
   // Rect bounds = getWindowRect(pParent, platformFlags);
   
@@ -624,7 +640,8 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   ml::Rect bounds{(float)parentFrame.origin.x, (float)parentFrame.origin.y,
     (float)parentFrame.size.width, (float)parentFrame.size.height};
   NSRect boundsRect = NSMakeRect(0, 0, bounds.width(), bounds.height());
-
+  
+  std::cout << "bounds: " << bounds << "\n"; // TEMP
   
   // make the new view
   MyMTKView* view = [[MyMTKView alloc] initWithFrame:(boundsRect) device:(MTLCreateSystemDefaultDevice())];
@@ -641,15 +658,16 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
   
   [view setPlatformView:this];
   displayScale_ = [view getDisplayScale];
-
-
+  
   // view.framebufferOnly = NO; // set to NO if readback is needed
   view.layer.opaque = true;
-
+  
   // create a new renderer for our view.
   CGSize rendererSize = CGSizeMake(bounds.width(), bounds.height());
-
+  
   [view setFrameSize:rendererSize];
+  
+  std::cout << "P03\n"; // TEMP
   
   MetalNanoVGRenderer* renderer = [[MetalNanoVGRenderer alloc] initWithMetalKitView:view withBounds:boundsRect withScale:displayScale_];
   if(!renderer)
@@ -657,23 +675,38 @@ PlatformView::PlatformView(void* pParent, void* /*platformHandle*/, int platform
     NSLog(@"Renderer failed initialization");
     return;
   }
-
+  
   // the MetalNanoVGRenderer is delegated by the MyMTKView to draw it and change size.
   view.delegate = renderer;
-
+  
   // set origin here and not after resizing. important to get correct positioning in some hosts
   [view setFrameOrigin:CGPointMake(0, 0)];
   
   // We should set this to a frame rate that we think our renderer can consistently maintain.
   view.preferredFramesPerSecond = targetFPS;
-
+  
   _pImpl = std::make_unique< Impl >();
   _pImpl->_mtkView = view;
   _pImpl->_renderer = renderer;
+  _pImpl->parentView = parentView;
+  _pImpl->pAppView = pView;
+
+  
+  std::cout << "P04\n"; // TEMP
+  [_pImpl->_mtkView setAppView: pView];
+  
+  [_pImpl->_renderer setAndInitializeAppView: pView];
+}
+
+
+
+// TODO
+void PlatformView::attachViewToParent()
+{
   
   // add the new view to our parent view supplied by the host.
-  // will call viewDidChangeBackingProperties.
-  [parentView addSubview: view];
+  // will call viewDidChangeBackingProperties -> drawableSizeWillChange -> _renderer resize -> resizeAppView -> viewResized
+  [_pImpl->parentView addSubview: _pImpl->_mtkView];
 }
 
 PlatformView::~PlatformView()
@@ -687,21 +720,22 @@ PlatformView::~PlatformView()
   }
 }
 
-void PlatformView::setAppView(AppView* pView)
-{
-  [_pImpl->_mtkView setAppView: pView];
-  [_pImpl->_renderer setAppView: pView];
-}
 
 // resize view, in system coordinates
 void PlatformView::resizePlatformView(int w, int h)
 {
+  
+  std::cout << "resizePlatformView: " << w << " x " << h << "\n"; // TEMP
+  
   if (!_pImpl->_mtkView) return;
   
   Vec2 newSizeVec(w, h);
   float newDisplayScale = [_pImpl->_mtkView getDisplayScale];
     
-  if((newSizeVec != displaySize_) || (newDisplayScale != displayScale_))
+  std::cout << "resizePlatformView 2: " << newDisplayScale << "\n"; // TEMP
+  
+  
+ // if((newSizeVec != displaySize_) || (newDisplayScale != displayScale_))
   {
     displaySize_ = newSizeVec;
     displayScale_ = newDisplayScale;
@@ -711,6 +745,8 @@ void PlatformView::resizePlatformView(int w, int h)
     
     if (_pImpl->_renderer)
     {
+      std::cout << "resizePlatformView 3: " << newDisplayScale << "\n"; // TEMP
+
       // this will resize the renderer if it exists but is not yet connected via drawableSizeWillChange (first time)
       CGSize newPixelSize = CGSizeMake(w*displayScale_, h*displayScale_);
       [_pImpl->_renderer setDisplayScale:displayScale_];
