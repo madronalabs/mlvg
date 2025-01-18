@@ -221,7 +221,7 @@ void TestAppView::onMessage(Message msg)
                 // resize platform view
                 Vec2 c (m[0], m[1]);
                 Vec2 cs = constrainSize(c);
-            //    _platformView->resizePlatformView(cs[0], cs[1]);
+            //    _platformView->setPlatformViewSize(cs[0], cs[1]);
                 onResize(cs);
 
                   // set constrained value and send it back to Controller

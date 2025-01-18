@@ -55,18 +55,15 @@ public:
 
   // attach view to the parent context, which will make it visible and allow resizing.
   void attachViewToParent();
-  
-  // TODO only used for Mac, make internal only
-  void setPlatformViewDisplayScale(float scale);
 
   // resize the PlatformView, in system coordinates
-  void resizePlatformView(int w, int h);
+  void setPlatformViewSize(int w, int h);
+  void setPlatformViewScale(float scale);
 
 protected:
   struct Impl;
   std::unique_ptr< Impl > _pImpl;
   float displayScale_{1.0f};
-  Vec2 displaySize_{0, 0};
 };
 
 } // namespace ml

@@ -144,6 +144,7 @@ private:
   
   // temp
   int queueSize{ 0 };
+  int testCounter{0};
 };
 
 }

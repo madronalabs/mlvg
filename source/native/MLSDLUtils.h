@@ -205,7 +205,7 @@ inline void SdlAppResize(ResizingEventWatcherData* watcherData)
   SDL_GetWindowSize(watcherData->window, &w, &h);
   SDL_GetWindowSizeInPixels(watcherData->window, &pw, &ph);
   if(w <= 0 || h <= 0 || pw <= 0 || ph <= 0) return;
-  watcherData->platformView->resizePlatformView(w, h);
+  watcherData->platformView->setPlatformViewSize(w, h);
 }
 
 inline int resizingEventWatcher(void* data, SDL_Event* event)
