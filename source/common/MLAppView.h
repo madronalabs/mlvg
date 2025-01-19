@@ -141,10 +141,6 @@ private:
   // here is where all the Widgets are stored. Other instances of Collection < Widget >
   // may reference this.
   CollectionRoot< Widget > _rootWidgets;
-  
-  // temp
-  int queueSize{ 0 };
-  int testCounter{0};
 };
 
 }

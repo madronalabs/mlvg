@@ -31,7 +31,6 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
     _sizeStart = (gc.viewSizeInPixels); 
 #endif
 
-
     _dragStart = eventScreenPos;
     _dragDelta = Vec2(0, 0);
 
@@ -42,7 +41,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   {
     if(!engaged) return reqList;
 
-    constexpr int kDragQuantum = 4;
+    constexpr int kDragQuantum = 1;
     Vec2 newDragDelta = eventScreenPos - _dragStart;
     newDragDelta.quantize(kDragQuantum);
 

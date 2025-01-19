@@ -93,8 +93,6 @@ ml::Rect NSToMLRect(NSRect nsr)
 
 - (void)setFrameSize:(NSSize)size
 {
-//  displaySize_ = size;
-//  NSSize pixelSize = NSMakeSize(size.width * displayScale, size.height * displayScale);
   [super setFrameSize:size];
 }
 
@@ -129,7 +127,6 @@ ml::Rect NSToMLRect(NSRect nsr)
   NSPoint fromBottom = NSMakePoint(pt.x, self.frame.size.height - pt.y);
   NSPoint fromBottomBacking = [self convertPointToBacking:fromBottom ];
   
-  
   vgEvent->position = Vec2(fromBottomBacking.x, fromBottomBacking.y);
 }
 
@@ -157,11 +154,6 @@ ml::Rect NSToMLRect(NSRect nsr)
 - (void)viewDidChangeBackingProperties
 {
   displayScale = [[self window] backingScaleFactor];
-  //NSRect frame = [[self window] frame];
-  
-  std::cout << "viewDidChangeBackingProperties: MTKView scale: " << displayScale << "\n"; // TEMP
-  
-  
   platformView_->setPlatformViewScale(displayScale);
 }
 
@@ -465,29 +457,20 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     // give the view a chance to animate
     appView_->animate(_nvg);
     
-    
     // draw the AppView to the backing layer
     drawToImage(_backingLayer.get());
     size_t w = _backingLayer->width;
     size_t h = _backingLayer->height;
-    
-    
+        
     appView_->render(_nvg);
-  
-
-    
+      
     // blit backing layer to main layer
     drawToImage(nullptr);
     nvgBeginFrame(_nvg, w, h, 1.0f);
     
     // get image pattern for 1:1 blit
-    NVGpaint img;
-    img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
-    
-    // TEMP
-    mnvgClearWithColor(_nvg, colors::blue);
-    
-    
+    NVGpaint img = nvgImagePattern(_nvg, 0, 0, w, h, 0, _backingLayer->_buf->image, 1.0f);
+        
     // blit the image
     nvgSave(_nvg);
     nvgResetTransform(_nvg);
@@ -496,15 +479,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     nvgFillPaint(_nvg, img);
     nvgFill(_nvg);
     nvgRestore(_nvg);
-    
-    
-    // TEMP
-    nvgStrokeColor(_nvg, colors::red);
-    nvgStrokeWidth(_nvg, 10);
-    nvgBeginPath(_nvg);
-    nvgX(_nvg, ml::Rect(0, 0, w, h));
-    nvgStroke(_nvg);
-    
     
     // end main update
     nvgEndFrame(_nvg);
@@ -528,15 +502,12 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 {
   needsResize = false;
   _nativeSize = _systemSize*displayScale;
-  
-  std::cout << "doResize: " << _nativeSize << ", s = " << displayScale << "\n"; // TEMP
-  
+    
   Vec2 layerSize(0, 0);
   if(_backingLayer.get()) layerSize = Vec2(_backingLayer->width, _backingLayer->height);
   
   if(_nativeSize != layerSize)
   {
-    std::cout << "        new backing layer : " << _nativeSize << " \n"; // TEMP
     _backingLayer = std::make_unique< DrawableImage >(_nvg, _nativeSize.x(), _nativeSize.y());
   }
   
@@ -544,7 +515,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   {
     appView_->viewResized(_nvg, _nativeSize, displayScale);
   }
-
 }
 
 @end
@@ -724,24 +694,16 @@ PlatformView::~PlatformView()
 
 void PlatformView::setPlatformViewScale(float newScale)
 {
-  std::cout << "setPlatformViewScale: new scale" << newScale << "\n"; // TEMP
-  
-  // scale changes will come from the MTKView, so we need to set the size and
-  // scale of the renderer
+  // scale changes will come from the MTKView, so we need to set the scale of the renderer
   if (_pImpl->_renderer)
   {
     [_pImpl->_renderer setScale:newScale];
   }
   
-  CGSize newSize = CGSizeMake(_pImpl->rendererSize[0], _pImpl->rendererSize[1]);
-  //setPlatformViewSize(_pImpl->rendererSize[0], _pImpl->rendererSize[1]);
-  if (_pImpl->_renderer)
-  {
-    [_pImpl->_renderer resize:newSize];
-  }
-  
+  // re-setting the view's frame size is needed to correct the parent size
   if (_pImpl->_mtkView)
   {
+    CGSize newSize = CGSizeMake(_pImpl->rendererSize[0], _pImpl->rendererSize[1]);
     [_pImpl->_mtkView setFrameSize:newSize];
   }
 }
@@ -752,8 +714,6 @@ void PlatformView::setPlatformViewSize(int w, int h)
 {
   Vec2 newSizeVec(w, h);
   _pImpl->rendererSize = newSizeVec;
-  
-  std::cout << "setPlatformViewSize: new size " << w << " x " << h << "\n"; // TEMP
   
   CGSize newSize = CGSizeMake(w, h);
   

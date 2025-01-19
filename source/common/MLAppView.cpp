@@ -34,7 +34,6 @@ AppView::~AppView()
 // newSize is in pixel coordinates. displayScale is pixels per system size unit.
 void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displayScale)
 {
-  std::cout << "viewResized: " << newSize << ", scale " << displayScale << " \n\n"; // TEMP
   float gridSizeInPixels{0};
   
   if(aspectRatioIsFixed_)
@@ -350,7 +349,6 @@ void AppView::render(NativeDrawContext* nvg)
   if((layerSize.x() == 0) || (layerSize.y() == 0))
   {
     return;
-    //std::cout << "render: bad size! \n"; // TEMP
   }
   ml::Rect topViewBounds = dc.coords.gridToPixel(_view->getBounds());
   
@@ -370,17 +368,6 @@ void AppView::render(NativeDrawContext* nvg)
   // end the frame.
   nvgEndFrame(nvg);
   _view->setDirty(false);
-  
-  // TEMP
-  testCounter++;
-  if(testCounter > 50)
-  {
-    testCounter = 0;
-    std::cout << "AppView::render: \n";
-    std::cout << "        layerSize: " << layerSize << "\n";
-    std::cout << "        topViewBounds: " << _view->getBounds() << "\n";
-    std::cout << "        viewSizeInPixels: " << _GUICoordinates.viewSizeInPixels << "\n";
-  }
 }
 
 // _GUICoordinates
