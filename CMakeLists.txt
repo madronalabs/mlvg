@@ -372,6 +372,8 @@ install(FILES
 #set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 #install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+message("mlvg headers destination: " ${INCLUDES_INSTALL_DIR} )
+
 #--------------------------------------------------------------------
 # build tests
 #--------------------------------------------------------------------
