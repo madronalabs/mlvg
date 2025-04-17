@@ -96,11 +96,6 @@ void AppView::layoutFixedSizeWidgets_()
    );
 }
 
-void AppView::_deleteWidgets()
-{
-  _rootWidgets.clear();
-}
-
 void AppView::_updateParameterDescription(const ParameterDescriptionList& pdl, Path pname)
 {
   for(auto& paramDesc : pdl)
@@ -215,12 +210,6 @@ void AppView::_handleGUIEvents()
     handleMessagesInQueue();
   }
 }
-
-void AppView::clearWidgets()
-{
-  _rootWidgets.clear();
-}
-
 
 void AppView::_sendParameterMessageToWidgets(const Message& msg)
 {
@@ -417,6 +406,111 @@ bool AppView::pushEvent(GUIEvent g)
   }
   return willHandle;
 }
+
+void AppView::onMessage(Message msg)
+{
+  if(head(msg.address) == "editor")
+  {
+    // we are the editor, so remove "editor" and handle message
+    msg.address = tail(msg.address);
+  }
+  
+  switch(hash(head(msg.address)))
+  {
+    case(hash("set_param")):
+    {
+      switch(hash(head(tail(msg.address))))
+      {
+        case(hash("view_size")):
+        {
+          // TODO better API for all this, no matrixes
+          Value v = msg.value;
+          Matrix m = v.getMatrixValue();
+          if (m.getSize() == 2)
+          {
+            // resize platform view
+            Vec2 c (m[0], m[1]);
+            Vec2 cs = constrainSize(c);
+            onResize(cs);
+            
+            // set constrained value and send it back to Controller
+            Path paramName = tail(msg.address);
+            _params.setFromRealValue(paramName, msg.value);
+            
+            // if size change is not from the controller, send it there so it will be saved with controller params.
+            if (!(msg.flags & kMsgFromController))
+            {
+              Value constrainedSize(vec2ToMatrix(cs));
+              sendMessageToActor(_controllerName, Message{ "set_param/view_size" , constrainedSize });
+            }
+          }
+          break;
+        }
+        default:
+        {
+          // no view parameter was found, set an app parameter
+          
+          // store param value in local tree.
+          Path paramName = tail(msg.address);
+          _params.setFromNormalizedValue(paramName, msg.value);
+          
+          // if the parameter change message is not from the controller,
+          // forward it to the controller.
+          if(!(msg.flags & kMsgFromController))
+          {
+            sendMessageToActor(_controllerName, msg);
+          }
+          
+          // if the message comes from a Widget, we do send the parameter back
+          // to other Widgets so they can synchronize. It's up to individual
+          // Widgets to filter out duplicate values.
+          _sendParameterMessageToWidgets(msg);
+          break;
+        }
+      }
+      break;
+    }
+    case(hash("do")):
+    {
+      switch(hash(second(msg.address)))
+      {
+        default:
+        {
+          // if the message is not from the controller,
+          // forward it to the controller.
+          if(!(msg.flags & kMsgFromController))
+          {
+            sendMessageToActor(_controllerName, msg);
+          }
+          break;
+        }
+      }
+      break;
+    }
+    default:
+    {
+      // try to forward the message to another receiver
+      switch(hash(head(msg.address)))
+      {
+        case(hash("controller")):
+        {
+          msg.address = tail(msg.address);
+          sendMessageToActor(_controllerName, msg);
+          break;
+        }
+        default:
+        {
+          // uncaught
+          break;
+        }
+      }
+      break;
+    }
+  }
+}
+
+
+
 
 } // namespace ml
 

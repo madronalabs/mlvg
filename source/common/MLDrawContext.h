@@ -224,8 +224,6 @@ struct DrawingResources
   Tree< std::unique_ptr< FontResource > > fonts;
 };
 
-
-
 // To draw a frame, animate a frame, or layout the view, views create a DrawContext that is passed to
 // the tree of Widgets.
 struct DrawContext
@@ -235,7 +233,6 @@ struct DrawContext
   PropertyTree* pProperties;
   GUICoordinates coords;
 };
-
 
 inline NativeDrawContext* getNativeContext(const DrawContext& dc) { return static_cast<NativeDrawContext*>(dc.pNativeContext); }
 

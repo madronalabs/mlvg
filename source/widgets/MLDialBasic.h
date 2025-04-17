@@ -26,6 +26,7 @@ class DialBasic : public Widget
 
 public:
   DialBasic(WithValues p) : Widget(p) {}
+  ~DialBasic() {}
 
   // Widget implementation
   void setupParams() override;

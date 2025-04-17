@@ -11,7 +11,7 @@
 #include "MLAppController.h"
 #include "mldsp.h"
 #include "mlvg.h"
-#include "MLRtAudioProcessor.h"
+
 
 #include "testApp.h"
 #include "testAppView.h"
@@ -20,35 +20,45 @@
 #define ML_INCLUDE_SDL 1
 #include "native/MLSDLUtils.h"
 
-class TestAppProcessor :
-public RtAudioProcessor
+struct TestAppProcessor : public SignalProcessor, public Actor
 {
   // sine generators.
   SineGen s1, s2;
   
-public:
-  TestAppProcessor(size_t nInputs, size_t nOutputs, int sampleRate, const ParameterDescriptionList& pdl) :
-    RtAudioProcessor(nInputs, nOutputs, sampleRate)
+  void onMessage(Message msg)
   {
-    buildParameterTree(pdl, _params);
-  }
-  
-  // declare the processVector function that will run our DSP in vectors of size kFloatsPerDSPVector
-  // with the nullptr constructor argument above, RtAudioProcessor
-  void processVector(MainInputs inputs, MainOutputs outputs, void *stateDataUnused) override
-  {
-    // get params from the SignalProcessor.
-    float f1 = _params.getRealFloatValue("freq1");
-    float f2 = _params.getRealFloatValue("freq2");
-    float gain = _params.getRealFloatValue("gain");
-
-    // Running the sine generators makes DSPVectors as output.
-    // The input parameter is omega: the frequency in Hz divided by the sample rate.
-    // The output sines are multiplied by the gain.
-    outputs[0] = s1(f1/kSampleRate)*gain;
-    outputs[1] = s2(f2/kSampleRate)*gain;
+    switch(hash(head(msg.address)))
+    {
+      case(hash("set_param")):
+      {
+        auto paramName = tail(msg.address);
+        auto newParamValue = msg.value;
+        _params.setFromNormalizedValue(paramName, newParamValue);
+      }
+      default:
+      {
+        break;
+      }
+    }
   }
 };
+  
+
+void processTestApp(AudioContext* ctx, void *untypedState)
+{
+  auto state = static_cast< TestAppProcessor* >(untypedState);
+  
+  // get params from the SignalProcessor.
+  float f1 = state->getRealFloatParam("freq1");
+  float f2 = state->getRealFloatParam("freq2");
+  float gain = state->getRealFloatParam("gain");
+  
+  // Running the sine generators makes DSPVectors as output.
+  // The input parameter is omega: the frequency in Hz divided by the sample rate.
+  // The output sines are multiplied by the gain.
+  ctx->outputs[0] = state->s1(f1/kSampleRate)*gain;
+  ctx->outputs[1] = state->s2(f2/kSampleRate)*gain;
+}
 
 class TestAppController :
 public AppController
@@ -92,12 +102,13 @@ public:
                   {
                     SDL_SetWindowSize(window, c[0], c[1]);
                   }
+                  messageHandled = true;
                   break;
               }
-
-                default:
-              // do nothing, param will be set in AppController::onMessage();
-              break;
+              default:
+              {
+                break;
+              }
           }
       }
       case(hash("set_prop")):
@@ -147,6 +158,7 @@ public:
 #if !TEST_RESIZER
     windowFlags |= SDL_WINDOW_RESIZABLE;
 #endif
+    windowFlags |= SDL_WINDOW_SHOWN;
     window = ml::newSDLWindow(defaultSize, "mlvg test", windowFlags);
     if(!window)
     {
@@ -192,19 +204,18 @@ public:
   ResizingEventWatcherData watcherData;
 };
 
-
 int main(int argc, char *argv[])
 {
   bool doneFlag{false};
+  
   ParameterDescriptionList pdl;
   readParameterDescriptions(pdl);
-
-  Vec2 c = PlatformView::getPrimaryMonitorCenter();
 
   // get window size in system coords
   Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
   Rect boundsRectInPixels(0, 0, defaultSize.x(), defaultSize.y());
-  Rect defaultRectInPixels = alignCenterToPoint(boundsRectInPixels, c);
+  Vec2 screenCenter = PlatformView::getPrimaryMonitorCenter();
+  Rect defaultRectInPixels = alignCenterToPoint(boundsRectInPixels, screenCenter);
 
   // make controller and get instance number. The Controller
   // creates the ActorRegistry, allowing us to register other Actors.
@@ -213,37 +224,35 @@ int main(int argc, char *argv[])
 
   // make view and initialize drawing resources
   if (!appController.createView(defaultRectInPixels)) return 1;
-
   appController.appView->makeWidgets(pdl);
   
   // attach view to parent window, allowing resizing
   appController.platformView->attachViewToParent();
-
   appController.watchForResize();
-
   appController.appView->startTimersAndActor();
 
   // make Processor and register Actor
-  TestAppProcessor appProcessor(kInputChannels, kOutputChannels, kSampleRate, pdl);
+  TestAppProcessor appProcessor;
+  AudioContext ctx(kInputChannels, kOutputChannels, kSampleRate);
+  AudioTask testAppTask(&ctx, processTestApp, &appProcessor);
+  
+  appProcessor.buildParams(pdl);
+  appProcessor.setDefaultParams();
+  appProcessor.start();
+  
   TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(appInstanceNum));
   registerActor(Path(processorName), &appProcessor);
-  
+
   // broadcast all params to update display
   appController.broadcastParams();
   
-  // start audio processing
-  appProcessor.start();
-  appProcessor.startAudio();
-  
-  // just vibe
+  testAppTask.startAudio();
   while(!doneFlag)
   {
     SDLAppLoop(appController.window, &doneFlag);
   }
+  testAppTask.stopAudio();
   
-  // stop doing things, clean up and return
-  // TODO make more symmetrical with creation API
-  appProcessor.stopAudio();
   appProcessor.stop();
   appController.appView->stop();
   SDL_DestroyWindow(appController.window);

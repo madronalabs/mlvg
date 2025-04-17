@@ -55,7 +55,4 @@ TEST_CASE("mlvg/files", "[files]")
     testFile.loadCompressed(cv2);
     REQUIRE(cv1 == cv2);
   }
-  
-
-  //  REQUIRE(OK == true);
 }

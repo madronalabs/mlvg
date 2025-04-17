@@ -74,7 +74,7 @@ public:
   
   Vec2 constrainSize(Vec2 size) const;
   
-  void clearWidgets();
+  void onMessage(Message msg);
   
 protected:
   
@@ -126,7 +126,6 @@ protected:
   virtual void debugAppView() {}
 
   // why underscores?! TODO clean up.
-  void _deleteWidgets();
   void _setupWidgets(const ParameterDescriptionList& pdl);
   void _updateParameterDescription(const ParameterDescriptionList& pdl, Path pname);
   void _handleGUIEvents();
@@ -137,7 +136,6 @@ protected:
   size_t _getElapsedTime();
   void layoutFixedSizeWidgets_();
   
-private:
   // here is where all the Widgets are stored. Other instances of Collection < Widget >
   // may reference this.
   CollectionRoot< Widget > _rootWidgets;

@@ -51,13 +51,14 @@ AppController::AppController(TextFragment appName, const ParameterDescriptionLis
   
   // register and start Actor
   _instanceNum = _controllerRegistry->getUniqueID();
-  _instanceName = TextFragment(appName, "controller", ml::textUtils::naturalNumberToText(_instanceNum));
+  auto numText = ml::textUtils::naturalNumberToText(_instanceNum);
+  _instanceName = TextFragment(appName, "controller", numText);
   registerActor(_instanceName, this);
   Actor::start();
   
   // get other Actor names
-  _processorName = TextFragment(appName, "processor", ml::textUtils::naturalNumberToText(_instanceNum));
-  _viewName = TextFragment(appName, "view", ml::textUtils::naturalNumberToText(_instanceNum));
+  _processorName = TextFragment(appName, "processor", numText);
+  _viewName = TextFragment(appName, "view", numText);
 
   _timers->start(true);
 }

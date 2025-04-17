@@ -32,14 +32,8 @@ public:
   void onGUIEvent(const GUIEvent& event) override {};
   void onResize(Vec2 newSize) override {};
 
-  // Actor interface
-  void onMessage(Message m) override;
-  
   void makeWidgets(const ParameterDescriptionList& pdl);
 
   void stop();
 
-private:
-	//std::unique_ptr< PlatformView > _platformView;
-	//ResizingEventWatcherData watcherData_;
 };

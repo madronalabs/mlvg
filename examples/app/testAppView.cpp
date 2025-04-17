@@ -8,7 +8,7 @@
 #include "../build/resources/testapp/resources.c"
 
 TestAppView::TestAppView(TextFragment appName, size_t instanceNum) :
-  AppView(appName, instanceNum)
+AppView(appName, instanceNum)
 {
 }
 
@@ -28,7 +28,7 @@ void TestAppView::layoutView(DrawContext dc)
   
   int gx = pixelSize.x() / gridSize;
   int gy = pixelSize.y() / gridSize;
-
+  
   
   // layout dials
   _view->_widgets["freq1"]->setBounds(alignCenterToPoint(largeDialRect, {1, 1}));
@@ -39,7 +39,7 @@ void TestAppView::layoutView(DrawContext dc)
   // layout test images
   _view->_widgets["tess"]->setBounds(alignCenterToPoint(largeDialRect, { 1, gy - 1.f }));
   _view->_widgets["view1"]->setBounds(alignCenterToPoint({0, 0, 1.5, 1.5}, { 3, gy - 1.f }));
-
+  
   // layout labels
   auto positionLabelUnderDial = [&](Path dialName)
   {
@@ -82,8 +82,9 @@ void TestAppView::initializeResources(NativeDrawContext* nvg)
   _drawingProperties.setProperty("draw_background_grid", true);
   _drawingProperties.setProperty("common_stroke_width", 1 / 32.f);
   
+  // helpful options to have for debugging
   // _drawingProperties.setProperty("draw_widget_bounds", true);
-  _drawingProperties.setProperty("draw_dirty_widgets", true);
+  // _drawingProperties.setProperty("draw_dirty_widgets", true);
   
   // fonts
   _resources.fonts["d_din"] = std::make_unique< FontResource >(nvg, "MLVG_sans", resources::D_DIN_otf, resources::D_DIN_otf_size);
@@ -109,11 +110,8 @@ void TestAppView::clearResources()
 
 void TestAppView::stop()
 {
-    stopTimersAndActor();
-    clearResources();
-    clearWidgets();
-
-  //  _platformView = nullptr;
+  stopTimersAndActor();
+  clearResources();
 }
 
 
@@ -157,23 +155,23 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"size", largeDialSize },
     {"param", "gain" }
   } );
-
+  
   _view->_widgets.add_unique< SVGImage >("tess", WithValues{
     {"image_name", "tesseract" }
-      });
-
+  });
+  
   _view->_widgets.add_unique< DrawableImageView >("view1", WithValues{
     {"image_name", "screen1" }
-      });
-
+  });
+  
   // buttons
   _view->_widgets.add_unique< TextButtonBasic >("open", WithValues{
     {"text", "open" },
     {"text_size", 0.4f },
     {"action", "open" }
   } );
-
-
+  
+  
 #if TEST_RESIZER
   _view->_widgets.add_unique< Resizer >("resizer", WithValues{
     {"fix_ratio", (kDefaultGridUnits[0]) / (kDefaultGridUnits[1])},
@@ -181,7 +179,7 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"fixed_size", true},
     {"fixed_bounds", { -16, -16, 16, 16 }}, // fixed size rect in system coords
     {"anchor", {1, 1}} // for fixed-size widgets, anchor is a point on the view from top left {0, 0} to bottom right {1, 1}.
-      });
+  });
 #endif
   
   // make all the above Widgets visible
@@ -193,112 +191,5 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
    );
   
   _setupWidgets(pdl);
-}
-
-// Actor implementation
-
-void TestAppView::onMessage(Message msg)
-{
-  if(head(msg.address) == "editor")
-  {
-    // we are the editor, so remove "editor" and handle message
-    msg.address = tail(msg.address);
-  }
-  
-  switch(hash(head(msg.address)))
-  {
-    case(hash("set_param")):
-    {
-      switch(hash(head(tail(msg.address))))
-      {
-          case(hash("view_size")):
-          {
-              // TODO better API for all this, no matrixes
-              Value v = msg.value;
-              Matrix m = v.getMatrixValue();
-              if (m.getSize() == 2)
-              {
-                // resize platform view
-                Vec2 c (m[0], m[1]);
-                Vec2 cs = constrainSize(c);
-            //    _platformView->setPlatformViewSize(cs[0], cs[1]);
-                onResize(cs);
-
-                  // set constrained value and send it back to Controller
-                  Path paramName = tail(msg.address);
-                  _params.setFromRealValue(paramName, msg.value);
-
-                  // if size change is not from the controller, send it there so it will be saved with controller params.
-                  if (!(msg.flags & kMsgFromController))
-                  {
-                      Value constrainedSize(vec2ToMatrix(cs));
-                      sendMessageToActor(_controllerName, Message{ "set_param/view_size" , constrainedSize });
-                  }
-              }
-              break;
-          }
-
-
-        default:
-        {
-          // no local parameter was found, set a plugin parameter
-          
-          // store param value in local tree.
-          Path paramName = tail(msg.address);
-          _params.setFromNormalizedValue(paramName, msg.value);
-          
-          // if the parameter change message is not from the controller,
-          // forward it to the controller.
-          if(!(msg.flags & kMsgFromController))
-          {
-            sendMessageToActor(_controllerName, msg);
-          }
-          
-          // if the message comes from a Widget, we do send the parameter back
-          // to other Widgets so they can synchronize. It's up to individual
-          // Widgets to filter out duplicate values.
-          _sendParameterMessageToWidgets(msg);
-          break;
-        }
-      }
-      break;
-    }
-    case(hash("do")):
-    {
-      switch(hash(second(msg.address)))
-      {
-        default:
-        {
-          // if the message is not from the controller,
-          // forward it to the controller.
-          if(!(msg.flags & kMsgFromController))
-          {
-            sendMessageToActor(_controllerName, msg);
-          }
-          break;
-        }
-      }
-      break;
-    }
-    default:
-    {
-      // try to forward the message to another receiver
-      switch(hash(head(msg.address)))
-      {
-        case(hash("controller")):
-        {
-          msg.address = tail(msg.address);
-          sendMessageToActor(_controllerName, msg);
-          break;
-        }
-        default:
-        {
-          // uncaught
-          break;
-        }
-      }
-      break;
-    }
-  }
 }
 
