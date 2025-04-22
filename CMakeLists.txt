@@ -5,9 +5,9 @@
 # cmake -GXcode ..
 #
 # Windows:
-# cmake -G"Visual Studio 14 2015 Win64" ..
+# cmake -G"Visual Studio 17 2022" ..
 
-# for windows validator debug:
+# for windows validator debug: 
 # debugging / command: C:\Users\Randy\dev\mlvg\build\bin\Debug\validator.exe
 # debugging / command arguments: C:\Users\Randy\dev\mlvg\build\VST3\Debug\aaltoverb.vst3\Contents\x86_64-win\aaltoverb.vst3
 
@@ -371,8 +371,6 @@ install(FILES
 #set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
 #set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 #install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-message("mlvg headers destination: " ${INCLUDES_INSTALL_DIR} )
 
 #--------------------------------------------------------------------
 # build tests
