@@ -42,7 +42,7 @@ struct TestAppProcessor : public SignalProcessor, public Actor
     }
   }
 };
-  
+ 
 
 void processTestApp(AudioContext* ctx, void *untypedState)
 {
@@ -154,11 +154,11 @@ public:
     int r{1};
     
     // make SDL window
-    int windowFlags = SDL_WINDOW_METAL;
+    int windowFlags = SDL_WINDOW_SHOWN;
 #if !TEST_RESIZER
     windowFlags |= SDL_WINDOW_RESIZABLE;
 #endif
-    windowFlags |= SDL_WINDOW_SHOWN;
+
     window = ml::newSDLWindow(defaultSize, "mlvg test", windowFlags);
     if(!window)
     {
