@@ -188,6 +188,11 @@ void AppView::_setupWidgets(const ParameterDescriptionList& pdl)
   }
 }
 
+void AppView::clearWidgets()
+{
+  _rootWidgets.clear();
+}
+
 // Handle the queue of GUIEvents from the View by routing events to Widgets
 // and handling any returned Messages.
 void AppView::_handleGUIEvents()

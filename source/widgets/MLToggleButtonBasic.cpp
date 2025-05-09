@@ -11,7 +11,6 @@ using namespace ml;
 
 // TODO full events handling - drag
 
-
 MessageList ToggleButtonBasic::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
 {
   MessageList r{};

@@ -34,6 +34,8 @@
 //#define MNVGtexture ADD_PREFIX(MNVGtexture)
 //#define MNVGbuffers ADD_PREFIX(MNVGbuffers)
 //#define MNVGcontext ADD_PREFIX(MNVGcontext)
+// MyMTKView
+// MetalNanoVGRenderer
 
 #include "nanovg_mtl.h"
 

@@ -127,6 +127,7 @@ protected:
 
   // why underscores?! TODO clean up.
   void _setupWidgets(const ParameterDescriptionList& pdl);
+  void clearWidgets();
   void _updateParameterDescription(const ParameterDescriptionList& pdl, Path pname);
   void _handleGUIEvents();
 

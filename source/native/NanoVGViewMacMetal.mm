@@ -35,7 +35,6 @@ ml::Rect NSToMLRect(NSRect nsr)
   return ml::Rect(x, y, width, height);
 }
 
-
 // MyMTKView
 
 @interface MyMTKView : MTKView
@@ -57,7 +56,6 @@ ml::Rect NSToMLRect(NSRect nsr)
   PlatformView* platformView_;
   NSPoint totalDrag_;
   float displayScale;
-//  NSSize displaySize_;
   bool needsResize;
 }
 
@@ -67,9 +65,8 @@ ml::Rect NSToMLRect(NSRect nsr)
   
   if(self)
   {
-    // initialize to default values - TEMP
+    // initialize to default values
     displayScale = 1.0f;
-//    displaySize_ = NSMakeSize(0, 0);
     needsResize = false;
   }
   
@@ -671,16 +668,6 @@ PlatformView::PlatformView(void* pParent, AppView* pView, void* /*platformHandle
   [_pImpl->_renderer setAndInitializeAppView: pView];
 }
 
-void PlatformView::attachViewToParent()
-{
-  // add the new view to our parent view supplied by the host.
-  [_pImpl->parentView addSubview: _pImpl->_mtkView];
-  
-  // initial resize
-  NSRect parentFrame = [_pImpl->parentView frame];
-  setPlatformViewSize(parentFrame.size.width, parentFrame.size.height);
-}
-
 PlatformView::~PlatformView()
 {
   if(_pImpl->_mtkView)
@@ -692,20 +679,14 @@ PlatformView::~PlatformView()
   }
 }
 
-void PlatformView::setPlatformViewScale(float newScale)
+void PlatformView::attachViewToParent()
 {
-  // scale changes will come from the MTKView, so we need to set the scale of the renderer
-  if (_pImpl->_renderer)
-  {
-    [_pImpl->_renderer setScale:newScale];
-  }
+  // add the new view to our parent view supplied by the host.
+  [_pImpl->parentView addSubview: _pImpl->_mtkView];
   
-  // re-setting the view's frame size is needed to correct the parent size
-  if (_pImpl->_mtkView)
-  {
-    CGSize newSize = CGSizeMake(_pImpl->rendererSize[0], _pImpl->rendererSize[1]);
-    [_pImpl->_mtkView setFrameSize:newSize];
-  }
+  // initial resize
+  NSRect parentFrame = [_pImpl->parentView frame];
+  setPlatformViewSize(parentFrame.size.width, parentFrame.size.height);
 }
 
 // resize view, in system coordinates
@@ -725,5 +706,22 @@ void PlatformView::setPlatformViewSize(int w, int h)
   if (_pImpl->_renderer)
   {
     [_pImpl->_renderer resize:newSize];
+  }
+}
+
+
+void PlatformView::setPlatformViewScale(float newScale)
+{
+  // scale changes will come from the MTKView, so we need to set the scale of the renderer
+  if (_pImpl->_renderer)
+  {
+    [_pImpl->_renderer setScale:newScale];
+  }
+  
+  // re-setting the view's frame size is needed to correct the parent size
+  if (_pImpl->_mtkView)
+  {
+    CGSize newSize = CGSizeMake(_pImpl->rendererSize[0], _pImpl->rendererSize[1]);
+    [_pImpl->_mtkView setFrameSize:newSize];
   }
 }
