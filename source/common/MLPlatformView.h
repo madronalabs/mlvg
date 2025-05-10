@@ -48,7 +48,6 @@ public:
   // platformHandle: platform-specific data
   // platformFlags: platform-specific flags
   // fps: target refresh rate
-  // side effect: AppView is given a chance to initialize resources using the new native drawing context.
   PlatformView(void* parent, AppView* pView, void* platformHandle, int platformFlags, int fps);
   
   ~PlatformView();
