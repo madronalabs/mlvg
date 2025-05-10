@@ -56,6 +56,7 @@ struct PlatformView::Impl
     float _deviceScale{ 0 };
     int targetFPS_{ 60 };
 
+    HWND parentPtr{ nullptr };
     Vec2 _totalDrag;
     Vec2 systemSize_;
     Vec2 newViewSize_;
@@ -205,6 +206,7 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* userData, void* p
     int h = bounds.height();
 
     // get monitor device scale
+    parentPtr = parentWindow;
     _deviceScale = getDeviceScaleForWindow(parentWindow);
 
     auto hInst = static_cast<HINSTANCE>(platformHandle);
@@ -355,7 +357,6 @@ PlatformView::PlatformView(void* pParent, AppView* pView, void* platformHandle, 
 
         // create nanovg
         _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
-
     }
 
     // set app view
@@ -386,7 +387,15 @@ PlatformView::~PlatformView()
 
 void PlatformView::attachViewToParent()
 {
+    if (!_pImpl) return;
 
+    // goofy, clean up
+    void* pParent = _pImpl->parentPtr;
+    Rect parentFrame = getWindowRect(pParent, 0);
+    float scale = getDeviceScaleForWindow(pParent);
+
+    setPlatformViewSize(parentFrame.width(), parentFrame.height());
+    setPlatformViewScale(scale);
 }
 
 void PlatformView::setPlatformViewSize(int w, int h)
@@ -399,8 +408,8 @@ void PlatformView::setPlatformViewSize(int w, int h)
 void PlatformView::setPlatformViewScale(float scale)
 {
     if (!_pImpl) return;
-    _pImpl->viewNeedsResize_ = true;
     _pImpl->_deviceScale = scale;
+    _pImpl->viewNeedsResize_ = true;
 }
 
 void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
