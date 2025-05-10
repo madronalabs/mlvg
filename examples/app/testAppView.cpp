@@ -3,6 +3,8 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
+// TODO: move the entire View description to Lua
+
 #include "testAppView.h"
 #include "testAppParameters.h"
 #include "../build/resources/testapp/resources.c"

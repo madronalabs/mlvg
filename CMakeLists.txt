@@ -310,6 +310,9 @@ target_include_directories(${target} PRIVATE ${MLVG_INCLUDE_DIRS})
 
 if(APPLE)
     target_compile_options(${target} PRIVATE "-fobjc-arc")
+    
+    # link options to explore later
+    # set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_GENERATE_MASTER_OBJECT_FILE "YES")
 elseif(WIN32)
 endif()
 
@@ -368,9 +371,7 @@ install(FILES
     ${INCLUDES_INSTALL_DIR}
   )
 
-#set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}) % wrong for Windows. needed for Mac?
-#set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
-#install(TARGETS mlvg DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 
 #--------------------------------------------------------------------
 # build tests

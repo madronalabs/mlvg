@@ -59,6 +59,8 @@ public:
   // resize the PlatformView, in system coordinates
   void setPlatformViewSize(int w, int h);
   void setPlatformViewScale(float scale);
+  
+  NativeDrawContext* getNativeDrawContext();
 
 protected:
   struct Impl;

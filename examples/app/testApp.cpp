@@ -6,17 +6,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "SDL.h"
-#include "SDL_syswm.h"
 #include "MLAppController.h"
 #include "mldsp.h"
 #include "mlvg.h"
-
 
 #include "testApp.h"
 #include "testAppView.h"
 #include "testAppParameters.h"
 
+// TODO migrate to SDL 3 and investigate whether we can dump nanovg in favor of an SDL3-based solution
+#include "SDL.h"
+#include "SDL_syswm.h"
 #define ML_INCLUDE_SDL 1
 #include "native/MLSDLUtils.h"
 

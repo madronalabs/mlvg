@@ -379,6 +379,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 - (void) resize:(CGSize)size;
 - (void) setScale:(float)scale;
 - (void) doResize;
+- (NVGcontext*) getNativeContext;
 @end
 
 @implementation MetalNanoVGRenderer
@@ -416,6 +417,11 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
     needsResize = true;
   }
   return self;
+}
+
+- (void)setAppView:(AppView*) pView
+{
+  appView_ = pView;
 }
 
 - (void)setAndInitializeAppView:(AppView*) pView
@@ -514,6 +520,11 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   }
 }
 
+- (NVGcontext*) getNativeContext
+{
+  return _nvg;
+}
+
 @end
 
 
@@ -592,11 +603,7 @@ struct PlatformView::Impl
 PlatformView::PlatformView(void* pParent, AppView* pView, void* /*platformHandle*/, int platformFlags, int targetFPS)
 {
   if(!pParent) return;
-  
-  // set app view here?
-  
-  // Rect bounds = getWindowRect(pParent, platformFlags);
-  
+   
   // get parent view, from either NSWindow or NSView according to flag
   NSView* parentView{nullptr};
   if(platformFlags & PlatformView::kParentIsNSWindow)
@@ -709,7 +716,6 @@ void PlatformView::setPlatformViewSize(int w, int h)
   }
 }
 
-
 void PlatformView::setPlatformViewScale(float newScale)
 {
   // scale changes will come from the MTKView, so we need to set the scale of the renderer
@@ -724,4 +730,9 @@ void PlatformView::setPlatformViewScale(float newScale)
     CGSize newSize = CGSizeMake(_pImpl->rendererSize[0], _pImpl->rendererSize[1]);
     [_pImpl->_mtkView setFrameSize:newSize];
   }
+}
+
+NativeDrawContext* PlatformView::getNativeDrawContext()
+{
+  return [_pImpl->_renderer getNativeContext];
 }
