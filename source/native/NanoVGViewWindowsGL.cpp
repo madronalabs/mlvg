@@ -361,7 +361,6 @@ PlatformView::PlatformView(void* pParent, AppView* pView, void* platformHandle, 
 
     // set app view
     _pImpl->_appView = pView;
-    _pImpl->_appView->initializeResources(_pImpl->_nvg);
 }
 
 PlatformView::~PlatformView()
@@ -410,6 +409,12 @@ void PlatformView::setPlatformViewScale(float scale)
     if (!_pImpl) return;
     _pImpl->_deviceScale = scale;
     _pImpl->viewNeedsResize_ = true;
+}
+
+NativeDrawContext* PlatformView::getNativeDrawContext()
+{
+    if (!_pImpl) return nullptr;
+    return _pImpl->_nvg;
 }
 
 void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
