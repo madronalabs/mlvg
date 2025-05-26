@@ -440,7 +440,7 @@ if(BUILD_SDL2_APP)
 
     if(APPLE)
     elseif(WIN32)
-        list(APPEND test_app_sources "${MLVG_SOURCE_DIR}/native/hidpi.manifest" )
+       # list(APPEND test_app_sources "${MLVG_SOURCE_DIR}/native/hidpi.manifest" )
     endif()
 
     add_executable(${target} ${test_app_sources})

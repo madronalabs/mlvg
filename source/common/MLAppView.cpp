@@ -4,7 +4,6 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-
 #include "MLAppView.h"
 
 namespace ml {
@@ -295,24 +294,12 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
 // given a window size in system coordinates, tweak it to be a valid window size.
 Vec2 AppView::constrainSize(Vec2 size) const
 {
-  Vec2 newSize = size;
-
-
-  // TODO fix cross-platform stuff. is this really system size input? Doesn't make sense as currently commented.
-#if ML_WINDOWS
-  newSize = _GUICoordinates.pixelToSystem(newSize);
-#endif
-
-
+    Vec2 newSize = size;
     Vec2 minDims = getMinDims();
     Vec2 maxDims = getMaxDims();
     newSize = vmax(newSize, minDims);
     newSize = vmin(newSize, maxDims);
-
-#if ML_WINDOWS
-   newSize = _GUICoordinates.systemToPixel(newSize);
-#endif
-  return newSize;
+    return newSize;
 }
 
 size_t AppView::_getElapsedTime()
@@ -349,7 +336,8 @@ void AppView::render(NativeDrawContext* nvg)
   // begin the frame on the backing layer
   int w = layerSize.x();
   int h = layerSize.y();
-  nvgBeginFrame(nvg, w, h, 1.0);
+  int unusedPixelRatio = 1.0f;
+  nvgBeginFrame(nvg, w, h, unusedPixelRatio);
   
   // translate the draw context to top level view bounds and draw.
   nvgIntersectScissor(nvg, topViewBounds);
@@ -358,6 +346,36 @@ void AppView::render(NativeDrawContext* nvg)
   // translate to the view's location and draw the view in its local coordinates
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
+
+  // TEMP
+  nvgStrokeWidth(nvg, 4);
+  nvgStrokeColor(nvg, colors::blue);
+  nvgBeginPath(nvg);
+  for (int i = 0; i < w; i += 100)
+  {
+      nvgMoveTo(nvg, i, h - 200);
+      nvgLineTo(nvg, i, h - 100);
+  }
+  nvgStroke(nvg);
+
+  // TEMP
+  // draw X
+  nvgStrokeWidth(nvg, 4);
+  nvgStrokeColor(nvg, colors::blue);
+  nvgBeginPath(nvg);
+  nvgMoveTo(nvg, 0, 0);
+  nvgLineTo(nvg, w, h);
+  nvgMoveTo(nvg, w, 0);
+  nvgLineTo(nvg, 0, h);
+  nvgStroke(nvg);
+
+  // TEMP
+  nvgFillColor(nvg, colors::blue);
+  for (int i = 0; i < w; i += 100)
+  {
+      auto nText = textUtils::naturalNumberToText(i);
+      nvgText(nvg, i, h - 220, nText.getText(), nullptr);
+  }
 
   // end the frame.
   nvgEndFrame(nvg);

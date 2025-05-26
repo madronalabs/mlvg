@@ -20,6 +20,12 @@
 #define ML_INCLUDE_SDL 1
 #include "native/MLSDLUtils.h"
 
+// TEMP
+#if(ML_WINDOWS)
+#include <windows.h>
+#include <ShellScalingApi.h>
+#endif
+
 struct TestAppProcessor : public SignalProcessor, public Actor
 {
   // sine generators.
@@ -64,6 +70,12 @@ class TestAppController :
 public AppController
 {
 public:
+
+    SDL_Window* window{ nullptr };
+    std::unique_ptr< PlatformView > platformView;
+    std::unique_ptr< TestAppView > appView;
+    ResizingEventWatcherData watcherData;
+
   TestAppController(TextFragment appName, const ParameterDescriptionList& pdl) : AppController(appName, pdl) {}
   ~TestAppController() = default;
   
@@ -154,7 +166,7 @@ public:
     int r{1};
     
     // make SDL window
-    int windowFlags = SDL_WINDOW_SHOWN;
+    int windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
 #if !TEST_RESIZER
     windowFlags |= SDL_WINDOW_RESIZABLE;
 #endif
@@ -199,14 +211,18 @@ public:
     SDL_AddEventWatch(resizingEventWatcher, &watcherData);
   }
 
-  SDL_Window* window{ nullptr };
-  std::unique_ptr< PlatformView > platformView;
-  std::unique_ptr< TestAppView > appView;
-  ResizingEventWatcherData watcherData;
 };
 
 int main(int argc, char *argv[])
 {
+    // set DPI awareness before making any windows.
+    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+        std::cout << "Process marked as Per Monitor DPI Aware v2 successfully.\n";
+    }
+    else {
+        std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;
+    }
+
   bool doneFlag{false};
   
   ParameterDescriptionList pdl;
@@ -214,9 +230,9 @@ int main(int argc, char *argv[])
 
   // get window size in system coords
   Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
-  Rect boundsRectInPixels(0, 0, defaultSize.x(), defaultSize.y());
+  Rect systemBoundsRect(0, 0, defaultSize.x(), defaultSize.y());
   Vec2 screenCenter = PlatformView::getPrimaryMonitorCenter();
-  Rect defaultRectInPixels = alignCenterToPoint(boundsRectInPixels, screenCenter);
+  Rect systemDefaultRect = alignCenterToPoint(systemBoundsRect, screenCenter);
 
   // make controller and get instance number. The Controller
   // creates the ActorRegistry, allowing us to register other Actors.
@@ -224,11 +240,11 @@ int main(int argc, char *argv[])
   auto appInstanceNum = appController.getInstanceNum();
 
   // make view and initialize drawing resources
-  if (!appController.createView(defaultRectInPixels)) return 1;
+  if (!appController.createView(systemDefaultRect)) return 1;
   appController.appView->makeWidgets(pdl);
   
   // attach view to parent window, allowing resizing
-  appController.platformView->attachViewToParent();
+  appController.platformView->attachViewToParent(PlatformView::kUseDeviceCoords);
   appController.watchForResize();
   appController.appView->startTimersAndActor();
 

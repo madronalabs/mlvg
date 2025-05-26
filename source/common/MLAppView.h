@@ -71,6 +71,8 @@ public:
   
   // push event to the input queue and return true if the event will be handled by the View.
   bool pushEvent(GUIEvent g);
+
+  void setDirty(bool d) { _view->setDirty(d); } // TEMP?
   
   Vec2 constrainSize(Vec2 size) const;
   

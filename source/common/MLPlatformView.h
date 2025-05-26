@@ -27,9 +27,16 @@ class PlatformView
 {
   
 public:
-  enum platformFlags
+  enum PlatformFlags
   {
     kParentIsNSWindow = 1
+  };
+
+  enum DeviceScaleMode
+  {
+      kScaleModeUnknown = 0,
+      kUseSystemCoords = 1,
+      kUseDeviceCoords = 2
   };
   
   // window / resolution helpers
@@ -38,33 +45,34 @@ public:
   static Vec2 getPrimaryMonitorCenter();
   //
   // get the scale the OS considers the window's device to be at, compared to "usual" DPI
-  static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
+  // static float getDeviceScaleForWindow(void* parent, int PlatformFlags = 0);
+  // static float getDpiScaleForWindow(void* parent, int PlatformFlags = 0);
   //
-  static Rect getWindowRect(void* parent, int platformFlags);
+  static Rect getWindowRect(void* parent, int PlatformFlags);
   
   // make a platform view to draw the application to the given parent window.
   // parent: pointer to the parent window
   // pView: existing appView to draw
   // platformHandle: platform-specific data
-  // platformFlags: platform-specific flags
+  // PlatformFlags: platform-specific flags
   // fps: target refresh rate
-  PlatformView(void* parent, AppView* pView, void* platformHandle, int platformFlags, int fps);
+  PlatformView(void* parent, AppView* pView, void* platformHandle, int PlatformFlags, int fps);
   
   ~PlatformView();
 
   // attach view to the parent context, which will make it visible and allow resizing.
-  void attachViewToParent();
+  // 
+  void attachViewToParent(DeviceScaleMode mode);
 
-  // resize the PlatformView, in system coordinates
+  // resize the PlatformView, in system or device coordinates
   void setPlatformViewSize(int w, int h);
-  void setPlatformViewScale(float scale);
+
   
   NativeDrawContext* getNativeDrawContext();
 
 protected:
   struct Impl;
   std::unique_ptr< Impl > _pImpl;
-  float displayScale_{1.0f};
 };
 
 } // namespace ml
