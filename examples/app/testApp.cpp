@@ -210,14 +210,13 @@ public:
     watcherData = ResizingEventWatcherData{ window, platformView.get() };
     SDL_AddEventWatch(resizingEventWatcher, &watcherData);
   }
-
 };
 
 int main(int argc, char *argv[])
 {
     // set DPI awareness before making any windows.
     if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-        std::cout << "Process marked as Per Monitor DPI Aware v2 successfully.\n";
+        std::cout << "main: Process marked as Per Monitor DPI Aware v2 successfully.\n";
     }
     else {
         std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;

@@ -55,20 +55,22 @@ struct PlatformView::Impl
 
     CRITICAL_SECTION _drawLock{ nullptr };
 
-    // we don't care about the Windows concept of "zoom factor" so we just need to get a 
-    // single system scale factor for any app or plugin.
+    // inputs to scale logic
     double systemScale_{ 1. };
     double newSystemScale_{ 1. };
-    Vec2 systemSize_;
-    Vec2 newSystemSize_;
+    double dpiScale_{ 1. };
+    double newDpiScale_{ 1. };
+    Vec2 systemSize_{ 0, 0 };
+    Vec2 newSystemSize_{ 0, 0 };
 
     DeviceScaleMode platformScaleMode_{ kScaleModeUnknown };
 
+    // outputs from scale logic, used for event handling, drawing and backing store creation
+    float displayScale_{ 1.0f };
+    float eventScale_{ 1.0f };
+
     Vec2 backingLayerSize_;
 
-    float displayScale_{ 1.0f };
-    float dpiScale_{ 1.0f };
-    float eventScale_{ 1.0f };
 
     int targetFPS_{ 60 };
 
@@ -98,6 +100,7 @@ struct PlatformView::Impl
     bool lockContext();
     bool unlockContext();
     void swapBuffers();
+    void updateDpiScale();
     void resizeIfNeeded();
 };
 
@@ -273,7 +276,7 @@ static float getMonitorScaleFromWindow(HWND hwnd)
 }
 
 
-static float getDeviceScaleForWindow(void* parent)
+static double getDeviceScaleForWindow(void* parent)
 {
     HWND parentWindow = static_cast<HWND>(parent);
     HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
@@ -284,13 +287,16 @@ static float getDeviceScaleForWindow(void* parent)
     return scaleRatio;
 }
 
-static float getDpiScaleForWindow(void* parent)
+static double getDpiScaleForWindow(void* parent)
 {
     HWND parentWindow = static_cast<HWND>(parent);
     HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
 
     DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
     DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
+
+    std::cout << "--------------\n awareness: " << dpiAwareness << "\n";
+
     bool tryToChangeContext = (dpiAwareness != DPI_AWARENESS_PER_MONITOR_AWARE);
     bool changedContext{ false };
     if (tryToChangeContext)
@@ -507,6 +513,16 @@ bool PlatformView::Impl::unlockContext()
     return true;
 }
 
+void PlatformView::Impl::updateDpiScale()
+{
+    if (_windowHandle)
+    {
+        newDpiScale_ = getDpiScaleForWindow(_windowHandle);
+
+        std::cout << "updateDpiScale dpi scale: " << newDpiScale_ << "\n";
+    }
+}
+
 void PlatformView::Impl::resizeIfNeeded()
 {
     bool needsResize{ false };
@@ -518,6 +534,11 @@ void PlatformView::Impl::resizeIfNeeded()
     if (newSystemSize_ != systemSize_)
     {
         systemSize_ = newSystemSize_;
+        needsResize = true;
+    }
+    if (newDpiScale_ != dpiScale_)
+    {
+        dpiScale_ = newDpiScale_;
         needsResize = true;
     }
 
@@ -608,7 +629,7 @@ void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUI
     vgEvent->screenPos = pointToVec2(screenPos);
     vgEvent->position = pointToVec2(viewPos) * eventScale_;
 
-   std::cout << "viewPos: [" << x << ", " << y << "] -> pos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
+   std::cout << "CLICK viewPos: [" << x << ", " << y << "] -> pos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
 }
 
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
@@ -625,7 +646,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
     vgEvent->position = pointToVec2(viewPos) * eventScale_;
 
 
-    std::cout << "screenPos: [" << x << ", " << y << "] -> viewPos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
+    std::cout << "WHEEL screenPos: [" << x << ", " << y << "] -> viewPos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
 }
 
 
@@ -1058,6 +1079,19 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     {
         return 0;
     }
+    case WM_ERASEBKGND:
+    {
+        return 0;
+    }
+    case WM_SETCURSOR:
+    {
+        return 0;
+    }
+
+    default:
+    {
+        std::cout << "unhandled window msg: " << std::hex << msg << " ( " << 0x1f << ") " << std::dec << "\n";
+    }
     }
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
@@ -1150,7 +1184,7 @@ void PlatformView::attachViewToParent(DeviceScaleMode mode)
 
 void PlatformView::setPlatformViewSize(int w, int h)
 {
-    std::cout << "setPlatformViewSize: " << Vec2(w, h) << "\n";
+    // std::cout << "setPlatformViewSize: " << Vec2(w, h) << "\n";
     if (!_pImpl) return;
     if (_pImpl->platformScaleMode_ == kScaleModeUnknown)
     {
@@ -1158,6 +1192,13 @@ void PlatformView::setPlatformViewSize(int w, int h)
     }
     Vec2 newSize(w, h);
     _pImpl->newSystemSize_ = newSize;
+}
+
+void PlatformView::updateDpiScale()
+{
+    // std::cout << "setPlatformViewSize: " << Vec2(w, h) << "\n";
+    if (!_pImpl) return;
+    _pImpl->updateDpiScale();
 }
 
 

@@ -242,9 +242,14 @@ inline int resizingEventWatcher(void* data, SDL_Event* event)
     case SDL_WINDOWEVENT_RESIZED:
     case SDL_WINDOWEVENT_SIZE_CHANGED:
     {
-      //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
-      SdlAppResize(watcherData);
-      break;
+        //std::cout << std::this_thread::get_id() << ": " << ev.window.data1 << " " << ev.window.data2 << std::endl;
+        SdlAppResize(watcherData);
+        break;
+    }    
+    case SDL_WINDOWEVENT_DISPLAY_CHANGED:
+    {
+        watcherData->platformView->updateDpiScale();
+        break;
     }
     default:
     {

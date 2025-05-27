@@ -67,6 +67,9 @@ public:
   // resize the PlatformView, in system or device coordinates
   void setPlatformViewSize(int w, int h);
 
+  // when the DPI scale may have changed, call this to inspect the new DPI scale 
+  // of the window and make any needed changes
+  void updateDpiScale();
   
   NativeDrawContext* getNativeDrawContext();
 
