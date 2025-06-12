@@ -32,7 +32,8 @@ constexpr float kScrollSensitivity{ -1.0f };
 // utils
 Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 
-constexpr bool kGLTestPatternOnly{ true };
+// added a GL test pattern mode for diagnosing window/DPI issues
+constexpr bool kGLTestPatternOnly{ false };
 
 
 static Rect getWindowRect(void* parent)
@@ -346,21 +347,13 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, m
 
     if (_windowHandle)
     {
-        // set mode and device scale
-        // // TEMP
-     //   updatePlatformScaleMode();
-
-
         SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
 
         _deviceContext = GetDC(_windowHandle);
 
-
         // setting these sizes will cause resize in resizeIfNeeded()
         newSystemSize_ = Vec2(w, h);
         newDpiScale_ = getDpiScaleForWindow(parentWindow);
-
-
     }
     return false;
 }
@@ -450,15 +443,20 @@ void main() {
 
 void PlatformView::Impl::destroyGLResources()
 {
-    if (_nvg)
+    if (kGLTestPatternOnly)
     {
-        // delete nanovg
-        lockContext();
-        makeContextCurrent();
-        _nvgBackingLayer = nullptr;
-        nvgDeleteGL3(_nvg);
-        _nvg = NULL;
-        unlockContext();
+    }
+    else
+    {
+        if (_nvg)
+        {
+            // delete nanovg
+            lockContext();
+            makeContextCurrent();
+            nvgDeleteGL3(_nvg);
+            _nvg = NULL;
+            unlockContext();
+        }
     }
 }
 
@@ -487,8 +485,7 @@ void PlatformView::Impl::updateDpiScale()
 {
     if (_windowHandle)
     {
-        newDpiScale_ = 1.0f;// TEMP getDpiScaleForWindow(_windowHandle);
-
+        getDpiScaleForWindow(_windowHandle);
         std::cout << "updateDpiScale dpi scale: " << newDpiScale_ << "\n";
     }
 }
@@ -547,7 +544,6 @@ void PlatformView::Impl::resizeIfNeeded()
             // TEST
             if (_openGLContext)
             {
-
                 wglMakeCurrent(NULL, NULL);
                 destroyGLResources();
 
@@ -572,7 +568,7 @@ void PlatformView::Impl::resizeIfNeeded()
             // resize main backing layer
             if (_nvg)
             {
-                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, backingLayerSize_.x(), backingLayerSize_.y());
+                //_nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, backingLayerSize_.x(), backingLayerSize_.y());
             }
             unlockContext();
         }
@@ -705,25 +701,25 @@ void PlatformView::Impl::paintView(HWND hWnd)
     // clear
     glViewport(0, 0, w, h);
 
-    // TEMP
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    // TEMP
     nvgBeginFrame(nvg, w, h, 1.0f);
 
-    // get image pattern for 1:1 blit
-    auto pBackingLayer = *_nvgBackingLayer;
-    NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, _nvgBackingLayer->_buf->image, 1.0f);
+    if (0)
+    {
+        // get image pattern for 1:1 blit
+        NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, _nvgBackingLayer->_buf->image, 1.0f);
 
-      // blit the image
-    nvgSave(nvg);
-    nvgResetTransform(nvg);
-    nvgBeginPath(nvg);
-    nvgRect(nvg, 0, 0, w, h);
-    nvgFillPaint(nvg, img);
-    nvgFill(nvg);
-    nvgRestore(nvg);
+        // blit the image
+        nvgSave(nvg);
+        nvgResetTransform(nvg);
+        nvgBeginPath(nvg);
+        nvgRect(nvg, 0, 0, w, h);
+        nvgFillPaint(nvg, img);
+        nvgFill(nvg);
+        nvgRestore(nvg);
+    }
 
     // TEMP
     nvgStrokeWidth(nvg, 4);
@@ -893,7 +889,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
             // TEMP screen edge fix commented out for now. TODO fix
             /*
-            // get screen height
+            // get screen height 
             HMONITOR monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
             MONITORINFO info;
             info.cbSize = sizeof(MONITORINFO);
