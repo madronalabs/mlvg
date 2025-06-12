@@ -196,7 +196,7 @@ public:
     if(r)
     {
       ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
-      platformView = std::make_unique< PlatformView >(windowInfo.windowPtr, appView.get(), nullptr, windowInfo.flags, 60);
+      platformView = std::make_unique< PlatformView >("testapp", windowInfo.windowPtr, appView.get(), nullptr, windowInfo.flags, 60);
       appView->initializeResources(platformView->getNativeDrawContext());
     }
 

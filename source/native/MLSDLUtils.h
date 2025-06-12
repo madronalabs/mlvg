@@ -142,25 +142,6 @@ inline SDL_Window* newSDLWindow(ml::Rect b, const char* windowName, int flags)
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Window creation fail : %s\n", SDL_GetError());
     return nullptr;
   }
-
-  /*
-
-  auto p = getParentWindowInfo(newWindow);
-  float dpiScale = PlatformView::getDpiScaleForWindow(p.windowPtr, p.flags);
-
-  int scaledWidth = w * dpiScale;
-  int scaledHeight = h * dpiScale;
-
-  HWND hwnd = static_cast<HWND>(p.windowPtr);
-
-  SetWindowPos(
-      hwnd,
-      NULL,
-      x, y,
-      scaledWidth, scaledHeight,
-      SWP_NOZORDER | SWP_NOACTIVATE
-  );
-  */
   
   return newWindow;
 }

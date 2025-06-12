@@ -12,6 +12,7 @@
 #include "windowsx.h"
 #undef min
 #undef max
+
 #include "glad.h"
 #include "nanovg.h"
 #include "nanovg_gl.h"
@@ -30,6 +31,37 @@ constexpr float kScrollSensitivity{ -1.0f };
 
 // utils
 Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
+
+
+static Rect getWindowRect(void* parent)
+{
+    RECT winRect;
+    HWND parentWindow = static_cast<HWND>(parent);
+    GetWindowRect(parentWindow, &winRect);
+    int x = winRect.left;
+    int y = winRect.top;
+    int x2 = winRect.right;
+    int y2 = winRect.bottom;
+    return ml::Rect(x, y, x2 - x, y2 - y);
+}
+
+
+const char* vertexShader = R"(
+#version 330 core
+layout (location = 0) in vec3 aPos;
+void main() {
+    gl_Position = vec4(aPos, 1.0);
+}
+)";
+
+const char* fragmentShader = R"(
+#version 330 core
+out vec4 FragColor;
+void main() {
+    FragColor = vec4(1.0, 0.5, 0.2, 1.0);
+}
+)";
+
 
 
 // PlatformView
@@ -77,10 +109,12 @@ struct PlatformView::Impl
     HWND parentPtr{ nullptr };
     Vec2 _totalDrag;
 
-    Impl();
+    TextFragment windowClassName_;
+
+    Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps);
     ~Impl() noexcept;
 
-    void setPlatformScaleMode(DeviceScaleMode mode);
+    void updatePlatformScaleMode();
     void setPlatformViewScale(float scale);
 
 
@@ -90,18 +124,26 @@ struct PlatformView::Impl
     void convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEvent* e);
     void setMousePosition(Vec2 newPos);
 
-    static void initWindowClass();
-    static void destroyWindowClass();
+    static void initWindowClass(const char* className);
+    static void destroyWindowClass(const char* className);
+
+    void createGLResources();
+    void destroyGLResources();
 
     bool setPixelFormat(HDC __deviceContext);
-    bool createWindow(HWND parentWindow, void* userData, void* platformHandle, ml::Rect bounds);
+
+    bool createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds);
     void destroyWindow();
+
     bool makeContextCurrent();
     bool lockContext();
     bool unlockContext();
     void swapBuffers();
     void updateDpiScale();
     void resizeIfNeeded();
+
+    // TEMP
+    GLuint shaderTestProgram_;
 };
 
 // static utilities
@@ -283,15 +325,16 @@ static double getDeviceScaleForWindow(void* parent)
 
     DEVICE_SCALE_FACTOR sf;
     GetScaleFactorForMonitor(hMonitor, &sf);
+
+    // TEMP
+    std::cout << "scale factor (unset): " << sf << "\n";
+
     float scaleRatio = sf / 100.f;
     return scaleRatio;
 }
 
 static double getDpiScaleForWindow(void* parent)
 {
-    HWND parentWindow = static_cast<HWND>(parent);
-    HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
-
     DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
     DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
 
@@ -313,7 +356,15 @@ static double getDpiScaleForWindow(void* parent)
     }
 
     UINT dpi_x, dpi_y;
+    HWND parentWindow = static_cast<HWND>(parent);
     HMONITOR monitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
+
+    // TEMP
+    DEVICE_SCALE_FACTOR sf;
+    GetScaleFactorForMonitor(monitor, &sf);
+    std::cout << "SCALE FACTOR: " << sf << "\n";
+
+    float scaleRatio = sf / 100.f;
 
     float monitorDpi{ 96.f };
 
@@ -331,28 +382,87 @@ static double getDpiScaleForWindow(void* parent)
     return monitorDpi / 96.f;
 }
 
+static GLuint compileShader(const char* source, GLenum type) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+    return shader;
+}
+
+
+void PlatformView::Impl::updatePlatformScaleMode()
+{
+    HWND parentWindow = static_cast<HWND>(_windowHandle);
+    HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
+
+    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
+    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
+
+    std::cout << "--------------\n awareness: " << dpiAwareness << "\n";
+
+
+    if (dpiAwareness == DPI_AWARENESS_PER_MONITOR_AWARE)
+    {
+        platformScaleMode_ = kUseDeviceCoords;
+    }
+    else
+    {
+        platformScaleMode_ = kUseSystemCoords;
+    }
+
+
+}
+
 
 // PlatformView::Impl implementation 
 
-PlatformView::Impl::Impl()
+PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps)
 {
-    initWindowClass();
+    windowClassName_ = TextFragment(windowClassName);
+    initWindowClass(windowClassName_.getText());
     InitializeCriticalSection(&_drawLock);
+
+    parentPtr = (HWND)pParentWindow;
+    Rect bounds = getWindowRect(pParentWindow);
+
+    createWindow(parentPtr, platformHandle, bounds);
+    _appView = pView;
+    targetFPS_ = fps;
+
+// TEMP    _nvg = nvgCreateGL3(NVG_ANTIALIAS);
 }
 
 PlatformView::Impl::~Impl() noexcept
 {
+    if (_nvg)
+    {
+        // delete nanovg
+        lockContext();
+        makeContextCurrent();
+        _nvgBackingLayer = nullptr;
+        nvgDeleteGL3(_nvg);
+        _nvg = NULL;
+        unlockContext();
+    }
+    if (_windowHandle)
+    {
+        destroyWindow();
+    }
+
     DeleteCriticalSection(&_drawLock);
-    destroyWindowClass();
+    destroyWindowClass(windowClassName_.getText());
 }
 
-void PlatformView::Impl::initWindowClass()
+// static
+void PlatformView::Impl::initWindowClass(const char* className)
 {
     instanceCount++;
     if (instanceCount == 1)
     {
         WNDCLASS windowClass = {};
-        windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC | CS_GLOBALCLASS;//|CS_OWNDC; // add Private-DC constant 
+       // windowClass.style = CS_OWNDC; 
+        windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+
         windowClass.lpfnWndProc = appWindowProc;
         windowClass.cbClsExtra = 0;
         windowClass.cbWndExtra = 0;
@@ -360,18 +470,86 @@ void PlatformView::Impl::initWindowClass()
         windowClass.hIcon = nullptr;
         windowClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
         windowClass.lpszMenuName = nullptr;
-        windowClass.lpszClassName = gWindowClassName;
+        windowClass.lpszClassName = className;
+     //   windowClass.hbrBackground = NULL;
+
         RegisterClass(&windowClass);
     }
 }
 
-void PlatformView::Impl::destroyWindowClass()
+// static
+void PlatformView::Impl::destroyWindowClass(const char* className)
 {
     instanceCount--;
     if (instanceCount == 0)
     {
-        UnregisterClass(gWindowClassName, HINST_THISCOMPONENT);
+        UnregisterClass(className, HINST_THISCOMPONENT);
     }
+}
+
+bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds)
+{
+    if (_windowHandle)
+        return false;
+
+    float dpiScale = 1.00f;
+
+    int w = bounds.width() * dpiScale;
+    int h = bounds.height() * dpiScale;
+
+    auto hInst = static_cast<HINSTANCE>(platformHandle);
+
+    // create child window of the parent we are passed
+    _windowHandle = CreateWindowEx(0, windowClassName_.getText(), TEXT("MLVG"),
+        WS_CHILD | WS_VISIBLE,
+        0, 0, w, h,
+        parentWindow, nullptr, hInst, nullptr); 
+
+    if (_windowHandle)
+    {
+        // set mode and device scale
+        // // TEMP
+     //   updatePlatformScaleMode();
+     
+        
+        // TEMP setPlatformViewScale(getDeviceScaleForWindow(_windowHandle)); // needed?
+
+        SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
+
+        _deviceContext = GetDC(_windowHandle);
+
+
+        // setting these sizes will cause resize in resizeIfNeeded()
+        newSystemSize_ = Vec2(w, h);
+        newDpiScale_ = getDpiScaleForWindow(parentWindow);
+
+
+    }
+    return false;
+}
+
+// destroy our child window.
+void PlatformView::Impl::destroyWindow()
+{
+    if (_openGLContext)
+    {
+        // needed?             if (wglGetCurrentContext() == _openGLContext)
+        wglMakeCurrent(NULL, NULL);
+
+        wglDeleteContext(_openGLContext);
+        _openGLContext = NULL;
+    }
+
+    if (_windowHandle)
+    {
+
+        ReleaseDC(_windowHandle, _deviceContext);
+
+        SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (LONG_PTR)NULL);
+        DestroyWindow(_windowHandle);
+        _windowHandle = nullptr;
+    }
+
 }
 
 // https://building.enlyze.com/posts/writing-win32-apps-like-its-2020-part-3/ // TEMP
@@ -381,26 +559,14 @@ bool PlatformView::Impl::setPixelFormat(HDC dc)
     bool status = false;
     if (dc)
     {
-        PIXELFORMATDESCRIPTOR pfd = {
-            sizeof(PIXELFORMATDESCRIPTOR),    // size of this pfd  
-            1,                                // version number  
-            PFD_DRAW_TO_WINDOW |              // support window  
-            PFD_SUPPORT_OPENGL |              // support OpenGL  
-            PFD_DOUBLEBUFFER,                 // double buffered  
-            PFD_TYPE_RGBA,                    // RGBA type  
-            24,                               // 24-bit color depth  
-            0, 0, 0, 0, 0, 0,                 // color bits ignored  
-            0,                                // no alpha buffer  
-            0,                                // shift bit ignored  
-            0,                                // no accumulation buffer  
-            0, 0, 0, 0,                       // accum bits ignored  
-            32,                               // 32-bit z-buffer      
-            8,                                // no stencil buffer  
-            0,                                // no auxiliary buffer  
-            PFD_MAIN_PLANE,                   // main layer  
-            0,                                // reserved  
-            0, 0, 0                           // layer masks ignored  
-        };
+        PIXELFORMATDESCRIPTOR pfd = {};
+
+        pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+        pfd.nVersion = 1;
+        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd.iPixelType = PFD_TYPE_RGBA;
+        pfd.cColorBits = 32;
+        pfd.cDepthBits = 24;
 
         // get the device context's best, available pixel format match  
         auto format = ChoosePixelFormat(dc, &pfd);
@@ -411,86 +577,32 @@ bool PlatformView::Impl::setPixelFormat(HDC dc)
     return status;
 }
 
-
-bool PlatformView::Impl::createWindow(HWND parentWindow, void* userData, void* platformHandle, ml::Rect bounds)
+void PlatformView::Impl::createGLResources()
 {
-    if (_windowHandle)
-        return false;
 
-    int x = bounds.left();
-    int y = bounds.top();
-    int w = bounds.width();
-    int h = bounds.height();
+    // -------------------------------------
+    // TEST
 
-    auto hInst = static_cast<HINSTANCE>(platformHandle);
 
-    // create child window of the parent we are passed
-    _windowHandle = CreateWindowEx(0, gWindowClassName, TEXT("MLVG"),
-        WS_CHILD | WS_VISIBLE,
-        0, 0, w, h,
-        parentWindow, nullptr, hInst, nullptr); 
+    // Create and compile shaders
+    GLuint vs = compileShader(vertexShader, GL_VERTEX_SHADER);
+    GLuint fs = compileShader(fragmentShader, GL_FRAGMENT_SHADER);
 
-    if (_windowHandle)
-    {
-        // set mode and device scale
-        setPlatformScaleMode(kUseDeviceCoords);
-        setPlatformViewScale(getDeviceScaleForWindow(_windowHandle));
+    // Create shader program
+    shaderTestProgram_ = glCreateProgram();
+    glAttachShader(shaderTestProgram_, vs);
+    glAttachShader(shaderTestProgram_, fs);
+    glLinkProgram(shaderTestProgram_);
 
-        SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (__int3264)(LONG_PTR)userData);
-
-        _deviceContext = GetDC(_windowHandle);
-
-        if (_deviceContext)
-        {
-            if (setPixelFormat(_deviceContext))
-            {
-                _openGLContext = wglCreateContext(_deviceContext);
-                if (_openGLContext)
-                {
-                    if (makeContextCurrent())
-                    {
-                        // TODO error
-                        if (!gladLoadGL())
-                        {
-                            std::cout << "Error initializing glad";
-                        }
-                        else
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (LONG_PTR)NULL);
-        DestroyWindow(_windowHandle);
-        _windowHandle = nullptr;
-    }
-    return false;
 }
 
-// destroy our child window.
-void PlatformView::Impl::destroyWindow()
+
+void PlatformView::Impl::destroyGLResources()
 {
-    if (_windowHandle)
-    {
-        if (_openGLContext)
-        {
-            if (wglGetCurrentContext() == _openGLContext)
-            {
-                wglMakeCurrent(nullptr, nullptr);
-            }
 
-            ReleaseDC(_windowHandle, _deviceContext);
-            wglDeleteContext(_openGLContext);
-            _openGLContext = nullptr;
-        }
 
-        DestroyWindow(_windowHandle);
-        _windowHandle = nullptr;
-    }
 }
+
 
 bool PlatformView::Impl::makeContextCurrent()
 {
@@ -517,7 +629,7 @@ void PlatformView::Impl::updateDpiScale()
 {
     if (_windowHandle)
     {
-        newDpiScale_ = getDpiScaleForWindow(_windowHandle);
+        newDpiScale_ = 1.0f;// TEMP getDpiScaleForWindow(_windowHandle);
 
         std::cout << "updateDpiScale dpi scale: " << newDpiScale_ << "\n";
     }
@@ -547,33 +659,69 @@ void PlatformView::Impl::resizeIfNeeded()
         float backingScale{ 1.0f };
         switch (platformScaleMode_)
         {
-        case kUseSystemCoords: // plugins
-            backingScale = dpiScale_;
-            eventScale_ = dpiScale_;
+        case kUseSystemCoords: // non-dpi-aware plugins
+            backingScale = 1.0f;// dpiScale_;
+            eventScale_ = 1.0f;//dpiScale_;
             break;
-        case kUseDeviceCoords: // test app
+        case kUseDeviceCoords: // dpi-aware plugin, app
             backingScale = 1.0f;
             eventScale_ = 1.0f;
             break;
         default:
+            backingScale = 1.0f;
+            eventScale_ = 1.0f;
             break;
         }
 
-        backingLayerSize_ = systemSize_ * backingScale; // TEMP
+        // TEMP
+        backingScale = 1.0f; 
+        //eventScale_ = 1.0f;
 
-        // NOTE: events change scale w/ backing scale, due to AppView stuff?!
+        backingLayerSize_ = systemSize_ * backingScale; // TEMP
 
         std::cout << "resizeIfNeeded: system size: " << systemSize_ << ", backing: " << backingScale << ", events: " << eventScale_ << "\n";
         std::cout << "                backing size: " << backingLayerSize_ << "\n";
-
-        // resize window, GL, nanovg
+        // resize window, GL, nanovg  
         if (_windowHandle)
         {
-            long flags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE;
-            flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
+
+
+            long flags = SWP_NOZORDER | SWP_NOMOVE;
+            // flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
             lockContext();
             makeContextCurrent();
-            SetWindowPos(_windowHandle, NULL, 0, 0, systemSize_.x(), systemSize_.y(), flags);
+            SetWindowPos(_windowHandle, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags); // systemSize_ here put picture in lower laft 150% too small
+
+            ReleaseDC(_windowHandle, _deviceContext);
+            _deviceContext = GetDC(_windowHandle);
+
+            // TEST
+            if (_openGLContext)
+            {
+                wglMakeCurrent(NULL, NULL);
+                wglDeleteContext(_openGLContext);
+                _openGLContext = NULL;
+            }
+
+            if (setPixelFormat(_deviceContext))
+            {
+                _openGLContext = wglCreateContext(_deviceContext);
+                makeContextCurrent();
+
+
+                gladLoadGL();
+
+                createGLResources();
+
+            }
+
+            GLint viewport[4];
+            glGetIntegerv(GL_VIEWPORT, viewport);
+
+
+            printf("Viewport: %dx%d at (%d,%d)\n", viewport[2], viewport[3], viewport[0], viewport[1]);
+
+
 
             // resize main backing layer
             if (_nvg)
@@ -600,12 +748,6 @@ void PlatformView::Impl::swapBuffers()
     }
 }
 
-
-void PlatformView::Impl::setPlatformScaleMode(DeviceScaleMode mode)
-{
-    platformScaleMode_ = mode;
-}
-
 void PlatformView::Impl::setPlatformViewScale(float scale)
 {
     std::cout << "setPlatformViewScale: " << scale << "\n";
@@ -629,7 +771,7 @@ void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUI
     vgEvent->screenPos = pointToVec2(screenPos);
     vgEvent->position = pointToVec2(viewPos) * eventScale_;
 
-   std::cout << "CLICK viewPos: [" << x << ", " << y << "] -> pos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
+   //std::cout << "CLICK viewPos: [" << x << ", " << y << "] -> pos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
 }
 
 void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
@@ -645,8 +787,7 @@ void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM l
     vgEvent->screenPos = pointToVec2(screenPos);
     vgEvent->position = pointToVec2(viewPos) * eventScale_;
 
-
-    std::cout << "WHEEL screenPos: [" << x << ", " << y << "] -> viewPos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
+    //std::cout << "WHEEL screenPos: [" << x << ", " << y << "] -> viewPos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
 }
 
 
@@ -672,13 +813,13 @@ void PlatformView::Impl::setMousePosition(Vec2 newPos)
 // static
 LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    PlatformView* pGraphics = (PlatformView*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+    PlatformView::Impl* pImpl = (PlatformView::Impl*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
     if (msg == WM_CREATE)
     {
         // targetFPS_needs to be a little higher than actual preferred rate
         // because of window sync
-        float fFps = 60; // NOT WORKING NULLPTR pGraphics->_pImpl->targetFPS_;
+        float fFps = 60; // NOT WORKING NULLPTR pImpl->targetFPS_;
         int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f)));
         UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
         SetFocus(hWnd);
@@ -691,13 +832,13 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         return 0;
     }
 
-    if ((!pGraphics) || (hWnd != pGraphics->_pImpl->_windowHandle))
+    if ((!pImpl) || (hWnd != pImpl->_windowHandle))
     {
         return DefWindowProc(hWnd, msg, wParam, lParam);
     }
 
-    NVGcontext* nvg = pGraphics->_pImpl->_nvg;
-    ml::AppView* pView = pGraphics->_pImpl->_appView;
+    NVGcontext* nvg = pImpl->_nvg;
+    ml::AppView* pView = pImpl->_appView;
 
     switch (msg)
     {
@@ -715,90 +856,123 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         std::cout << "POS CHANGED: \n";
         return 0;
     }
+    /*
     case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
+
+    case WM_GETDPISCALEDSIZE:
     {
         UINT dpi = HIWORD(wParam);
         std::cout << "DPI CHANGED: " << dpi << "\n";
-
-
-        // NOT BEING CALLED! REVISIT.
-        /*
-       
-        UINT dpi = HIWORD(wParam);
-
-   
-
-        int iDpi = GetDpiForWindow(hWnd);
-        std::cout << "WINDOW DPI CHANGED: " << iDpi << "\n";
-
-
-        // store changed dpi
-        //float dpiRatio = dpi / 96.f;
-        //pGraphics->setPlatformViewScale(dpiRatio);
-
-        // Get suggested rect for the window
-        RECT* pRect = reinterpret_cast<RECT*>(lParam);
-
-        // Resize window according to OS suggestion
-        SetWindowPos(
-            hWnd, NULL,
-            pRect->left, pRect->top,
-            pRect->right - pRect->left, pRect->bottom - pRect->top,
-            SWP_NOZORDER | SWP_NOACTIVATE
-        );
-
-        */
+        pImpl->updateDpiScale();
 
         // Force repaint
         InvalidateRect(hWnd, NULL, TRUE);
+        return 0;
+    }*/
+    case WM_ERASEBKGND:
+    {
         return 0;
     }
     case WM_PAINT:
     {
         PAINTSTRUCT ps;
-        if ((!nvg) || (!pView)) return 0;
-        if (!pGraphics->_pImpl->makeContextCurrent()) return 0;
 
-        // allow Widgets to animate. 
-        // NOTE: this might change the backing layer!
-        pView->animate(nvg);
 
-        pGraphics->_pImpl->resizeIfNeeded();
+
+        pImpl->resizeIfNeeded();
+        //  if ((!nvg) || (!pView)) return 0;
+
+
+        // TEMP - draw direct to window no backing
+        BeginPaint(hWnd, &ps);
+
+
+     //   //    pView->animate(nvg);
+        if (!pImpl->makeContextCurrent()) return 0;
 
         // draw
+//        if (!pImpl->_nvgBackingLayer) return 0;
+  //      auto pBackingLayer = pImpl->_nvgBackingLayer.get();
+    //    if (!pBackingLayer) return 0;
 
-        if (!pGraphics->_pImpl->_nvgBackingLayer) return 0;
-        auto pBackingLayer = pGraphics->_pImpl->_nvgBackingLayer.get();
-        if (!pBackingLayer) return 0;
-
-        size_t w = pBackingLayer->width;
-        size_t h = pBackingLayer->height;
-
-
+        size_t w = pImpl->backingLayerSize_.x(); // pBackingLayer->width;
+        size_t h = pImpl->backingLayerSize_.y(); // pBackingLayer->height;
 
         // draw the AppView to the backing Layer. The backing layer is our persistent
         // buffer, so don't clear it.
         {
             // TEMP
             //drawToImage(pBackingLayer);
-
-            // TEMP - draw direct to window no backing
-            BeginPaint(hWnd, &ps);
-            drawToImage(nullptr);
+            // 
+          //  drawToImage(nullptr);
             glViewport(0, 0, w, h);
-            glClearColor(0.f, 0.f, 0.f, 1.f);
+
+
+
+            glClearColor(0.f, 0.f, 1.f, 1.f); // TEMP
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            pView->setDirty(true);
 
+            float vertices[] = {
+                // Positions (x, y, z)
+                0.0f,  0.5f, 0.0f,  // Top vertex
+               -0.5f, -0.5f, 0.0f,  // Bottom-left vertex
+                0.5f, -0.5f, 0.0f   // Bottom-right vertex
+            };
 
-            pView->render(nvg);
+            // 2. Create and bind a Vertex Array Object (VAO)
+            unsigned int VAO;
+            glGenVertexArrays(1, &VAO);
+            glBindVertexArray(VAO);
 
+            // 3. Create and bind a Vertex Buffer Object (VBO)
+            unsigned int VBO;
+            glGenBuffers(1, &VBO);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+            // 4. Define the vertex attribute pointers
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+
+            // 5. Unbind the VAO and VBO (optional for safety)
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+
+            // 6. Render the triangle in your render loop
+            glUseProgram(pImpl->shaderTestProgram_); // Use your shader program
+            glBindVertexArray(VAO);      // Bind the VAO
+            glDrawArrays(GL_TRIANGLES, 0, 3); // Draw the triangle
+            glBindVertexArray(0);        // Unbind the VAO
+
+            /*
+            nvgBeginFrame(nvg, w, h, 1.0f);
+
+            // TEMP
+            // draw X
+            nvgStrokeWidth(nvg, 4);
+            nvgStrokeColor(nvg, colors::green);
+            nvgBeginPath(nvg);
+            nvgMoveTo(nvg, 0, 0);
+            nvgLineTo(nvg, w, h);
+            nvgMoveTo(nvg, w, 0);
+            nvgLineTo(nvg, 0, h);
+            nvgStroke(nvg);
+
+            nvgEndFrame(nvg);
+
+            */
+
+            // TEMP
+           // pView->setDirty(true);
+          //  pView->render(nvg);
 
             // TEMP
             EndPaint(hWnd, &ps);
         }
 
         //BeginPaint(hWnd, &ps);
+#if 0
         if(0)
         {
             // blit backing layer to main layer
@@ -816,7 +990,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
 
             // get image pattern for 1:1 blit
-            NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
+      //      NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
 
             // blit the image
             nvgSave(nvg);
@@ -828,15 +1002,19 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             nvgRestore(nvg);
 
 
-
             // TEMP
             nvgStrokeWidth(nvg, 4);
             nvgStrokeColor(nvg, colors::black);
             nvgBeginPath(nvg);
             for (int i = 0; i < w; i += 100)
             {
-                nvgMoveTo(nvg, i, h);
-                nvgLineTo(nvg, i, h - 100);
+                nvgMoveTo(nvg, i, 0);
+                nvgLineTo(nvg, i, h);
+            }
+            for (int j = 0; j < h; j += 100)
+            {
+                nvgMoveTo(nvg, 0, j);
+                nvgLineTo(nvg, w, j);
             }
             nvgStroke(nvg);
 
@@ -854,9 +1032,9 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             // end main update
             nvgEndFrame(nvg);
         }
-
+#endif 
         // finish platform GL drawing
-        pGraphics->_pImpl->swapBuffers();
+        pImpl->swapBuffers();
 
         // TEMP EndPaint(hWnd, &ps);
 
@@ -869,13 +1047,13 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         SetCapture(hWnd);
 
         GUIEvent e{ "down" };
-        pGraphics->_pImpl->convertEventPositions(wParam, lParam, &e);
-        pGraphics->_pImpl->convertEventFlags(wParam, lParam, &e);
-        pGraphics->_pImpl->_totalDrag = Vec2{ 0, 0 };
+        pImpl->convertEventPositions(wParam, lParam, &e);
+        pImpl->convertEventFlags(wParam, lParam, &e);
+        pImpl->_totalDrag = Vec2{ 0, 0 };
 
-        if (pGraphics->_pImpl->_appView)
+        if (pImpl->_appView)
         {
-            pGraphics->_pImpl->_appView->pushEvent(e);
+            pImpl->_appView->pushEvent(e);
         }
 
         return 0;
@@ -887,15 +1065,15 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         SetCapture(hWnd);
 
         GUIEvent e{ "down" };
-        pGraphics->_pImpl->convertEventPositions(wParam, lParam, &e);
-        pGraphics->_pImpl->convertEventFlags(wParam, lParam, &e);
+        pImpl->convertEventPositions(wParam, lParam, &e);
+        pImpl->convertEventFlags(wParam, lParam, &e);
         e.keyFlags |= controlModifier;
 
-        pGraphics->_pImpl->_totalDrag = Vec2{ 0, 0 };
+        pImpl->_totalDrag = Vec2{ 0, 0 };
 
-        if (pGraphics->_pImpl->_appView)
+        if (pImpl->_appView)
         {
-            pGraphics->_pImpl->_appView->pushEvent(e);
+            pImpl->_appView->pushEvent(e);
         }
 
         return 0;
@@ -906,8 +1084,8 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         if (GetCapture())
         {
             GUIEvent e{ "drag" };
-            pGraphics->_pImpl->convertEventPositions(wParam, lParam, &e);
-            pGraphics->_pImpl->convertEventFlags(wParam, lParam, &e);
+            pImpl->convertEventPositions(wParam, lParam, &e);
+            pImpl->convertEventFlags(wParam, lParam, &e);
 
             bool repositioned{ false };
 
@@ -920,7 +1098,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             GetMonitorInfo(monitor, &info);
             int screenMaxY = info.rcMonitor.bottom - info.rcMonitor.top;
 
-            Vec2 pv = pGraphics->_pImpl->eventPositionOnScreen(lParam);
+            Vec2 pv = pImpl->eventPositionOnScreen(lParam);
             const float kDragMargin{ 50.f };
             Vec2 moveDelta;
 
@@ -940,16 +1118,16 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             {
               // don't send event when repositioning
               Vec2 moveToPos = pv + moveDelta;
-              pGraphics->_pImpl->setMousePosition(moveToPos);
-              pGraphics->_pImpl->_totalDrag -= moveDelta;
+              pImpl->setMousePosition(moveToPos);
+              pImpl->_totalDrag -= moveDelta;
             }
             else
              */
             {
-                //e.position += pGraphics->_pImpl->_totalDrag;
-                if (pGraphics->_pImpl->_appView)
+                //e.position += pImpl->_totalDrag;
+                if (pImpl->_appView)
                 {
-                    pGraphics->_pImpl->_appView->pushEvent(e);
+                    pImpl->_appView->pushEvent(e);
                 }
             }
         }
@@ -961,11 +1139,11 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         ReleaseCapture();
         GUIEvent e{ "up" };
 
-        pGraphics->_pImpl->convertEventPositions(wParam, lParam, &e);
-        pGraphics->_pImpl->convertEventFlags(wParam, lParam, &e);
-        if (pGraphics->_pImpl->_appView)
+        pImpl->convertEventPositions(wParam, lParam, &e);
+        pImpl->convertEventFlags(wParam, lParam, &e);
+        if (pImpl->_appView)
         {
-            pGraphics->_pImpl->_appView->pushEvent(e);
+            pImpl->_appView->pushEvent(e);
         }
 
         return 0;
@@ -976,12 +1154,12 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         ReleaseCapture();
         GUIEvent e{ "up" };
 
-        pGraphics->_pImpl->convertEventPositions(wParam, lParam, &e);
-        pGraphics->_pImpl->convertEventFlags(wParam, lParam, &e);
+        pImpl->convertEventPositions(wParam, lParam, &e);
+        pImpl->convertEventFlags(wParam, lParam, &e);
         e.keyFlags |= controlModifier;
-        if (pGraphics->_pImpl->_appView)
+        if (pImpl->_appView)
         {
-            pGraphics->_pImpl->_appView->pushEvent(e);
+            pImpl->_appView->pushEvent(e);
         }
 
         return 0;
@@ -997,15 +1175,15 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         GUIEvent e{ "scroll" };
 
         // mousewheel messages are sent in screen coordinates!
-        pGraphics->_pImpl->convertEventPositionsFromScreen(wParam, lParam, &e);
-        pGraphics->_pImpl->convertEventFlags(wParam, lParam, &e);
+        pImpl->convertEventPositionsFromScreen(wParam, lParam, &e);
+        pImpl->convertEventFlags(wParam, lParam, &e);
 
         float d = float(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA;
         e.delta = Vec2{ 0, d * kScrollSensitivity };
 
-        if (pGraphics->_pImpl->_appView)
+        if (pImpl->_appView)
         {
-            pGraphics->_pImpl->_appView->pushEvent(e);
+            pImpl->_appView->pushEvent(e);
         }
 
         return 0;
@@ -1071,26 +1249,11 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
         return 0;
     }
-    case WM_SETFOCUS:
-    {
-        return 0;
-    }
-    case WM_KILLFOCUS:
-    {
-        return 0;
-    }
-    case WM_ERASEBKGND:
-    {
-        return 0;
-    }
-    case WM_SETCURSOR:
-    {
-        return 0;
-    }
+
 
     default:
     {
-        std::cout << "unhandled window msg: " << std::hex << msg << " ( " << 0x1f << ") " << std::dec << "\n";
+        //std::cout << "unhandled window msg: " << std::hex << msg << std::dec << "\n";
     }
     }
     return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -1107,65 +1270,17 @@ Vec2 PlatformView::getPrimaryMonitorCenter()
     return Vec2{ x / 2, y / 2 };
 }
 
-Rect PlatformView::getWindowRect(void* parent, int)
-{
-    RECT winRect;
-    HWND parentWindow = static_cast<HWND>(parent);
-    GetWindowRect(parentWindow, &winRect);
-    int x = winRect.left;
-    int y = winRect.top;
-    int x2 = winRect.right;
-    int y2 = winRect.bottom;
-    return ml::Rect(x, y, x2 - x, y2 - y);
-}
 
-PlatformView::PlatformView(void* pParent, AppView* pView, void* platformHandle, int PlatformFlags, int fps)
+PlatformView::PlatformView(const char* className, void* pParent, AppView* pView, void* platformHandle, int PlatformFlags, int fps)
 {
     if (!pParent) return;
 
-    _pImpl = std::make_unique< Impl >();
-    //_pImpl->systemScale_ = getDeviceScaleForWindow(pParent);
-    //_pImpl->_dpiScale = getDpiScaleForWindow(pParent);
-
-   // std::cout << "PlatformView::PlatformView: device% " << _pImpl->systemScale_ << " dpi% " << _pImpl->_dpiScale << " flags: " << PlatformFlags << "\n";
-
-    _pImpl->parentPtr = (HWND)pParent;
-    Rect bounds = getWindowRect(pParent, 0);
-
-    std::cout << "    parent bounds: " << bounds.width() << " x " << bounds.height() << "\n";
-
-    // attach and create GL
-    if (_pImpl->createWindow(_pImpl->parentPtr, this, platformHandle, bounds))
-    {
-        _pImpl->targetFPS_ = fps;
-
-        // create nanovg
-        _pImpl->_nvg = nvgCreateGL3(NVG_ANTIALIAS);
-    }
-
-    // set app view
-    _pImpl->_appView = pView;
+    _pImpl = std::make_unique< Impl >(className, pParent, pView, platformHandle, PlatformFlags, fps);
 }
 
 PlatformView::~PlatformView()
 {
-    if (!_pImpl) return;
 
-    if (_pImpl->_windowHandle)
-    {
-        if (_pImpl->_nvg)
-        {
-            // delete nanovg
-            _pImpl->lockContext();
-            _pImpl->makeContextCurrent();
-            _pImpl->_nvgBackingLayer = nullptr;
-            nvgDeleteGL3(_pImpl->_nvg);
-            _pImpl->_nvg = 0;
-            _pImpl->unlockContext();
-        }
-        // delete GL, window
-        _pImpl->destroyWindow();
-    }
 }
 
 void PlatformView::attachViewToParent(DeviceScaleMode mode)
@@ -1173,10 +1288,10 @@ void PlatformView::attachViewToParent(DeviceScaleMode mode)
     if (!_pImpl) return;
 
     void* pParent = _pImpl->parentPtr;
-    Rect parentFrame = getWindowRect(pParent, 0);
-    _pImpl->dpiScale_ = getDpiScaleForWindow(pParent);
+    Rect parentFrame = getWindowRect(pParent);
+    updateDpiScale();
 
-    _pImpl->setPlatformScaleMode(mode);
+    _pImpl->updatePlatformScaleMode();
 
 
     setPlatformViewSize(parentFrame.width(), parentFrame.height());

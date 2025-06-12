@@ -58,7 +58,6 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
   Vec2 origin (0, 0);
   _GUICoordinates = {gridSizeInPixels, newSize, displayScale, origin};
   
-  
   // set bounds for top-level View in grid coordinates
   Vec4 newGridSize = _GUICoordinates.pixelToGrid(_GUICoordinates.viewSizeInPixels);
   _view->setBounds({0, 0, newGridSize.x(), newGridSize.y()});
@@ -347,14 +346,21 @@ void AppView::render(NativeDrawContext* nvg)
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
 
+
+
   // TEMP
   nvgStrokeWidth(nvg, 4);
   nvgStrokeColor(nvg, colors::blue);
   nvgBeginPath(nvg);
   for (int i = 0; i < w; i += 100)
   {
-      nvgMoveTo(nvg, i, h - 200);
-      nvgLineTo(nvg, i, h - 100);
+      nvgMoveTo(nvg, i, 0);
+      nvgLineTo(nvg, i, h);
+  }
+  for (int j = 0; j < h; j += 100)
+  {
+      nvgMoveTo(nvg, 0, j);
+      nvgLineTo(nvg, w, j);
   }
   nvgStroke(nvg);
 

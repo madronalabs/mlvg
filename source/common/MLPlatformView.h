@@ -44,19 +44,23 @@ public:
   // get default point to put the center of a new window
   static Vec2 getPrimaryMonitorCenter();
   //
+  // 
+  // // TODO cleanup
   // get the scale the OS considers the window's device to be at, compared to "usual" DPI
   // static float getDeviceScaleForWindow(void* parent, int PlatformFlags = 0);
   // static float getDpiScaleForWindow(void* parent, int PlatformFlags = 0);
   //
-  static Rect getWindowRect(void* parent, int PlatformFlags);
+  //static Rect getWindowRect(void* parent, int PlatformFlags);
+
   
   // make a platform view to draw the application to the given parent window.
+  // className: unique name of this app or plugin
   // parent: pointer to the parent window
   // pView: existing appView to draw
   // platformHandle: platform-specific data
   // PlatformFlags: platform-specific flags
   // fps: target refresh rate
-  PlatformView(void* parent, AppView* pView, void* platformHandle, int PlatformFlags, int fps);
+  PlatformView(const char* className, void* parent, AppView* pView, void* platformHandle, int PlatformFlags, int fps);
   
   ~PlatformView();
 
