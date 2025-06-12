@@ -32,6 +32,8 @@ constexpr float kScrollSensitivity{ -1.0f };
 // utils
 Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 
+constexpr bool kGLTestPatternOnly{ true };
+
 
 static Rect getWindowRect(void* parent)
 {
@@ -44,24 +46,6 @@ static Rect getWindowRect(void* parent)
     int y2 = winRect.bottom;
     return ml::Rect(x, y, x2 - x, y2 - y);
 }
-
-
-const char* vertexShader = R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-void main() {
-    gl_Position = vec4(aPos, 1.0);
-}
-)";
-
-const char* fragmentShader = R"(
-#version 330 core
-out vec4 FragColor;
-void main() {
-    FragColor = vec4(1.0, 0.5, 0.2, 1.0);
-}
-)";
-
 
 
 // PlatformView
@@ -88,8 +72,6 @@ struct PlatformView::Impl
     CRITICAL_SECTION _drawLock{ nullptr };
 
     // inputs to scale logic
-    double systemScale_{ 1. };
-    double newSystemScale_{ 1. };
     double dpiScale_{ 1. };
     double newDpiScale_{ 1. };
     Vec2 systemSize_{ 0, 0 };
@@ -115,7 +97,6 @@ struct PlatformView::Impl
     ~Impl() noexcept;
 
     void updatePlatformScaleMode();
-    void setPlatformViewScale(float scale);
 
 
     void convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* e);
@@ -142,118 +123,13 @@ struct PlatformView::Impl
     void updateDpiScale();
     void resizeIfNeeded();
 
-    // TEMP
+    void paintTestPattern(HWND hWnd);
+    void paintView(HWND hWnd);
+
     GLuint shaderTestProgram_;
 };
 
 // static utilities
-
-// TEMP
-
-float GetDisplayScalePercentage(HWND hwnd = NULL)
-{
-    // Initialize COM if needed (call once in your app)
-    // CoInitialize(NULL);
-
-    HMONITOR hMonitor;
-
-    if (hwnd != NULL)
-    {
-        // Get the monitor where the specified window is displayed
-        hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-    }
-    else
-    {
-        // Get the primary monitor if no window is specified
-        hMonitor = MonitorFromPoint({ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
-    }
-
-    // Get the scale factor for this monitor
-    DEVICE_SCALE_FACTOR scaleFactor;
-    if (SUCCEEDED(GetScaleFactorForMonitor(hMonitor, &scaleFactor)))
-    {
-        switch (scaleFactor)
-        {
-        case SCALE_100_PERCENT: return 1.00f; // 100%
-        case SCALE_125_PERCENT: return 1.25f; // 125%
-        case SCALE_150_PERCENT: return 1.50f; // 150%
-        case SCALE_175_PERCENT: return 1.75f; // 175%
-        case SCALE_200_PERCENT: return 2.00f; // 200%
-        case SCALE_225_PERCENT: return 2.25f; // 225%
-        case SCALE_250_PERCENT: return 2.50f; // 250%
-        case SCALE_300_PERCENT: return 3.00f; // 300%
-        case SCALE_350_PERCENT: return 3.50f; // 350%
-        case SCALE_400_PERCENT: return 4.00f; // 400%
-        case SCALE_450_PERCENT: return 4.50f; // 450%
-        case SCALE_500_PERCENT: return 5.00f; // 500%
-        default: return 1.00f; // Default to 100% if unknown
-        }
-    }
-
-    // Fallback method using DPI if the above fails
-    UINT dpiX, dpiY;
-    if (SUCCEEDED(GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY)))
-    {
-        return (float)dpiX / 96.0f; // 96 DPI is the default (100%)
-    }
-
-    // Second fallback using the system DPI
-    HDC hdc = GetDC(NULL);
-    if (hdc)
-    {
-        int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
-        ReleaseDC(NULL, hdc);
-        return (float)dpi / 96.0f;
-    }
-
-    return 1.0f; // Default to 100% if all methods fail
-}
-
-// TEMP
-
-// Get the client area size in physical pixels
-SIZE GetClientAreaPhysicalPixelSize(HWND hwnd)
-{
-    SIZE size = { 0, 0 };
-
-    if (!hwnd || !IsWindow(hwnd))
-        return size;
-
-    // Get the client rect
-    RECT clientRect;
-    if (!GetClientRect(hwnd, &clientRect))
-        return size;
-
-    // Convert to screen coordinates (physical pixels)
-    POINT topLeft = { clientRect.left, clientRect.top };
-    POINT bottomRight = { clientRect.right, clientRect.bottom };
-
-    ClientToScreen(hwnd, &topLeft);
-    ClientToScreen(hwnd, &bottomRight);
-
-    // Calculate width and height
-    size.cx = bottomRight.x - topLeft.x;
-    size.cy = bottomRight.y - topLeft.y;
-
-    return size;
-}
-
-
-
-static BOOL findMainMonitor(HMONITOR monitor, HDC dc, LPRECT rect, LPARAM out)
-{
-    MONITORINFO info = {};
-
-    info.cbSize = sizeof(info);
-    GetMonitorInfo(monitor, &info);
-
-    if (info.dwFlags & MONITORINFOF_PRIMARY) {
-        *((HMONITOR*)out) = monitor;
-        return FALSE;
-    }
-
-    return TRUE;
-}
 
 
 static float getMonitorScaleFromWindow(HWND hwnd)
@@ -318,21 +194,6 @@ static float getMonitorScaleFromWindow(HWND hwnd)
 }
 
 
-static double getDeviceScaleForWindow(void* parent)
-{
-    HWND parentWindow = static_cast<HWND>(parent);
-    HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
-
-    DEVICE_SCALE_FACTOR sf;
-    GetScaleFactorForMonitor(hMonitor, &sf);
-
-    // TEMP
-    std::cout << "scale factor (unset): " << sf << "\n";
-
-    float scaleRatio = sf / 100.f;
-    return scaleRatio;
-}
-
 static double getDpiScaleForWindow(void* parent)
 {
     DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
@@ -359,15 +220,7 @@ static double getDpiScaleForWindow(void* parent)
     HWND parentWindow = static_cast<HWND>(parent);
     HMONITOR monitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
 
-    // TEMP
-    DEVICE_SCALE_FACTOR sf;
-    GetScaleFactorForMonitor(monitor, &sf);
-    std::cout << "SCALE FACTOR: " << sf << "\n";
-
-    float scaleRatio = sf / 100.f;
-
     float monitorDpi{ 96.f };
-
     if (GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y) == S_OK)
     {
         std::cout << "monitor DPI: " << dpi_x << "\n";
@@ -389,7 +242,6 @@ static GLuint compileShader(const char* source, GLenum type) {
     return shader;
 }
 
-
 void PlatformView::Impl::updatePlatformScaleMode()
 {
     HWND parentWindow = static_cast<HWND>(_windowHandle);
@@ -409,8 +261,6 @@ void PlatformView::Impl::updatePlatformScaleMode()
     {
         platformScaleMode_ = kUseSystemCoords;
     }
-
-
 }
 
 
@@ -429,21 +279,11 @@ PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppVi
     _appView = pView;
     targetFPS_ = fps;
 
-// TEMP    _nvg = nvgCreateGL3(NVG_ANTIALIAS);
 }
 
 PlatformView::Impl::~Impl() noexcept
 {
-    if (_nvg)
-    {
-        // delete nanovg
-        lockContext();
-        makeContextCurrent();
-        _nvgBackingLayer = nullptr;
-        nvgDeleteGL3(_nvg);
-        _nvg = NULL;
-        unlockContext();
-    }
+
     if (_windowHandle)
     {
         destroyWindow();
@@ -460,7 +300,6 @@ void PlatformView::Impl::initWindowClass(const char* className)
     if (instanceCount == 1)
     {
         WNDCLASS windowClass = {};
-       // windowClass.style = CS_OWNDC; 
         windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 
         windowClass.lpfnWndProc = appWindowProc;
@@ -510,9 +349,7 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, m
         // set mode and device scale
         // // TEMP
      //   updatePlatformScaleMode();
-     
-        
-        // TEMP setPlatformViewScale(getDeviceScaleForWindow(_windowHandle)); // needed?
+
 
         SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
 
@@ -536,6 +373,8 @@ void PlatformView::Impl::destroyWindow()
         // needed?             if (wglGetCurrentContext() == _openGLContext)
         wglMakeCurrent(NULL, NULL);
 
+   
+
         wglDeleteContext(_openGLContext);
         _openGLContext = NULL;
     }
@@ -551,8 +390,6 @@ void PlatformView::Impl::destroyWindow()
     }
 
 }
-
-// https://building.enlyze.com/posts/writing-win32-apps-like-its-2020-part-3/ // TEMP
 
 bool PlatformView::Impl::setPixelFormat(HDC dc)
 {
@@ -579,30 +416,51 @@ bool PlatformView::Impl::setPixelFormat(HDC dc)
 
 void PlatformView::Impl::createGLResources()
 {
-
-    // -------------------------------------
-    // TEST
-
-
-    // Create and compile shaders
-    GLuint vs = compileShader(vertexShader, GL_VERTEX_SHADER);
-    GLuint fs = compileShader(fragmentShader, GL_FRAGMENT_SHADER);
-
-    // Create shader program
-    shaderTestProgram_ = glCreateProgram();
-    glAttachShader(shaderTestProgram_, vs);
-    glAttachShader(shaderTestProgram_, fs);
-    glLinkProgram(shaderTestProgram_);
-
+    if (kGLTestPatternOnly)
+    {
+        const char* vertexShader = R"(
+layout (location = 0) in vec3 aPos;
+void main() {
+    gl_Position = vec4(aPos, 1.0);
 }
+)";
 
+        const char* fragmentShader = R"(
+out vec4 FragColor;
+void main() {
+    FragColor = vec4(0.0, 0.875, 0.0, 1.0);
+}
+)";
+
+        // Create and compile shaders
+        GLuint vs = compileShader(vertexShader, GL_VERTEX_SHADER);
+        GLuint fs = compileShader(fragmentShader, GL_FRAGMENT_SHADER);
+
+        // Create shader program
+        shaderTestProgram_ = glCreateProgram();
+        glAttachShader(shaderTestProgram_, vs);
+        glAttachShader(shaderTestProgram_, fs);
+        glLinkProgram(shaderTestProgram_);
+    }
+    else
+    {
+        _nvg = nvgCreateGL3(NVG_ANTIALIAS);
+    }
+}
 
 void PlatformView::Impl::destroyGLResources()
 {
-
-
+    if (_nvg)
+    {
+        // delete nanovg
+        lockContext();
+        makeContextCurrent();
+        _nvgBackingLayer = nullptr;
+        nvgDeleteGL3(_nvg);
+        _nvg = NULL;
+        unlockContext();
+    }
 }
-
 
 bool PlatformView::Impl::makeContextCurrent()
 {
@@ -638,11 +496,7 @@ void PlatformView::Impl::updateDpiScale()
 void PlatformView::Impl::resizeIfNeeded()
 {
     bool needsResize{ false };
-    if (newSystemScale_ != systemScale_)
-    {
-        systemScale_ = newSystemScale_;
-        needsResize = true;
-    }
+
     if (newSystemSize_ != systemSize_)
     {
         systemSize_ = newSystemSize_;
@@ -660,8 +514,8 @@ void PlatformView::Impl::resizeIfNeeded()
         switch (platformScaleMode_)
         {
         case kUseSystemCoords: // non-dpi-aware plugins
-            backingScale = 1.0f;// dpiScale_;
-            eventScale_ = 1.0f;//dpiScale_;
+            backingScale = 1.0f;
+            eventScale_ = 1.0f;
             break;
         case kUseDeviceCoords: // dpi-aware plugin, app
             backingScale = 1.0f;
@@ -673,24 +527,19 @@ void PlatformView::Impl::resizeIfNeeded()
             break;
         }
 
-        // TEMP
-        backingScale = 1.0f; 
-        //eventScale_ = 1.0f;
-
-        backingLayerSize_ = systemSize_ * backingScale; // TEMP
+        backingLayerSize_ = systemSize_ * backingScale; 
 
         std::cout << "resizeIfNeeded: system size: " << systemSize_ << ", backing: " << backingScale << ", events: " << eventScale_ << "\n";
         std::cout << "                backing size: " << backingLayerSize_ << "\n";
+
         // resize window, GL, nanovg  
         if (_windowHandle)
         {
-
-
             long flags = SWP_NOZORDER | SWP_NOMOVE;
             // flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
             lockContext();
             makeContextCurrent();
-            SetWindowPos(_windowHandle, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags); // systemSize_ here put picture in lower laft 150% too small
+            SetWindowPos(_windowHandle, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags);
 
             ReleaseDC(_windowHandle, _deviceContext);
             _deviceContext = GetDC(_windowHandle);
@@ -698,7 +547,10 @@ void PlatformView::Impl::resizeIfNeeded()
             // TEST
             if (_openGLContext)
             {
+
                 wglMakeCurrent(NULL, NULL);
+                destroyGLResources();
+
                 wglDeleteContext(_openGLContext);
                 _openGLContext = NULL;
             }
@@ -708,20 +560,14 @@ void PlatformView::Impl::resizeIfNeeded()
                 _openGLContext = wglCreateContext(_deviceContext);
                 makeContextCurrent();
 
-
                 gladLoadGL();
-
                 createGLResources();
-
             }
 
             GLint viewport[4];
             glGetIntegerv(GL_VIEWPORT, viewport);
 
-
             printf("Viewport: %dx%d at (%d,%d)\n", viewport[2], viewport[3], viewport[0], viewport[1]);
-
-
 
             // resize main backing layer
             if (_nvg)
@@ -746,12 +592,6 @@ void PlatformView::Impl::swapBuffers()
         wglMakeCurrent(_deviceContext, nullptr);
         SwapBuffers(_deviceContext);
     }
-}
-
-void PlatformView::Impl::setPlatformViewScale(float scale)
-{
-    std::cout << "setPlatformViewScale: " << scale << "\n";
-    newSystemScale_ = scale;
 }
 
 static Vec2 pointToVec2(POINT p)
@@ -808,6 +648,113 @@ void PlatformView::Impl::convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEven
 void PlatformView::Impl::setMousePosition(Vec2 newPos)
 {
     SetCursorPos(newPos.x(), newPos.y());
+}
+
+void PlatformView::Impl::paintTestPattern(HWND hWnd)
+{
+    size_t w = backingLayerSize_.x();
+    size_t h = backingLayerSize_.y();
+
+    glViewport(0, 0, w, h);
+
+    glClearColor(0.f, 0.125f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    float vertices[] = {
+        // Positions (x, y, z)
+        0.0f,  0.5f, 0.0f,  // Top vertex
+       -0.5f, -0.5f, 0.0f,  // Bottom-left vertex
+        0.5f, -0.5f, 0.0f   // Bottom-right vertex
+    };
+
+    // 2. Create and bind a Vertex Array Object (VAO)
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    // 3. Create and bind a Vertex Buffer Object (VBO)
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // 4. Define the vertex attribute pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // 5. Unbind the VAO and VBO (optional for safety)
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // 6. Render the triangle in your render loop
+    glUseProgram(shaderTestProgram_); // Use your shader program
+    glBindVertexArray(VAO);      // Bind the VAO
+    glDrawArrays(GL_TRIANGLES, 0, 3); // Draw the triangle
+    glBindVertexArray(0);        // Unbind the VAO
+}
+
+void PlatformView::Impl::paintView(HWND hWnd)
+{
+    NVGcontext* nvg = _nvg;
+    size_t w = backingLayerSize_.x();
+    size_t h = backingLayerSize_.y();
+
+    // blit backing layer to main layer
+    drawToImage(nullptr);
+
+    // clear
+    glViewport(0, 0, w, h);
+
+    // TEMP
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // TEMP
+    nvgBeginFrame(nvg, w, h, 1.0f);
+
+    // get image pattern for 1:1 blit
+    auto pBackingLayer = *_nvgBackingLayer;
+    NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, _nvgBackingLayer->_buf->image, 1.0f);
+
+      // blit the image
+    nvgSave(nvg);
+    nvgResetTransform(nvg);
+    nvgBeginPath(nvg);
+    nvgRect(nvg, 0, 0, w, h);
+    nvgFillPaint(nvg, img);
+    nvgFill(nvg);
+    nvgRestore(nvg);
+
+    // TEMP
+    nvgStrokeWidth(nvg, 4);
+    nvgStrokeColor(nvg, colors::black);
+    nvgBeginPath(nvg);
+    for (int i = 0; i < w; i += 100)
+    {
+        nvgMoveTo(nvg, i, 0);
+        nvgLineTo(nvg, i, h);
+    }
+    for (int j = 0; j < h; j += 100)
+    {
+        nvgMoveTo(nvg, 0, j);
+        nvgLineTo(nvg, w, j);
+    }
+    nvgStroke(nvg);
+
+    // draw X
+
+    nvgStrokeWidth(nvg, 2);
+    nvgStrokeColor(nvg, colors::red);
+    nvgBeginPath(nvg);
+    nvgMoveTo(nvg, 0, 0);
+    nvgLineTo(nvg, w, h);
+    nvgMoveTo(nvg, w, 0);
+    nvgLineTo(nvg, 0, h);
+    nvgStroke(nvg);
+
+    // end main update
+    nvgEndFrame(nvg);
+    
 }
 
 // static
@@ -876,167 +823,22 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     }
     case WM_PAINT:
     {
-        PAINTSTRUCT ps;
-
-
-
         pImpl->resizeIfNeeded();
-        //  if ((!nvg) || (!pView)) return 0;
-
-
-        // TEMP - draw direct to window no backing
+        PAINTSTRUCT ps;
         BeginPaint(hWnd, &ps);
-
-
-     //   //    pView->animate(nvg);
         if (!pImpl->makeContextCurrent()) return 0;
 
-        // draw
-//        if (!pImpl->_nvgBackingLayer) return 0;
-  //      auto pBackingLayer = pImpl->_nvgBackingLayer.get();
-    //    if (!pBackingLayer) return 0;
-
-        size_t w = pImpl->backingLayerSize_.x(); // pBackingLayer->width;
-        size_t h = pImpl->backingLayerSize_.y(); // pBackingLayer->height;
-
-        // draw the AppView to the backing Layer. The backing layer is our persistent
-        // buffer, so don't clear it.
+        if (kGLTestPatternOnly)
         {
-            // TEMP
-            //drawToImage(pBackingLayer);
-            // 
-          //  drawToImage(nullptr);
-            glViewport(0, 0, w, h);
-
-
-
-            glClearColor(0.f, 0.f, 1.f, 1.f); // TEMP
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-            float vertices[] = {
-                // Positions (x, y, z)
-                0.0f,  0.5f, 0.0f,  // Top vertex
-               -0.5f, -0.5f, 0.0f,  // Bottom-left vertex
-                0.5f, -0.5f, 0.0f   // Bottom-right vertex
-            };
-
-            // 2. Create and bind a Vertex Array Object (VAO)
-            unsigned int VAO;
-            glGenVertexArrays(1, &VAO);
-            glBindVertexArray(VAO);
-
-            // 3. Create and bind a Vertex Buffer Object (VBO)
-            unsigned int VBO;
-            glGenBuffers(1, &VBO);
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-            // 4. Define the vertex attribute pointers
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-            glEnableVertexAttribArray(0);
-
-            // 5. Unbind the VAO and VBO (optional for safety)
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
-
-            // 6. Render the triangle in your render loop
-            glUseProgram(pImpl->shaderTestProgram_); // Use your shader program
-            glBindVertexArray(VAO);      // Bind the VAO
-            glDrawArrays(GL_TRIANGLES, 0, 3); // Draw the triangle
-            glBindVertexArray(0);        // Unbind the VAO
-
-            /*
-            nvgBeginFrame(nvg, w, h, 1.0f);
-
-            // TEMP
-            // draw X
-            nvgStrokeWidth(nvg, 4);
-            nvgStrokeColor(nvg, colors::green);
-            nvgBeginPath(nvg);
-            nvgMoveTo(nvg, 0, 0);
-            nvgLineTo(nvg, w, h);
-            nvgMoveTo(nvg, w, 0);
-            nvgLineTo(nvg, 0, h);
-            nvgStroke(nvg);
-
-            nvgEndFrame(nvg);
-
-            */
-
-            // TEMP
-           // pView->setDirty(true);
-          //  pView->render(nvg);
-
-            // TEMP
-            EndPaint(hWnd, &ps);
+            pImpl->paintTestPattern(hWnd);
+        }
+        else
+        {
+            pImpl->paintView(hWnd);
         }
 
-        //BeginPaint(hWnd, &ps);
-#if 0
-        if(0)
-        {
-            // blit backing layer to main layer
-            drawToImage(nullptr);
-
-            // clear
-            glViewport(0, 0, w, h);
-
-            // TEMP
-            glClearColor(0.f, 0.f, 0.f, 1.f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-            // TEMP
-            nvgBeginFrame(nvg, w, h, 1.0f);
-
-
-            // get image pattern for 1:1 blit
-      //      NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
-
-            // blit the image
-            nvgSave(nvg);
-            nvgResetTransform(nvg);
-            nvgBeginPath(nvg);
-            nvgRect(nvg, 0, 0, w, h);
-            nvgFillPaint(nvg, img);
-            nvgFill(nvg);
-            nvgRestore(nvg);
-
-
-            // TEMP
-            nvgStrokeWidth(nvg, 4);
-            nvgStrokeColor(nvg, colors::black);
-            nvgBeginPath(nvg);
-            for (int i = 0; i < w; i += 100)
-            {
-                nvgMoveTo(nvg, i, 0);
-                nvgLineTo(nvg, i, h);
-            }
-            for (int j = 0; j < h; j += 100)
-            {
-                nvgMoveTo(nvg, 0, j);
-                nvgLineTo(nvg, w, j);
-            }
-            nvgStroke(nvg);
-
-            // draw X
-
-            nvgStrokeWidth(nvg, 2);
-            nvgStrokeColor(nvg, colors::red);
-            nvgBeginPath(nvg);
-            nvgMoveTo(nvg, 0, 0);
-            nvgLineTo(nvg, w, h);
-            nvgMoveTo(nvg, w, 0);
-            nvgLineTo(nvg, 0, h);
-            nvgStroke(nvg);
-
-            // end main update
-            nvgEndFrame(nvg);
-        }
-#endif 
-        // finish platform GL drawing
         pImpl->swapBuffers();
-
-        // TEMP EndPaint(hWnd, &ps);
+        EndPaint(hWnd, &ps);
 
         return 0;
     }
@@ -1292,7 +1094,6 @@ void PlatformView::attachViewToParent(DeviceScaleMode mode)
     updateDpiScale();
 
     _pImpl->updatePlatformScaleMode();
-
 
     setPlatformViewSize(parentFrame.width(), parentFrame.height());
 }
