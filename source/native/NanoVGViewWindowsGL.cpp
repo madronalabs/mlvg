@@ -816,41 +816,6 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
 LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-
-    /*
-    if (msg == WM_CREATE)
-    {
-
-
-
-        // targetFPS_needs to be a little higher than actual preferred rate
-        // because of window sync
-        float fFps = 60; // NOT WORKING NULLPTR pImpl->targetFPS_;
-        int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f)));
-        UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
-        SetFocus(hWnd);
-        DragAcceptFiles(hWnd, true);
-        return 0;
-
-
-
-
-    }
-    if (msg == WM_DESTROY)
-    {
-        // SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)NULL);
-        return 0;
-    }
-
-    if ((!pImpl) || (hWnd != pImpl->_windowHandle))
-    {
-        return DefWindowProc(hWnd, msg, wParam, lParam);
-    }
-
-    NVGcontext* nvg = pImpl->_nvg;
-    ml::AppView* pView = pImpl->_appView;
-
-    */
     switch (msg)
     {
 
