@@ -33,7 +33,7 @@ constexpr float kScrollSensitivity{ -1.0f };
 Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 
 // added a GL test pattern mode for diagnosing window/DPI issues
-constexpr bool kGLTestPatternOnly{ false };
+constexpr bool kGLTestPatternOnly{ true };
 
 
 static Rect getWindowRect(void* parent)
@@ -61,13 +61,17 @@ struct PlatformView::Impl
 {
     static LRESULT CALLBACK appWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-    NVGcontext* _nvg{ nullptr };
-    ml::AppView* _appView{ nullptr };
-    std::unique_ptr< DrawableImage > _nvgBackingLayer;
 
     HWND _windowHandle{ nullptr };
     HDC _deviceContext{ nullptr };
     HGLRC _openGLContext{ nullptr };
+
+
+    NVGcontext* _nvg{ nullptr };
+    ml::AppView* _appView{ nullptr };
+    std::unique_ptr< DrawableImage > _nvgBackingLayer;
+
+
     UINT_PTR _timerID{ 0 };
 
     CRITICAL_SECTION _drawLock{ nullptr };
@@ -97,6 +101,52 @@ struct PlatformView::Impl
     Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps);
     ~Impl() noexcept;
 
+    LRESULT handleMessage(UINT message, WPARAM wparam, LPARAM lparam);
+
+
+    static void createWindowClass(const char* className)
+    {
+        instanceCount++;
+        if (instanceCount == 1)
+        {
+            WNDCLASS windowClass = {};
+            windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+
+            windowClass.lpfnWndProc = appWindowProc;
+            windowClass.cbClsExtra = 0;
+            windowClass.cbWndExtra = 0;
+            windowClass.hInstance = HINST_THISCOMPONENT;
+            windowClass.hIcon = nullptr;
+            windowClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
+            windowClass.lpszMenuName = nullptr;
+            windowClass.lpszClassName = className;
+            //   windowClass.hbrBackground = NULL;
+
+            RegisterClass(&windowClass);
+        }
+    }
+
+    static void destroyWindowClass(const char* className)
+    {
+        instanceCount--;
+        if (instanceCount == 0)
+        {
+            UnregisterClass(className, HINST_THISCOMPONENT);
+        }
+    }
+
+    bool createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds);
+    void destroyWindow();
+
+    bool createOpenGLContext(HWND hwnd);
+    void destroyOpenGLContext(HWND hwnd);
+
+    bool createGLResources();
+    void destroyGLResources();
+
+
+    // ----
+
     void updatePlatformScaleMode();
 
 
@@ -106,16 +156,12 @@ struct PlatformView::Impl
     void convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEvent* e);
     void setMousePosition(Vec2 newPos);
 
-    static void initWindowClass(const char* className);
-    static void destroyWindowClass(const char* className);
 
-    void createGLResources();
-    void destroyGLResources();
 
-    bool setPixelFormat(HDC __deviceContext);
 
-    bool createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds);
-    void destroyWindow();
+    //bool setPixelFormat(HDC __deviceContext);
+
+
 
     bool makeContextCurrent();
     bool lockContext();
@@ -245,8 +291,7 @@ static GLuint compileShader(const char* source, GLenum type) {
 
 void PlatformView::Impl::updatePlatformScaleMode()
 {
-    HWND parentWindow = static_cast<HWND>(_windowHandle);
-    HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
+    HMONITOR hMonitor = MonitorFromWindow(_windowHandle, MONITOR_DEFAULTTONEAREST);
 
     DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
     DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
@@ -269,8 +314,10 @@ void PlatformView::Impl::updatePlatformScaleMode()
 
 PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps)
 {
+    // store window class name for CreateWindowEx()
     windowClassName_ = TextFragment(windowClassName);
-    initWindowClass(windowClassName_.getText());
+
+    PlatformView::Impl::createWindowClass(windowClassName);
     InitializeCriticalSection(&_drawLock);
 
     parentPtr = (HWND)pParentWindow;
@@ -279,115 +326,90 @@ PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppVi
     createWindow(parentPtr, platformHandle, bounds);
     _appView = pView;
     targetFPS_ = fps;
-
 }
 
 PlatformView::Impl::~Impl() noexcept
 {
-
-    if (_windowHandle)
-    {
-        destroyWindow();
-    }
+    destroyWindow();
 
     DeleteCriticalSection(&_drawLock);
-    destroyWindowClass(windowClassName_.getText());
+    PlatformView::Impl::destroyWindowClass(windowClassName_.getText());
 }
 
-// static
-void PlatformView::Impl::initWindowClass(const char* className)
-{
-    instanceCount++;
-    if (instanceCount == 1)
-    {
-        WNDCLASS windowClass = {};
-        windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-
-        windowClass.lpfnWndProc = appWindowProc;
-        windowClass.cbClsExtra = 0;
-        windowClass.cbWndExtra = 0;
-        windowClass.hInstance = HINST_THISCOMPONENT;
-        windowClass.hIcon = nullptr;
-        windowClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-        windowClass.lpszMenuName = nullptr;
-        windowClass.lpszClassName = className;
-     //   windowClass.hbrBackground = NULL;
-
-        RegisterClass(&windowClass);
-    }
-}
-
-// static
-void PlatformView::Impl::destroyWindowClass(const char* className)
-{
-    instanceCount--;
-    if (instanceCount == 0)
-    {
-        UnregisterClass(className, HINST_THISCOMPONENT);
-    }
-}
 
 bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds)
 {
-    if (_windowHandle)
-        return false;
-
-    float dpiScale = 1.00f;
-
-    int w = bounds.width() * dpiScale;
-    int h = bounds.height() * dpiScale;
+    int w = bounds.width();
+    int h = bounds.height();
 
     auto hInst = static_cast<HINSTANCE>(platformHandle);
 
-    // create child window of the parent we are passed
+    // create child window of the parent we are passed.
+    // calls windowProc with WM_CREATE msg
     _windowHandle = CreateWindowEx(0, windowClassName_.getText(), TEXT("MLVG"),
         WS_CHILD | WS_VISIBLE,
         0, 0, w, h,
         parentWindow, nullptr, hInst, nullptr); 
-
+  
     if (_windowHandle)
     {
         SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
-
+        newSystemSize_ = Vec2(w, h);
+        newDpiScale_ = getDpiScaleForWindow(_windowHandle);
+    }
+    /*
         _deviceContext = GetDC(_windowHandle);
 
         // setting these sizes will cause resize in resizeIfNeeded()
         newSystemSize_ = Vec2(w, h);
         newDpiScale_ = getDpiScaleForWindow(parentWindow);
     }
-    return false;
+    */
+    // Get device context
+    _deviceContext = GetDC(_windowHandle);
+    if (!_deviceContext) {
+        printf("GetDC failed\n");
+        return false;
+    }
+
+
+    // Create OpenGL context
+    if (!createOpenGLContext(_windowHandle)) {
+        printf("Failed to create OpenGL context\n");
+        return -1;
+    }
+
+
+    // setting these sizes will cause resize in resizeIfNeeded()
+    newSystemSize_ = Vec2(w, h);
+    newDpiScale_ = getDpiScaleForWindow(parentWindow);
+
+    return true;
 }
 
 // destroy our child window.
 void PlatformView::Impl::destroyWindow()
 {
-    if (_openGLContext)
+    destroyOpenGLContext(_windowHandle);
+
+    if (_deviceContext)
     {
-        // needed?             if (wglGetCurrentContext() == _openGLContext)
-        wglMakeCurrent(NULL, NULL);
-
-   
-
-        wglDeleteContext(_openGLContext);
-        _openGLContext = NULL;
+        ReleaseDC(_windowHandle, _deviceContext);
+        _deviceContext = nullptr;
     }
-
     if (_windowHandle)
     {
-
-        ReleaseDC(_windowHandle, _deviceContext);
-
         SetWindowLongPtr(_windowHandle, GWLP_USERDATA, (LONG_PTR)NULL);
         DestroyWindow(_windowHandle);
         _windowHandle = nullptr;
     }
-
 }
 
-bool PlatformView::Impl::setPixelFormat(HDC dc)
+
+bool PlatformView::Impl::createOpenGLContext(HWND hwnd) 
 {
-    bool status = false;
-    if (dc)
+
+    // Setup pixel format
     {
         PIXELFORMATDESCRIPTOR pfd = {};
 
@@ -399,16 +421,47 @@ bool PlatformView::Impl::setPixelFormat(HDC dc)
         pfd.cDepthBits = 24;
 
         // get the device context's best, available pixel format match  
-        auto format = ChoosePixelFormat(dc, &pfd);
+        auto format = ChoosePixelFormat(_deviceContext, &pfd);
 
         // make that match the device context's current pixel format  
-        status = SetPixelFormat(dc, format, &pfd);
+        if(!SetPixelFormat(_deviceContext, format, &pfd)) return false;
     }
-    return status;
+
+    // Create OpenGL context
+    _openGLContext = wglCreateContext(_deviceContext);
+    if (!_openGLContext) 
+    {
+        printf("wglCreateContext failed: %d\n", GetLastError());
+        return false;
+    }
+
+    // Make context current
+    if (!wglMakeCurrent(_deviceContext, _openGLContext)) 
+    {
+        printf("wglMakeCurrent failed: %d\n", GetLastError());
+        return false;
+    }
+
+   // printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+   // printf("OpenGL Renderer: %s\n", glGetString(GL_RENDERER));
+
+    gladLoadGL();
+
+    return true;
 }
 
-void PlatformView::Impl::createGLResources()
+void PlatformView::Impl::destroyOpenGLContext(HWND hwnd)
 {
+    if (!_openGLContext) return;
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(_openGLContext);
+    _openGLContext = NULL;
+}
+
+
+bool PlatformView::Impl::createGLResources()
+{
+    bool result{ true };
     if (kGLTestPatternOnly)
     {
         const char* vertexShader = R"(
@@ -438,7 +491,9 @@ void main() {
     else
     {
         _nvg = nvgCreateGL3(NVG_ANTIALIAS);
+        if (!_nvg) result = false;
     }
+    return result;
 }
 
 void PlatformView::Impl::destroyGLResources()
@@ -538,27 +593,7 @@ void PlatformView::Impl::resizeIfNeeded()
             makeContextCurrent();
             SetWindowPos(_windowHandle, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags);
 
-            ReleaseDC(_windowHandle, _deviceContext);
-            _deviceContext = GetDC(_windowHandle);
 
-            // TEST
-            if (_openGLContext)
-            {
-                wglMakeCurrent(NULL, NULL);
-                destroyGLResources();
-
-                wglDeleteContext(_openGLContext);
-                _openGLContext = NULL;
-            }
-
-            if (setPixelFormat(_deviceContext))
-            {
-                _openGLContext = wglCreateContext(_deviceContext);
-                makeContextCurrent();
-
-                gladLoadGL();
-                createGLResources();
-            }
 
             GLint viewport[4];
             glGetIntegerv(GL_VIEWPORT, viewport);
@@ -750,16 +785,44 @@ void PlatformView::Impl::paintView(HWND hWnd)
 
     // end main update
     nvgEndFrame(nvg);
-    
 }
 
-// static
+// static fn, callable when there is no impl yet
 LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    LRESULT result{ 0 };
     PlatformView::Impl* pImpl = (PlatformView::Impl*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
+    switch (msg) {
+    case WM_CREATE:
+        PostMessage(hWnd, WM_SHOWWINDOW, 0, 0);
+  
+    default:
+        if (pImpl) 
+        {
+            result = pImpl->handleMessage(msg, wParam, lParam);
+
+           // if (self->need_reconfigure)
+           //     rtb_window_reinit(RTB_WINDOW(self));
+        }
+        else
+        {
+            result = DefWindowProcW(hWnd, msg, wParam, lParam);
+        }
+    }
+    return result;
+}
+
+
+LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam)
+{
+
+    /*
     if (msg == WM_CREATE)
     {
+
+
+
         // targetFPS_needs to be a little higher than actual preferred rate
         // because of window sync
         float fFps = 60; // NOT WORKING NULLPTR pImpl->targetFPS_;
@@ -768,6 +831,10 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         SetFocus(hWnd);
         DragAcceptFiles(hWnd, true);
         return 0;
+
+
+
+
     }
     if (msg == WM_DESTROY)
     {
@@ -783,14 +850,45 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     NVGcontext* nvg = pImpl->_nvg;
     ml::AppView* pView = pImpl->_appView;
 
+    */
     switch (msg)
     {
+
+    case WM_CREATE:
+    case WM_SHOWWINDOW:
+    case WM_SIZE:
+    {
+
+
+        if (!createGLResources ()) {
+            printf("Failed to initialize OpenGL\n");
+            return -1;
+        }
+
+        printf("OpenGL initialized successfully\n");
+
+        // targetFPS_needs to be a little higher than actual preferred rate
+        // because of window sync
+        float fFps = 60; // NOT WORKING NULLPTR targetFPS_;
+        int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f)));
+        UINT_PTR  err = SetTimer(_windowHandle, kTimerID, mSec, NULL);
+        SetFocus(_windowHandle);
+        DragAcceptFiles(_windowHandle, true);
+        return 0;
+
+    }
+    case WM_DESTROY:
+    {
+        destroyGLResources();
+
+        break;
+    }
     case WM_TIMER:
     {
         if (wParam == kTimerID)
         {
             // we invalidate the entire window and do our own update region handling.
-            InvalidateRect(hWnd, NULL, true);
+            InvalidateRect(_windowHandle, NULL, true);
         }
         return 0;
     }
@@ -807,10 +905,10 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     {
         UINT dpi = HIWORD(wParam);
         std::cout << "DPI CHANGED: " << dpi << "\n";
-        pImpl->updateDpiScale();
+        updateDpiScale();
 
         // Force repaint
-        InvalidateRect(hWnd, NULL, TRUE);
+        InvalidateRect(_windowHandle, NULL, TRUE);
         return 0;
     }*/
     case WM_ERASEBKGND:
@@ -819,39 +917,39 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     }
     case WM_PAINT:
     {
-        pImpl->resizeIfNeeded();
+        resizeIfNeeded();
         PAINTSTRUCT ps;
-        BeginPaint(hWnd, &ps);
-        if (!pImpl->makeContextCurrent()) return 0;
+        BeginPaint(_windowHandle, &ps);
+        if (!makeContextCurrent()) return 0;
 
         if (kGLTestPatternOnly)
         {
-            pImpl->paintTestPattern(hWnd);
+            paintTestPattern(_windowHandle);
         }
         else
         {
-            pImpl->paintView(hWnd);
+            paintView(_windowHandle);
         }
 
-        pImpl->swapBuffers();
-        EndPaint(hWnd, &ps);
+        swapBuffers();
+        EndPaint(_windowHandle, &ps);
 
         return 0;
     }
 
     case WM_LBUTTONDOWN:
     {
-        SetFocus(hWnd);
-        SetCapture(hWnd);
+        SetFocus(_windowHandle);
+        SetCapture(_windowHandle);
 
         GUIEvent e{ "down" };
-        pImpl->convertEventPositions(wParam, lParam, &e);
-        pImpl->convertEventFlags(wParam, lParam, &e);
-        pImpl->_totalDrag = Vec2{ 0, 0 };
+        convertEventPositions(wParam, lParam, &e);
+        convertEventFlags(wParam, lParam, &e);
+        _totalDrag = Vec2{ 0, 0 };
 
-        if (pImpl->_appView)
+        if (_appView)
         {
-            pImpl->_appView->pushEvent(e);
+            _appView->pushEvent(e);
         }
 
         return 0;
@@ -859,19 +957,19 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
     case WM_RBUTTONDOWN:
     {
-        SetFocus(hWnd);
-        SetCapture(hWnd);
+        SetFocus(_windowHandle);
+        SetCapture(_windowHandle);
 
         GUIEvent e{ "down" };
-        pImpl->convertEventPositions(wParam, lParam, &e);
-        pImpl->convertEventFlags(wParam, lParam, &e);
+        convertEventPositions(wParam, lParam, &e);
+        convertEventFlags(wParam, lParam, &e);
         e.keyFlags |= controlModifier;
 
-        pImpl->_totalDrag = Vec2{ 0, 0 };
+        _totalDrag = Vec2{ 0, 0 };
 
-        if (pImpl->_appView)
+        if (_appView)
         {
-            pImpl->_appView->pushEvent(e);
+            _appView->pushEvent(e);
         }
 
         return 0;
@@ -882,21 +980,21 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         if (GetCapture())
         {
             GUIEvent e{ "drag" };
-            pImpl->convertEventPositions(wParam, lParam, &e);
-            pImpl->convertEventFlags(wParam, lParam, &e);
+            convertEventPositions(wParam, lParam, &e);
+            convertEventFlags(wParam, lParam, &e);
 
             bool repositioned{ false };
 
             // TEMP screen edge fix commented out for now. TODO fix
             /*
-            // get screen height 
+            // get screen height
             HMONITOR monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
             MONITORINFO info;
             info.cbSize = sizeof(MONITORINFO);
             GetMonitorInfo(monitor, &info);
             int screenMaxY = info.rcMonitor.bottom - info.rcMonitor.top;
 
-            Vec2 pv = pImpl->eventPositionOnScreen(lParam);
+            Vec2 pv = eventPositionOnScreen(lParam);
             const float kDragMargin{ 50.f };
             Vec2 moveDelta;
 
@@ -916,16 +1014,16 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
             {
               // don't send event when repositioning
               Vec2 moveToPos = pv + moveDelta;
-              pImpl->setMousePosition(moveToPos);
-              pImpl->_totalDrag -= moveDelta;
+              setMousePosition(moveToPos);
+              _totalDrag -= moveDelta;
             }
             else
              */
             {
-                //e.position += pImpl->_totalDrag;
-                if (pImpl->_appView)
+                //e.position += _totalDrag;
+                if (_appView)
                 {
-                    pImpl->_appView->pushEvent(e);
+                    _appView->pushEvent(e);
                 }
             }
         }
@@ -937,11 +1035,11 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         ReleaseCapture();
         GUIEvent e{ "up" };
 
-        pImpl->convertEventPositions(wParam, lParam, &e);
-        pImpl->convertEventFlags(wParam, lParam, &e);
-        if (pImpl->_appView)
+        convertEventPositions(wParam, lParam, &e);
+        convertEventFlags(wParam, lParam, &e);
+        if (_appView)
         {
-            pImpl->_appView->pushEvent(e);
+            _appView->pushEvent(e);
         }
 
         return 0;
@@ -952,12 +1050,12 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         ReleaseCapture();
         GUIEvent e{ "up" };
 
-        pImpl->convertEventPositions(wParam, lParam, &e);
-        pImpl->convertEventFlags(wParam, lParam, &e);
+        convertEventPositions(wParam, lParam, &e);
+        convertEventFlags(wParam, lParam, &e);
         e.keyFlags |= controlModifier;
-        if (pImpl->_appView)
+        if (_appView)
         {
-            pImpl->_appView->pushEvent(e);
+            _appView->pushEvent(e);
         }
 
         return 0;
@@ -973,15 +1071,15 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         GUIEvent e{ "scroll" };
 
         // mousewheel messages are sent in screen coordinates!
-        pImpl->convertEventPositionsFromScreen(wParam, lParam, &e);
-        pImpl->convertEventFlags(wParam, lParam, &e);
+        convertEventPositionsFromScreen(wParam, lParam, &e);
+        convertEventFlags(wParam, lParam, &e);
 
         float d = float(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA;
         e.delta = Vec2{ 0, d * kScrollSensitivity };
 
-        if (pImpl->_appView)
+        if (_appView)
         {
-            pImpl->_appView->pushEvent(e);
+            _appView->pushEvent(e);
         }
 
         return 0;
@@ -993,7 +1091,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     {
         POINT p;
         GetCursorPos(&p);
-        ScreenToClient(hWnd, &p);
+        ScreenToClient(_windowHandle, &p);
 
         BYTE keyboardState[256] = {};
         GetKeyboardState(keyboardState);
@@ -1025,9 +1123,9 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
 
         if (!handle)
         {
-            HWND rootHWnd = GetAncestor(hWnd, GA_ROOT);
+            HWND rootHWnd = GetAncestor(_windowHandle, GA_ROOT);
             SendMessage(rootHWnd, msg, wParam, lParam);
-            return DefWindowProc(hWnd, msg, wParam, lParam);
+            return DefWindowProc(_windowHandle, msg, wParam, lParam);
         }
         else
             return 0;
@@ -1054,7 +1152,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         //std::cout << "unhandled window msg: " << std::hex << msg << std::dec << "\n";
     }
     }
-    return DefWindowProc(hWnd, msg, wParam, lParam);
+    return DefWindowProc(_windowHandle, msg, wParam, lParam);
 }
 
 
