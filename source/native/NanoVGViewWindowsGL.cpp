@@ -35,7 +35,6 @@ Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 // added a GL test pattern mode for diagnosing window/DPI issues
 constexpr bool kGLTestPatternOnly{ false };
 
-
 static Rect getWindowRect(void* parent)
 {
     RECT winRect;
@@ -229,8 +228,6 @@ static float getMonitorScaleFromWindow(HWND hwnd)
         std::cout << "monitor DPI: " << dpi_x << "\n";   
         monitorDpi = dpi_x;
     }
-
-
 
     if (changedContext)
     {
@@ -542,7 +539,7 @@ void PlatformView::Impl::updateDpiScale()
 {
     if (_windowHandle)
     {
-        getDpiScaleForWindow(_windowHandle);
+        newDpiScale_ = getDpiScaleForWindow(_windowHandle);
         std::cout << "updateDpiScale dpi scale: " << newDpiScale_ << "\n";
     }
 }
@@ -583,22 +580,13 @@ void PlatformView::Impl::resizeIfNeeded()
 
         backingLayerSize_ = systemSize_ * backingScale; 
 
-        std::cout << "resizeIfNeeded: system size: " << systemSize_ << ", backing: " << backingScale << ", events: " << eventScale_ << "\n";
-        std::cout << "                backing size: " << backingLayerSize_ << "\n";
-
         // resize window, GL, nanovg  
         if (_windowHandle)
         {
-            long flags = SWP_NOZORDER | SWP_NOMOVE;
-            // flags |= (SWP_NOCOPYBITS | SWP_DEFERERASE);
+            long flags = SWP_NOZORDER;// | SWP_NOMOVE;
             lockContext();
             makeContextCurrent();
             SetWindowPos(_windowHandle, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags);
-
-            GLint viewport[4];
-            glGetIntegerv(GL_VIEWPORT, viewport);
-
-            printf("Viewport: %dx%d at (%d,%d)\n", viewport[2], viewport[3], viewport[0], viewport[1]);
 
             // resize main backing layer
             if (_nvg)
@@ -737,9 +725,6 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
         if (pImpl) 
         {
             result = pImpl->handleMessage(hWnd, msg, wParam, lParam);
-
-           // if (self->need_reconfigure)
-           //     rtb_window_reinit(RTB_WINDOW(self));
         }
         else
         {
@@ -764,6 +749,7 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 
         printf("OpenGL initialized successfully\n");
 
+        
         // targetFPS_needs to be a little higher than actual preferred rate
         // because of window sync
         float fFps = 60; // NOT WORKING NULLPTR targetFPS_;
@@ -771,6 +757,7 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
         SetFocus(hWnd);
         DragAcceptFiles(hWnd, true);
+        
         return 0;
     }
     case WM_DESTROY:
@@ -789,29 +776,23 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
     }
     case WM_WINDOWPOSCHANGED:
     {
-        std::cout << "POS CHANGED: \n";
         return 0;
     }
-    /*
+    
     case WM_DPICHANGED:
-    case WM_DPICHANGED_AFTERPARENT:
-    case WM_GETDPISCALEDSIZE:
     {
         UINT dpi = HIWORD(wParam);
         std::cout << "DPI CHANGED: " << dpi << "\n";
         updateDpiScale();
 
         // Force repaint
-        InvalidateRect(_windowHandle, NULL, TRUE);
+        InvalidateRect(_windowHandle, NULL, false);
         return 0;
-    }*/
+    }
                                              
     case WM_PAINT:
     {
-        PAINTSTRUCT ps;
-        BeginPaint(hWnd, &ps);
         if (!makeContextCurrent()) return 0;
-
         _appView->animate(_nvg);
         resizeIfNeeded();
 
@@ -820,7 +801,6 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 
         drawToImage(nullptr);
 
-        // clear
         glViewport(0, 0, w, h);
         nvgBeginFrame(_nvg, w, h, 1.0f);
 
@@ -836,12 +816,14 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         }
 
         nvgEndFrame(_nvg);
-
         swapBuffers();
-        EndPaint(hWnd, &ps);
+
+        // Validate since we didn't use BeginPaint
+        ValidateRect(hWnd, NULL);
 
         return 0;
     }
+
     case WM_ERASEBKGND:
     {
         return 1; // we handle background erasing ourselves

@@ -151,9 +151,6 @@ inline void SDLAppLoop(SDL_Window* window, bool* done)
   SDL_Event e;
   while (SDL_PollEvent(&e))
   {
-    int w{ 0 };
-    int h{ 0 };
-    
     if (e.type == SDL_QUIT)
     {
       *done = true;
