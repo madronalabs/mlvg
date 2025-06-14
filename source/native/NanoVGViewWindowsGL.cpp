@@ -33,7 +33,7 @@ constexpr float kScrollSensitivity{ -1.0f };
 Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 
 // added a GL test pattern mode for diagnosing window/DPI issues
-constexpr bool kGLTestPatternOnly{ true };
+constexpr bool kGLTestPatternOnly{ false };
 
 
 static Rect getWindowRect(void* parent)
@@ -101,7 +101,7 @@ struct PlatformView::Impl
     Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps);
     ~Impl() noexcept;
 
-    LRESULT handleMessage(UINT message, WPARAM wparam, LPARAM lparam);
+    LRESULT handleMessage(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
 
 
     static void createWindowClass(const char* className)
@@ -110,7 +110,7 @@ struct PlatformView::Impl
         if (instanceCount == 1)
         {
             WNDCLASS windowClass = {};
-            windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+            windowClass.style = CS_OWNDC;//CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 
             windowClass.lpfnWndProc = appWindowProc;
             windowClass.cbClsExtra = 0;
@@ -120,7 +120,7 @@ struct PlatformView::Impl
             windowClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
             windowClass.lpszMenuName = nullptr;
             windowClass.lpszClassName = className;
-            //   windowClass.hbrBackground = NULL;
+            windowClass.hbrBackground = NULL;
 
             RegisterClass(&windowClass);
         }
@@ -139,7 +139,7 @@ struct PlatformView::Impl
     void destroyWindow();
 
     bool createOpenGLContext(HWND hwnd);
-    void destroyOpenGLContext(HWND hwnd);
+    void destroyOpenGLContext();
 
     bool createGLResources();
     void destroyGLResources();
@@ -163,7 +163,7 @@ struct PlatformView::Impl
 
 
 
-    bool makeContextCurrent();
+    bool makeContextCurrent() const;
     bool lockContext();
     bool unlockContext();
     void swapBuffers();
@@ -171,7 +171,7 @@ struct PlatformView::Impl
     void resizeIfNeeded();
 
     void paintTestPattern(HWND hWnd);
-    void paintView(HWND hWnd);
+
 
     GLuint shaderTestProgram_;
 };
@@ -330,6 +330,8 @@ PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppVi
 
 PlatformView::Impl::~Impl() noexcept
 {
+    destroyGLResources();
+    destroyOpenGLContext();
     destroyWindow();
 
     DeleteCriticalSection(&_drawLock);
@@ -357,14 +359,7 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, m
         newSystemSize_ = Vec2(w, h);
         newDpiScale_ = getDpiScaleForWindow(_windowHandle);
     }
-    /*
-        _deviceContext = GetDC(_windowHandle);
 
-        // setting these sizes will cause resize in resizeIfNeeded()
-        newSystemSize_ = Vec2(w, h);
-        newDpiScale_ = getDpiScaleForWindow(parentWindow);
-    }
-    */
     // Get device context
     _deviceContext = GetDC(_windowHandle);
     if (!_deviceContext) {
@@ -372,13 +367,11 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, m
         return false;
     }
 
-
     // Create OpenGL context
     if (!createOpenGLContext(_windowHandle)) {
         printf("Failed to create OpenGL context\n");
         return -1;
     }
-
 
     // setting these sizes will cause resize in resizeIfNeeded()
     newSystemSize_ = Vec2(w, h);
@@ -390,7 +383,7 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, m
 // destroy our child window.
 void PlatformView::Impl::destroyWindow()
 {
-    destroyOpenGLContext(_windowHandle);
+    destroyOpenGLContext();
 
     if (_deviceContext)
     {
@@ -408,7 +401,6 @@ void PlatformView::Impl::destroyWindow()
 
 bool PlatformView::Impl::createOpenGLContext(HWND hwnd) 
 {
-
     // Setup pixel format
     {
         PIXELFORMATDESCRIPTOR pfd = {};
@@ -447,15 +439,30 @@ bool PlatformView::Impl::createOpenGLContext(HWND hwnd)
 
     gladLoadGL();
 
+    _nvg = nvgCreateGL3(NVG_ANTIALIAS);
+    if (!_nvg) return false;
+
     return true;
 }
 
-void PlatformView::Impl::destroyOpenGLContext(HWND hwnd)
+void PlatformView::Impl::destroyOpenGLContext()
 {
-    if (!_openGLContext) return;
-    wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(_openGLContext);
-    _openGLContext = NULL;
+    if (_nvg)
+    {
+        // delete nanovg
+        lockContext();
+        makeContextCurrent();
+        nvgDeleteGL3(_nvg);
+        _nvg = NULL;
+        unlockContext();
+    }
+
+    if (_openGLContext)
+    {
+        wglMakeCurrent(NULL, NULL);
+        wglDeleteContext(_openGLContext);
+        _openGLContext = NULL;
+    }
 }
 
 
@@ -490,32 +497,27 @@ void main() {
     }
     else
     {
-        _nvg = nvgCreateGL3(NVG_ANTIALIAS);
-        if (!_nvg) result = false;
+    //    _nvg = nvgCreateGL3(NVG_ANTIALIAS);
+    //    if (!_nvg) result = false;
     }
     return result;
 }
 
 void PlatformView::Impl::destroyGLResources()
 {
-    if (kGLTestPatternOnly)
+    if (_nvg)
     {
-    }
-    else
-    {
-        if (_nvg)
-        {
-            // delete nanovg
-            lockContext();
-            makeContextCurrent();
-            nvgDeleteGL3(_nvg);
-            _nvg = NULL;
-            unlockContext();
-        }
+        // delete nanovg
+        lockContext();
+        makeContextCurrent();
+        _nvgBackingLayer = nullptr;
+        nvgDeleteGL3(_nvg);
+        _nvg = NULL;
+        unlockContext();
     }
 }
 
-bool PlatformView::Impl::makeContextCurrent()
+bool PlatformView::Impl::makeContextCurrent() const
 {
     if (_openGLContext && _deviceContext)
     {
@@ -593,8 +595,6 @@ void PlatformView::Impl::resizeIfNeeded()
             makeContextCurrent();
             SetWindowPos(_windowHandle, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags);
 
-
-
             GLint viewport[4];
             glGetIntegerv(GL_VIEWPORT, viewport);
 
@@ -603,7 +603,7 @@ void PlatformView::Impl::resizeIfNeeded()
             // resize main backing layer
             if (_nvg)
             {
-                //_nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, backingLayerSize_.x(), backingLayerSize_.y());
+                _nvgBackingLayer = std::make_unique< DrawableImage >(_nvg, backingLayerSize_.x(), backingLayerSize_.y());
             }
             unlockContext();
         }
@@ -686,8 +686,6 @@ void PlatformView::Impl::paintTestPattern(HWND hWnd)
     size_t w = backingLayerSize_.x();
     size_t h = backingLayerSize_.y();
 
-    glViewport(0, 0, w, h);
-
     glClearColor(0.f, 0.125f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -724,68 +722,6 @@ void PlatformView::Impl::paintTestPattern(HWND hWnd)
     glBindVertexArray(0);        // Unbind the VAO
 }
 
-void PlatformView::Impl::paintView(HWND hWnd)
-{
-    NVGcontext* nvg = _nvg;
-    size_t w = backingLayerSize_.x();
-    size_t h = backingLayerSize_.y();
-
-    // blit backing layer to main layer
-    drawToImage(nullptr);
-
-    // clear
-    glViewport(0, 0, w, h);
-
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    nvgBeginFrame(nvg, w, h, 1.0f);
-
-    if (0)
-    {
-        // get image pattern for 1:1 blit
-        NVGpaint img = nvgImagePattern(nvg, 0, 0, w, h, 0, _nvgBackingLayer->_buf->image, 1.0f);
-
-        // blit the image
-        nvgSave(nvg);
-        nvgResetTransform(nvg);
-        nvgBeginPath(nvg);
-        nvgRect(nvg, 0, 0, w, h);
-        nvgFillPaint(nvg, img);
-        nvgFill(nvg);
-        nvgRestore(nvg);
-    }
-
-    // TEMP
-    nvgStrokeWidth(nvg, 4);
-    nvgStrokeColor(nvg, colors::black);
-    nvgBeginPath(nvg);
-    for (int i = 0; i < w; i += 100)
-    {
-        nvgMoveTo(nvg, i, 0);
-        nvgLineTo(nvg, i, h);
-    }
-    for (int j = 0; j < h; j += 100)
-    {
-        nvgMoveTo(nvg, 0, j);
-        nvgLineTo(nvg, w, j);
-    }
-    nvgStroke(nvg);
-
-    // draw X
-
-    nvgStrokeWidth(nvg, 2);
-    nvgStrokeColor(nvg, colors::red);
-    nvgBeginPath(nvg);
-    nvgMoveTo(nvg, 0, 0);
-    nvgLineTo(nvg, w, h);
-    nvgMoveTo(nvg, w, 0);
-    nvgLineTo(nvg, 0, h);
-    nvgStroke(nvg);
-
-    // end main update
-    nvgEndFrame(nvg);
-}
 
 // static fn, callable when there is no impl yet
 LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -800,7 +736,7 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     default:
         if (pImpl) 
         {
-            result = pImpl->handleMessage(msg, wParam, lParam);
+            result = pImpl->handleMessage(hWnd, msg, wParam, lParam);
 
            // if (self->need_reconfigure)
            //     rtb_window_reinit(RTB_WINDOW(self));
@@ -813,20 +749,16 @@ LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM w
     return result;
 }
 
-
-LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
-
     case WM_CREATE:
     case WM_SHOWWINDOW:
     case WM_SIZE:
     {
-
-
         if (!createGLResources ()) {
-            printf("Failed to initialize OpenGL\n");
+            printf("Failed to create GL resources\n");
             return -1;
         }
 
@@ -836,16 +768,14 @@ LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam
         // because of window sync
         float fFps = 60; // NOT WORKING NULLPTR targetFPS_;
         int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f)));
-        UINT_PTR  err = SetTimer(_windowHandle, kTimerID, mSec, NULL);
-        SetFocus(_windowHandle);
-        DragAcceptFiles(_windowHandle, true);
+        UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
+        SetFocus(hWnd);
+        DragAcceptFiles(hWnd, true);
         return 0;
-
     }
     case WM_DESTROY:
     {
         destroyGLResources();
-
         break;
     }
     case WM_TIMER:
@@ -853,7 +783,7 @@ LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam
         if (wParam == kTimerID)
         {
             // we invalidate the entire window and do our own update region handling.
-            InvalidateRect(_windowHandle, NULL, true);
+            InvalidateRect(hWnd, NULL, false);
         }
         return 0;
     }
@@ -865,7 +795,6 @@ LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam
     /*
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
-
     case WM_GETDPISCALEDSIZE:
     {
         UINT dpi = HIWORD(wParam);
@@ -876,32 +805,47 @@ LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam
         InvalidateRect(_windowHandle, NULL, TRUE);
         return 0;
     }*/
-    case WM_ERASEBKGND:
-    {
-        return 0;
-    }
+                                             
     case WM_PAINT:
     {
-        resizeIfNeeded();
         PAINTSTRUCT ps;
-        BeginPaint(_windowHandle, &ps);
+        BeginPaint(hWnd, &ps);
         if (!makeContextCurrent()) return 0;
+
+        _appView->animate(_nvg);
+        resizeIfNeeded();
+
+        size_t w = backingLayerSize_.x();
+        size_t h = backingLayerSize_.y();
+
+        drawToImage(nullptr);
+
+        // clear
+        glViewport(0, 0, w, h);
+        nvgBeginFrame(_nvg, w, h, 1.0f);
 
         if (kGLTestPatternOnly)
         {
-            paintTestPattern(_windowHandle);
+            paintTestPattern(hWnd);
         }
         else
         {
-            paintView(_windowHandle);
+            // TEMP no buffering
+            _appView->setDirty(true);
+            _appView->render(_nvg);
         }
 
+        nvgEndFrame(_nvg);
+
         swapBuffers();
-        EndPaint(_windowHandle, &ps);
+        EndPaint(hWnd, &ps);
 
         return 0;
     }
-
+    case WM_ERASEBKGND:
+    {
+        return 1; // we handle background erasing ourselves
+    }
     case WM_LBUTTONDOWN:
     {
         SetFocus(_windowHandle);
@@ -1117,7 +1061,7 @@ LRESULT PlatformView::Impl::handleMessage(UINT msg, WPARAM wParam, LPARAM lParam
         //std::cout << "unhandled window msg: " << std::hex << msg << std::dec << "\n";
     }
     }
-    return DefWindowProc(_windowHandle, msg, wParam, lParam);
+    return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 

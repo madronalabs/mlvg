@@ -20,11 +20,6 @@
 #define ML_INCLUDE_SDL 1
 #include "native/MLSDLUtils.h"
 
-// TEMP
-#if(ML_WINDOWS)
-#include <windows.h>
-#include <ShellScalingApi.h>
-#endif
 
 struct TestAppProcessor : public SignalProcessor, public Actor
 {
@@ -161,7 +156,7 @@ public:
     }
   }
   
-  int createView(Rect defaultSize)
+  int createAppView(Rect defaultSize)
   {
     int r{1};
     
@@ -239,7 +234,7 @@ int main(int argc, char *argv[])
   auto appInstanceNum = appController.getInstanceNum();
 
   // make view and initialize drawing resources
-  if (!appController.createView(systemDefaultRect)) return 1;
+  if (!appController.createAppView(systemDefaultRect)) return 1;
   appController.appView->makeWidgets(pdl);
   
   // attach view to parent window, allowing resizing
