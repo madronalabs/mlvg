@@ -29,11 +29,55 @@ constexpr int kTimerID{ 2 };
 // flip scroll and optional scale- could be a runtime setting.
 constexpr float kScrollSensitivity{ -1.0f };
 
-// utils
-Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
-
 // added a GL test pattern mode for diagnosing window/DPI issues
 constexpr bool kGLTestPatternOnly{ false };
+
+
+// static utilities
+
+static Vec2 PointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
+
+static double getDpiScaleForWindow(void* parent)
+{
+    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
+    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
+    bool tryToChangeContext = (dpiAwareness != DPI_AWARENESS_PER_MONITOR_AWARE);
+    bool changedContext{ false };
+    if (tryToChangeContext)
+    {
+        if (SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+        {
+            changedContext = true;
+        }
+        else
+        {
+            std::cout << "couldn't set DPI awareness! \n";
+        }
+    }
+
+    UINT dpi_x, dpi_y;
+    HWND parentWindow = static_cast<HWND>(parent);
+    HMONITOR monitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
+
+    float monitorDpi{ 96.f };
+    if (GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y) == S_OK)
+    {
+        monitorDpi = dpi_x;
+    }
+
+    if (changedContext)
+    {
+        SetThreadDpiAwarenessContext(dpiAwarenessContext);
+    }
+    return monitorDpi / 96.f;
+}
+
+static GLuint compileShader(const char* source, GLenum type) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+    return shader;
+}
 
 static Rect getWindowRect(void* parent)
 {
@@ -58,21 +102,13 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 struct PlatformView::Impl
 {
-    static LRESULT CALLBACK appWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-
     HWND _windowHandle{ nullptr };
     HDC _deviceContext{ nullptr };
     HGLRC _openGLContext{ nullptr };
-
-
     NVGcontext* _nvg{ nullptr };
     ml::AppView* _appView{ nullptr };
     std::unique_ptr< DrawableImage > _nvgBackingLayer;
-
-
     UINT_PTR _timerID{ 0 };
-
     CRITICAL_SECTION _drawLock{ nullptr };
 
     // inputs to scale logic
@@ -80,7 +116,6 @@ struct PlatformView::Impl
     double newDpiScale_{ 1. };
     Vec2 systemSize_{ 0, 0 };
     Vec2 newSystemSize_{ 0, 0 };
-
     DeviceScaleMode platformScaleMode_{ kScaleModeUnknown };
 
     // outputs from scale logic, used for event handling, drawing and backing store creation
@@ -89,19 +124,16 @@ struct PlatformView::Impl
 
     Vec2 backingLayerSize_;
 
-
     int targetFPS_{ 60 };
 
     HWND parentPtr{ nullptr };
     Vec2 _totalDrag;
 
     TextFragment windowClassName_;
+    GLuint shaderTestProgram_;
 
     Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps);
     ~Impl() noexcept;
-
-    LRESULT handleMessage(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
-
 
     static void createWindowClass(const char* className)
     {
@@ -134,6 +166,27 @@ struct PlatformView::Impl
         }
     }
 
+    static LRESULT CALLBACK appWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    {
+        LRESULT result{ 0 };
+        PlatformView::Impl* pImpl = (PlatformView::Impl*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+        switch (msg) {
+        case WM_CREATE:
+            PostMessage(hWnd, WM_SHOWWINDOW, 0, 0);
+        default:
+            if (pImpl)
+            {
+                result = pImpl->handleMessage(hWnd, msg, wParam, lParam);
+            }
+            else
+            {
+                result = DefWindowProcW(hWnd, msg, wParam, lParam);
+            }
+        }
+        return result;
+    }
+
     bool createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds);
     void destroyWindow();
 
@@ -143,24 +196,13 @@ struct PlatformView::Impl
     bool createGLResources();
     void destroyGLResources();
 
-
-    // ----
-
     void updatePlatformScaleMode();
-
 
     void convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* e);
     void convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* e);
     Vec2 eventPositionOnScreen(LPARAM lParam);
     void convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEvent* e);
     void setMousePosition(Vec2 newPos);
-
-
-
-
-    //bool setPixelFormat(HDC __deviceContext);
-
-
 
     bool makeContextCurrent() const;
     bool lockContext();
@@ -171,140 +213,8 @@ struct PlatformView::Impl
 
     void paintTestPattern(HWND hWnd);
 
-
-    GLuint shaderTestProgram_;
+    LRESULT handleMessage(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
 };
-
-// static utilities
-
-
-static float getMonitorScaleFromWindow(HWND hwnd)
-{
-    std::cout << "----------------------\n";
-    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
-    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
-
-    bool tryToChangeContext = (dpiAwareness != DPI_AWARENESS_PER_MONITOR_AWARE);
-
-    bool changedContext{ false };
-    if (tryToChangeContext)
-    {
-
-        if (SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
-        {
-            changedContext = true;
-            std::cout << "Thread DPI awareness context set to Per-Monitor Aware V2." << std::endl;
-        }
-        else
-        {
-            std::cout << "couldn't set DPI awareness! \n";
-        }
-    }
-
-    UINT dpi_x, dpi_y;
-    /*
-    HMONITOR main_monitor = NULL;
-
-
-    EnumDisplayMonitors(NULL, NULL, &find_main_monitor,
-        (LPARAM)&main_monitor);
-
-    if (main_monitor)
-    {
-        std::cout << "found main monitor. \n";
-    }
-    else
-    {
-        std::cout << "main monitor not found. \n";
-    }
-    */
-
-    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-
-    float monitorDpi{ 96.f };
-
-    if (GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y) == S_OK)
-    {
-        std::cout << "monitor DPI: " << dpi_x << "\n";   
-        monitorDpi = dpi_x;
-    }
-
-    if (changedContext)
-    {
-        SetThreadDpiAwarenessContext(dpiAwarenessContext);
-    }
-
-    return monitorDpi / 96.f;
-}
-
-
-static double getDpiScaleForWindow(void* parent)
-{
-    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
-    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
-
-    std::cout << "--------------\n awareness: " << dpiAwareness << "\n";
-
-    bool tryToChangeContext = (dpiAwareness != DPI_AWARENESS_PER_MONITOR_AWARE);
-    bool changedContext{ false };
-    if (tryToChangeContext)
-    {
-        if (SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
-        {
-            changedContext = true;
-            std::cout << "Thread DPI awareness context set to Per-Monitor Aware V2." << std::endl;
-        }
-        else
-        {
-            std::cout << "couldn't set DPI awareness! \n";
-        }
-    }
-
-    UINT dpi_x, dpi_y;
-    HWND parentWindow = static_cast<HWND>(parent);
-    HMONITOR monitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
-
-    float monitorDpi{ 96.f };
-    if (GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y) == S_OK)
-    {
-        std::cout << "monitor DPI: " << dpi_x << "\n";
-        std::cout << "DPI scale: " << dpi_x / 96.f << "\n";
-        monitorDpi = dpi_x;
-    }
-
-    if (changedContext)
-    {
-        SetThreadDpiAwarenessContext(dpiAwarenessContext);
-    }
-    return monitorDpi / 96.f;
-}
-
-static GLuint compileShader(const char* source, GLenum type) {
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, NULL);
-    glCompileShader(shader);
-    return shader;
-}
-
-void PlatformView::Impl::updatePlatformScaleMode()
-{
-    HMONITOR hMonitor = MonitorFromWindow(_windowHandle, MONITOR_DEFAULTTONEAREST);
-
-    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
-    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
-
-    std::cout << "--------------\n awareness: " << dpiAwareness << "\n";
-
-
-    if (dpiAwareness == DPI_AWARENESS_PER_MONITOR_AWARE)
-    {
-        platformScaleMode_ = kUseDeviceCoords;
-    }
-    else
-    {
-        platformScaleMode_ = kUseSystemCoords;
-    }
-}
 
 
 // PlatformView::Impl implementation 
@@ -334,7 +244,6 @@ PlatformView::Impl::~Impl() noexcept
     DeleteCriticalSection(&_drawLock);
     PlatformView::Impl::destroyWindowClass(windowClassName_.getText());
 }
-
 
 bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds)
 {
@@ -394,7 +303,6 @@ void PlatformView::Impl::destroyWindow()
         _windowHandle = nullptr;
     }
 }
-
 
 bool PlatformView::Impl::createOpenGLContext(HWND hwnd) 
 {
@@ -514,6 +422,24 @@ void PlatformView::Impl::destroyGLResources()
     }
 }
 
+void PlatformView::Impl::updatePlatformScaleMode()
+{
+    HMONITOR hMonitor = MonitorFromWindow(_windowHandle, MONITOR_DEFAULTTONEAREST);
+
+    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
+    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
+
+    if (dpiAwareness == DPI_AWARENESS_PER_MONITOR_AWARE)
+    {
+        platformScaleMode_ = kUseDeviceCoords;
+    }
+    else
+    {
+        platformScaleMode_ = kUseSystemCoords;
+    }
+}
+
+
 bool PlatformView::Impl::makeContextCurrent() const
 {
     if (_openGLContext && _deviceContext)
@@ -540,7 +466,6 @@ void PlatformView::Impl::updateDpiScale()
     if (_windowHandle)
     {
         newDpiScale_ = getDpiScaleForWindow(_windowHandle);
-        std::cout << "updateDpiScale dpi scale: " << newDpiScale_ << "\n";
     }
 }
 
@@ -583,7 +508,7 @@ void PlatformView::Impl::resizeIfNeeded()
         // resize window, GL, nanovg  
         if (_windowHandle)
         {
-            long flags = SWP_NOZORDER;// | SWP_NOMOVE;
+            long flags = SWP_NOZORDER | SWP_NOMOVE;
             lockContext();
             makeContextCurrent();
             SetWindowPos(_windowHandle, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags);
@@ -711,29 +636,6 @@ void PlatformView::Impl::paintTestPattern(HWND hWnd)
 }
 
 
-// static fn, callable when there is no impl yet
-LRESULT CALLBACK PlatformView::Impl::appWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-    LRESULT result{ 0 };
-    PlatformView::Impl* pImpl = (PlatformView::Impl*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-
-    switch (msg) {
-    case WM_CREATE:
-        PostMessage(hWnd, WM_SHOWWINDOW, 0, 0);
-  
-    default:
-        if (pImpl) 
-        {
-            result = pImpl->handleMessage(hWnd, msg, wParam, lParam);
-        }
-        else
-        {
-            result = DefWindowProcW(hWnd, msg, wParam, lParam);
-        }
-    }
-    return result;
-}
-
 LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
@@ -746,13 +648,10 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
             printf("Failed to create GL resources\n");
             return -1;
         }
-
-        printf("OpenGL initialized successfully\n");
-
         
         // targetFPS_needs to be a little higher than actual preferred rate
         // because of window sync
-        float fFps = 60; // NOT WORKING NULLPTR targetFPS_;
+        float fFps = targetFPS_;
         int mSec = static_cast<int>(std::round(1000.0 / (fFps * 1.1f)));
         UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
         SetFocus(hWnd);

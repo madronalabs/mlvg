@@ -188,11 +188,12 @@ public:
     }
     
     // make PlatformView (drawing apparatus connecting AppView to Window)
-    if(r)
+    if (r)
     {
-      ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
-      platformView = std::make_unique< PlatformView >("testapp", windowInfo.windowPtr, appView.get(), nullptr, windowInfo.flags, 60);
-      appView->initializeResources(platformView->getNativeDrawContext());
+        int targetFPS{ 60 };
+        ParentWindowInfo windowInfo = ml::getParentWindowInfo(window);
+        platformView = std::make_unique< PlatformView >("testapp", windowInfo.windowPtr, appView.get(), nullptr, windowInfo.flags, targetFPS);
+        appView->initializeResources(platformView->getNativeDrawContext());
     }
 
     return r;
