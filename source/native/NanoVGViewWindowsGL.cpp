@@ -29,8 +29,8 @@ constexpr int kTimerID{ 2 };
 // flip scroll and optional scale- could be a runtime setting.
 constexpr float kScrollSensitivity{ -1.0f };
 
-// added a GL test pattern mode for diagnosing window/DPI issues
-constexpr bool kGLTestPatternOnly{ false };
+
+constexpr bool kDoubleBufferView{ false };
 
 
 // static utilities
@@ -193,9 +193,6 @@ struct PlatformView::Impl
     bool createOpenGLContext(HWND hwnd);
     void destroyOpenGLContext();
 
-    bool createGLResources();
-    void destroyGLResources();
-
     void updatePlatformScaleMode();
 
     void convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* e);
@@ -237,7 +234,6 @@ PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppVi
 
 PlatformView::Impl::~Impl() noexcept
 {
-    destroyGLResources();
     destroyOpenGLContext();
     destroyWindow();
 
@@ -354,6 +350,8 @@ void PlatformView::Impl::destroyOpenGLContext()
 {
     if (_nvg)
     {
+        _nvgBackingLayer = nullptr;
+
         // delete nanovg
         lockContext();
         makeContextCurrent();
@@ -370,57 +368,6 @@ void PlatformView::Impl::destroyOpenGLContext()
     }
 }
 
-
-bool PlatformView::Impl::createGLResources()
-{
-    bool result{ true };
-    if (kGLTestPatternOnly)
-    {
-        const char* vertexShader = R"(
-layout (location = 0) in vec3 aPos;
-void main() {
-    gl_Position = vec4(aPos, 1.0);
-}
-)";
-
-        const char* fragmentShader = R"(
-out vec4 FragColor;
-void main() {
-    FragColor = vec4(0.0, 0.875, 0.0, 1.0);
-}
-)";
-
-        // Create and compile shaders
-        GLuint vs = compileShader(vertexShader, GL_VERTEX_SHADER);
-        GLuint fs = compileShader(fragmentShader, GL_FRAGMENT_SHADER);
-
-        // Create shader program
-        shaderTestProgram_ = glCreateProgram();
-        glAttachShader(shaderTestProgram_, vs);
-        glAttachShader(shaderTestProgram_, fs);
-        glLinkProgram(shaderTestProgram_);
-    }
-    else
-    {
-    //    _nvg = nvgCreateGL3(NVG_ANTIALIAS);
-    //    if (!_nvg) result = false;
-    }
-    return result;
-}
-
-void PlatformView::Impl::destroyGLResources()
-{
-    if (_nvg)
-    {
-        // delete nanovg
-        lockContext();
-        makeContextCurrent();
-        _nvgBackingLayer = nullptr;
-        nvgDeleteGL3(_nvg);
-        _nvg = NULL;
-        unlockContext();
-    }
-}
 
 void PlatformView::Impl::updatePlatformScaleMode()
 {
@@ -644,11 +591,6 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
     case WM_SHOWWINDOW:
     case WM_SIZE:
     {
-        if (!createGLResources ()) {
-            printf("Failed to create GL resources\n");
-            return -1;
-        }
-        
         // targetFPS_needs to be a little higher than actual preferred rate
         // because of window sync
         float fFps = targetFPS_;
@@ -661,7 +603,6 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
     }
     case WM_DESTROY:
     {
-        destroyGLResources();
         break;
     }
     case WM_TIMER:
@@ -703,16 +644,11 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         glViewport(0, 0, w, h);
         nvgBeginFrame(_nvg, w, h, 1.0f);
 
-        if (kGLTestPatternOnly)
-        {
-            paintTestPattern(hWnd);
-        }
-        else
-        {
+
             // TEMP no buffering
             _appView->setDirty(true);
             _appView->render(_nvg);
-        }
+        
 
         nvgEndFrame(_nvg);
         swapBuffers();
