@@ -30,7 +30,7 @@ constexpr int kTimerID{ 2 };
 constexpr float kScrollSensitivity{ -1.0f };
 
 
-constexpr bool kDoubleBufferView{ false };
+constexpr bool kDoubleBufferView{ true };
 
 
 // static utilities
@@ -639,18 +639,42 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         size_t w = backingLayerSize_.x();
         size_t h = backingLayerSize_.y();
 
-        drawToImage(nullptr);
+        if (kDoubleBufferView)
+        {
+            if (!_nvgBackingLayer) return 0;
+            auto pBackingLayer = _nvgBackingLayer.get();
+            NVGpaint img = nvgImagePattern(_nvg, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
 
-        glViewport(0, 0, w, h);
-        nvgBeginFrame(_nvg, w, h, 1.0f);
+            drawToImage(pBackingLayer);
+            nvgBeginFrame(_nvg, w, h, 1.0f);
+            _appView->render(_nvg);
+            nvgEndFrame(_nvg);
 
+            drawToImage(nullptr);
+            glViewport(0, 0, w, h);
+            glClearColor(0.f, 0.f, 0.f, 0.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            nvgBeginFrame(_nvg, w, h, 1.0f);
+            nvgSave(_nvg);
+            nvgResetTransform(_nvg);
+            nvgBeginPath(_nvg);
+            nvgRect(_nvg, 0, 0, w, h);
+            nvgFillPaint(_nvg, img);
+            nvgFill(_nvg);
+            nvgRestore(_nvg);
+            nvgEndFrame(_nvg);
+        }
+        else
+        {
+            drawToImage(nullptr);
+            glViewport(0, 0, w, h);
+            nvgBeginFrame(_nvg, w, h, 1.0f);
 
-            // TEMP no buffering
+            // set view dirty to redraw entire frame
             _appView->setDirty(true);
             _appView->render(_nvg);
-        
-
-        nvgEndFrame(_nvg);
+            nvgEndFrame(_nvg);
+        }
         swapBuffers();
 
         // Validate since we didn't use BeginPaint

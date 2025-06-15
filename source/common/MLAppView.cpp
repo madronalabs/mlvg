@@ -335,8 +335,6 @@ void AppView::render(NativeDrawContext* nvg)
   // begin the frame on the backing layer
   int w = layerSize.x();
   int h = layerSize.y();
-  int unusedPixelRatio = 1.0f;
-  //nvgBeginFrame(nvg, w, h, unusedPixelRatio);
   
   // translate the draw context to top level view bounds and draw.
   nvgIntersectScissor(nvg, topViewBounds);
@@ -345,48 +343,6 @@ void AppView::render(NativeDrawContext* nvg)
   // translate to the view's location and draw the view in its local coordinates
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
-
-
-  if (0)
-  {
-      // TEMP
-      nvgStrokeWidth(nvg, 4);
-      nvgStrokeColor(nvg, colors::blue);
-      nvgBeginPath(nvg);
-      for (int i = 0; i < w; i += 100)
-      {
-          nvgMoveTo(nvg, i, 0);
-          nvgLineTo(nvg, i, h);
-      }
-      for (int j = 0; j < h; j += 100)
-      {
-          nvgMoveTo(nvg, 0, j);
-          nvgLineTo(nvg, w, j);
-      }
-      nvgStroke(nvg);
-
-      // TEMP
-      // draw X
-      nvgStrokeWidth(nvg, 4);
-      nvgStrokeColor(nvg, colors::blue);
-      nvgBeginPath(nvg);
-      nvgMoveTo(nvg, 0, 0);
-      nvgLineTo(nvg, w, h);
-      nvgMoveTo(nvg, w, 0);
-      nvgLineTo(nvg, 0, h);
-      nvgStroke(nvg);
-
-      // TEMP
-      nvgFillColor(nvg, colors::blue);
-      for (int i = 0; i < w; i += 100)
-      {
-          auto nText = textUtils::naturalNumberToText(i);
-          nvgText(nvg, i, h - 220, nText.getText(), nullptr);
-      }
-  }
-
-  // end the frame.
-  //nvgEndFrame(nvg);
   _view->setDirty(false);
 }
 
