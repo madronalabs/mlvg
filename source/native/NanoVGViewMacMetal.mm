@@ -375,7 +375,7 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 
 @interface MetalNanoVGRenderer : NSObject < MTKViewDelegate >
 - (nonnull instancetype) initWithMetalKitView:(nonnull MyMTKView*)mtkView withBounds:(NSRect)b withScale:(float)scale;
-- (void) setAndInitializeAppView:(AppView*) pView;
+- (void) setAppView:(AppView*) pView;
 - (void) resize:(CGSize)size;
 - (void) setScale:(float)scale;
 - (void) doResize;
@@ -422,12 +422,6 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
 - (void)setAppView:(AppView*) pView
 {
   appView_ = pView;
-}
-
-- (void)setAndInitializeAppView:(AppView*) pView
-{
-  appView_ = pView;
-  appView_->initializeResources(_nvg);
 }
 
 -(void)dealloc
@@ -670,9 +664,7 @@ PlatformView::PlatformView(void* pParent, AppView* pView, void* /*platformHandle
   _pImpl->pAppView = pView;
   _pImpl->rendererSize = Vec2(bounds.width(), bounds.height());
   [_pImpl->_mtkView setAppView: pView];
-  
-  // set the renderer's AppView and initialize the AppView's resources
-  [_pImpl->_renderer setAndInitializeAppView: pView];
+  [_pImpl->_renderer setAppView: pView];
 }
 
 PlatformView::~PlatformView()

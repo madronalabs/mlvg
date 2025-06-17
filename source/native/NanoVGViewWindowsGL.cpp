@@ -444,7 +444,7 @@ Vec2 PlatformView::Impl::eventPositionOnScreen(LPARAM lParam)
     ClientToScreen(_windowHandle, &p);
     return Vec2{ float(p.x), float(p.y) };
 }
-
+ 
 void PlatformView::Impl::convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
 {
     uint32_t myFlags{ 0 };

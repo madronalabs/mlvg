@@ -49,7 +49,6 @@ public:
   // platformFlags: platform-specific flags
   // fps: target refresh rate
   PlatformView(void* parent, AppView* pView, void* platformHandle, int platformFlags, int fps);
-  
   ~PlatformView();
 
   // attach view to the parent context, which will make it visible and allow resizing.
