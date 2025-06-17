@@ -34,9 +34,9 @@ public:
   
   // window / resolution helpers
   //
-  // get default point to put the center of a new window
   static Vec2 getPrimaryMonitorCenter();
-
+  static float getDeviceScaleForWindow(void* pParent, int platformFlags);
+  static ml::Rect getWindowRect(void* pParent, int platformFlags);
   
   // make a platform view to draw the application to the given parent window.
   // className: unique name of this app or plugin
@@ -56,6 +56,8 @@ public:
   // resize the PlatformView, in system or device coordinates
   void setPlatformViewSize(int w, int h);
   
+  void setPlatformViewScale(float f);
+
   // return the NativeDrawContext, typically needed outside the view for initialization
   NativeDrawContext* getNativeDrawContext();
 

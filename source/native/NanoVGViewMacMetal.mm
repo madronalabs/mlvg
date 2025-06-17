@@ -596,7 +596,7 @@ struct PlatformView::Impl
   Vec2 rendererSize;
 };
 
-PlatformView::PlatformView(void* pParent, AppView* pView, void* /*platformHandle*/, int platformFlags, int targetFPS)
+PlatformView::PlatformView(const char* /*className*/, void* pParent, AppView* pView, void* /*platformHandle*/, int platformFlags, int targetFPS)
 {
   if(!pParent) return;
    
