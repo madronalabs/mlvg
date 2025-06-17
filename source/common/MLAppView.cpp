@@ -4,7 +4,6 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-
 #include "MLAppView.h"
 
 namespace ml {
@@ -58,7 +57,6 @@ void AppView::viewResized(NativeDrawContext* nvg, Vec2 newSize, float displaySca
   
   Vec2 origin (0, 0);
   _GUICoordinates = {gridSizeInPixels, newSize, displayScale, origin};
-  
   
   // set bounds for top-level View in grid coordinates
   Vec4 newGridSize = _GUICoordinates.pixelToGrid(_GUICoordinates.viewSizeInPixels);
@@ -295,24 +293,12 @@ GUIEvent AppView::_detectDoubleClicks(GUIEvent e)
 // given a window size in system coordinates, tweak it to be a valid window size.
 Vec2 AppView::constrainSize(Vec2 size) const
 {
-  Vec2 newSize = size;
-
-
-  // TODO fix cross-platform stuff. is this really system size input? Doesn't make sense as currently commented.
-#if ML_WINDOWS
-  newSize = _GUICoordinates.pixelToSystem(newSize);
-#endif
-
-
+    Vec2 newSize = size;
     Vec2 minDims = getMinDims();
     Vec2 maxDims = getMaxDims();
     newSize = vmax(newSize, minDims);
     newSize = vmin(newSize, maxDims);
-
-#if ML_WINDOWS
-   newSize = _GUICoordinates.systemToPixel(newSize);
-#endif
-  return newSize;
+    return newSize;
 }
 
 size_t AppView::_getElapsedTime()
@@ -349,7 +335,6 @@ void AppView::render(NativeDrawContext* nvg)
   // begin the frame on the backing layer
   int w = layerSize.x();
   int h = layerSize.y();
-  nvgBeginFrame(nvg, w, h, 1.0);
   
   // translate the draw context to top level view bounds and draw.
   nvgIntersectScissor(nvg, topViewBounds);
@@ -358,9 +343,6 @@ void AppView::render(NativeDrawContext* nvg)
   // translate to the view's location and draw the view in its local coordinates
   nvgTranslate(nvg, topLeft);
   _view->draw(translate(dc, -topLeft));
-
-  // end the frame.
-  nvgEndFrame(nvg);
   _view->setDirty(false);
 }
 

@@ -22,15 +22,7 @@ MessageList Resizer::processGUIEvent(const GUICoordinates& gc, GUIEvent e)
   {
     engaged = true;
 
-#if ML_MAC
     _sizeStart = gc.pixelToSystem(gc.viewSizeInPixels);
-        
-    
-#elif ML_WINDOWS
-    // TODO this should be gc.pixelToSystem also.
-    _sizeStart = (gc.viewSizeInPixels); 
-#endif
-
     _dragStart = eventScreenPos;
     _dragDelta = Vec2(0, 0);
 

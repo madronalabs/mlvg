@@ -451,15 +451,17 @@ Vec2 makeDelta(CGFloat x, CGFloat y)
   
   if(appView_ && _nvg && _backingLayer)
   {
+    size_t w = _backingLayer->width;
+    size_t h = _backingLayer->height;
+
     // give the view a chance to animate
     appView_->animate(_nvg);
     
     // draw the AppView to the backing layer
     drawToImage(_backingLayer.get());
-    size_t w = _backingLayer->width;
-    size_t h = _backingLayer->height;
-        
+    nvgBeginFrame(_nvg, w, h, 1.0f);
     appView_->render(_nvg);
+    nvgEndFrame(_nvg);
       
     // blit backing layer to main layer
     drawToImage(nullptr);

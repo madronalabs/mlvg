@@ -16,7 +16,7 @@ namespace ml {
 
 namespace math {
 
-// TEMP copied code to support DrawSVG
+// copied code to support DrawSVG TODO clean up
 
 ////////////////////
 // 2D vector and rectangle

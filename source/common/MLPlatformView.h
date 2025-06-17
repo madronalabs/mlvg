@@ -27,7 +27,7 @@ class PlatformView
 {
   
 public:
-  enum platformFlags
+  enum PlatformFlags
   {
     kParentIsNSWindow = 1
   };
@@ -36,34 +36,32 @@ public:
   //
   // get default point to put the center of a new window
   static Vec2 getPrimaryMonitorCenter();
-  //
-  // get the scale the OS considers the window's device to be at, compared to "usual" DPI
-  static float getDeviceScaleForWindow(void* parent, int platformFlags = 0);
-  //
-  static Rect getWindowRect(void* parent, int platformFlags);
+
   
   // make a platform view to draw the application to the given parent window.
+  // className: unique name of this app or plugin
   // parent: pointer to the parent window
   // pView: existing appView to draw
-  // platformHandle: platform-specific data
-  // platformFlags: platform-specific flags
+  // platformHandle: platform-specific data if needed
+  // PlatformFlags: platform-specific flags
   // fps: target refresh rate
-  PlatformView(void* parent, AppView* pView, void* platformHandle, int platformFlags, int fps);
+  PlatformView(const char* className, void* parent, AppView* pView, void* platformHandle, int PlatformFlags, int fps);
+  
   ~PlatformView();
 
   // attach view to the parent context, which will make it visible and allow resizing.
+  //
   void attachViewToParent();
 
-  // resize the PlatformView, in system coordinates
+  // resize the PlatformView, in system or device coordinates
   void setPlatformViewSize(int w, int h);
-  void setPlatformViewScale(float scale);
   
+  // return the NativeDrawContext, typically needed outside the view for initialization
   NativeDrawContext* getNativeDrawContext();
 
 protected:
   struct Impl;
   std::unique_ptr< Impl > _pImpl;
-  float displayScale_{1.0f};
 };
 
 } // namespace ml

@@ -181,7 +181,9 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"fix_ratio", (kDefaultGridUnits[0]) / (kDefaultGridUnits[1])},
     {"z", -3}, // stay on top of popups
     {"fixed_size", true},
-    {"fixed_bounds", { -16, -16, 16, 16 }}, // fixed size rect in system coords
+
+    // fixed size rect in system coords with (0, 0) at anchor
+    {"fixed_bounds", { -32, -32, 32, 32 }},
     {"anchor", {1, 1}} // for fixed-size widgets, anchor is a point on the view from top left {0, 0} to bottom right {1, 1}.
   });
 #endif

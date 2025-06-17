@@ -188,6 +188,8 @@ void View::draw(ml::DrawContext dc)
   {
     drawDirtyWidgets(dc);
   }
+
+
   setDirty(false);
 }
 
