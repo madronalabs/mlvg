@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
   appController.appView->makeWidgets(pdl);
   
   // attach view to parent window, allowing resizing
-  appController.platformView->attachViewToParent(PlatformView::kUseDeviceCoords);
+  appController.platformView->attachViewToParent();
   appController.watchForResize();
   appController.appView->startTimersAndActor();
 
