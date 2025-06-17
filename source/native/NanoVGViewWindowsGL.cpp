@@ -44,6 +44,35 @@ constexpr bool kDoubleBufferView{ true };
 
 static Vec2 pointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 
+Vec2 PlatformView::getPrimaryMonitorCenter()
+{
+    float x = GetSystemMetrics(SM_CXSCREEN);
+    float y = GetSystemMetrics(SM_CYSCREEN);
+    return Vec2{ x / 2, y / 2 };
+}
+
+float PlatformView::getDeviceScaleForWindow(void* parent, int /*platformFlags*/)
+{
+    HWND parentWindow = static_cast<HWND>(parent);
+    HMONITOR hMonitor = MonitorFromWindow(parentWindow, MONITOR_DEFAULTTONEAREST);
+    DEVICE_SCALE_FACTOR sf;
+    GetScaleFactorForMonitor(hMonitor, &sf);
+
+    return (float)sf / 100.f;
+}
+
+Rect PlatformView::getWindowRect(void* parent, int)
+{
+    RECT winRect;
+    HWND parentWindow = static_cast<HWND>(parent);
+    GetWindowRect(parentWindow, &winRect);
+    int x = winRect.left;
+    int y = winRect.top;
+    int x2 = winRect.right;
+    int y2 = winRect.bottom;
+    return ml::Rect(x, y, x2 - x, y2 - y);
+}
+
 static double getDpiScaleForWindow(void* parent)
 {
     DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
@@ -845,16 +874,19 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 
 // PlatformView
 
-Vec2 PlatformView::getPrimaryMonitorCenter()
-{
-    float x = GetSystemMetrics(SM_CXSCREEN);
-    float y = GetSystemMetrics(SM_CYSCREEN);
-    return Vec2{ x / 2, y / 2 };
-}
-
-
 PlatformView::PlatformView(const char* className, void* pParent, AppView* pView, void* platformHandle, int PlatformFlags, int fps)
 {
+    // set DPI awareness.
+    // NOTE: some docs state this must be done before making any windows.
+    // however it seems to be working for us here after making the SDL window.
+    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+        std::cout << "main: Process marked as Per Monitor DPI Aware v2 successfully.\n";
+    }
+    else {
+        std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;
+    }
+
+
     if (!pParent) return;
     _pImpl = std::make_unique< Impl >(className, pParent, pView, platformHandle, PlatformFlags, fps);
 }
