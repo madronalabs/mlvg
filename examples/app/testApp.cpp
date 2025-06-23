@@ -210,16 +210,7 @@ public:
 
 int main(int argc, char *argv[])
 {
-  // TODO make API for Windows if needed
-  /*
-    // set DPI awareness before making any windows.
-    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-        std::cout << "main: Process marked as Per Monitor DPI Aware v2 successfully.\n";
-    }
-    else {
-        std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;
-    }
-*/
+
   
   bool doneFlag{false};
   

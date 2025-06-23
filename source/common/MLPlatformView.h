@@ -35,8 +35,8 @@ public:
   // window / resolution helpers
   //
   static Vec2 getPrimaryMonitorCenter();
-  static float getDeviceScaleForWindow(void* pParent, int platformFlags);
-  static ml::Rect getWindowRect(void* pParent, int platformFlags);
+  static float getDeviceScaleForWindow(void* pParent, int platformFlags = 0);
+  static ml::Rect getWindowRect(void* pParent, int platformFlags = 0);
   
   // make a platform view to draw the application to the given parent window.
   // className: unique name of this app or plugin
