@@ -163,8 +163,9 @@ struct PlatformView::Impl
         instanceCount++;
         if (instanceCount == 1)
         {
-            WNDCLASS windowClass = {};
-            windowClass.style = CS_OWNDC;
+            WNDCLASSEX windowClass = {};
+            windowClass.cbSize = sizeof(WNDCLASSEX);
+            windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
             windowClass.lpfnWndProc = appWindowProc;
             windowClass.cbClsExtra = 0;
             windowClass.cbWndExtra = 0;
@@ -174,7 +175,7 @@ struct PlatformView::Impl
             windowClass.lpszMenuName = nullptr;
             windowClass.lpszClassName = className;
             windowClass.hbrBackground = NULL;
-            RegisterClass(&windowClass);
+            RegisterClassEx(&windowClass);
         }
     }
 
@@ -189,8 +190,11 @@ struct PlatformView::Impl
 
     static LRESULT CALLBACK appWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
+       // if (frame == nullptr)
+       //     return DefWindowProc(hwnd, message, wParam, lParam);
+
         LRESULT result{ 0 };
-        PlatformView::Impl* pImpl = (PlatformView::Impl*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+        PlatformView::Impl* pImpl = (PlatformView::Impl*)(LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
         switch (msg) {
         case WM_CREATE:
@@ -233,12 +237,12 @@ struct PlatformView::Impl
 
 // PlatformView::Impl implementation 
 
-PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps)
+PlatformView::Impl::Impl(const char* windowClassNameCStr, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps)
 {
     // store window class name for CreateWindowEx()
-    windowClassName_ = TextFragment(windowClassName);
+    windowClassName_ = TextFragment(windowClassNameCStr);
 
-    PlatformView::Impl::createWindowClass(windowClassName);
+    createWindowClass(windowClassNameCStr);
     InitializeCriticalSection(&drawLock_);
 
     parentPtr_ = (HWND)pParentWindow;
@@ -255,7 +259,7 @@ PlatformView::Impl::~Impl() noexcept
     destroyWindow();
 
     DeleteCriticalSection(&drawLock_);
-    PlatformView::Impl::destroyWindowClass(windowClassName_.getText());
+    destroyWindowClass(windowClassName_.getText());
 }
 
 bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds)
@@ -277,6 +281,11 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, m
         SetWindowLongPtr(windowHandle_, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
         newSystemSize_ = Vec2(w, h);
         newDpiScale_ = getDpiScaleForWindow(windowHandle_);
+       // ? newDpiScale_ = getDpiScaleForWindow(parentWindow);
+    }
+    else
+    {
+        return false;
     }
 
     // Get device context
@@ -291,10 +300,6 @@ bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, m
         printf("Failed to create OpenGL context\n");
         return -1;
     }
-
-    // setting these sizes will cause resize in resizeIfNeeded()
-    newSystemSize_ = Vec2(w, h);
-    newDpiScale_ = getDpiScaleForWindow(parentWindow);
 
     return true;
 }
