@@ -44,6 +44,19 @@ constexpr bool kDoubleBufferView{ true };
 
 static Vec2 pointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 
+void PlatformView::initPlatform()
+{
+    // set DPI awareness.
+    // NOTE: some docs state this must be done before making any windows.
+    // however it seems to be working for us here after making the SDL window.
+    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+        std::cout << "main: Process marked as Per Monitor DPI Aware v2 successfully.\n";
+    }
+    else {
+        std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;
+    }
+}
+
 Vec2 PlatformView::getPrimaryMonitorCenter()
 {
     float x = GetSystemMetrics(SM_CXSCREEN);
@@ -881,17 +894,6 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 
 PlatformView::PlatformView(const char* className, void* pParent, AppView* pView, void* platformHandle, int PlatformFlags, int fps)
 {
-    // set DPI awareness.
-    // NOTE: some docs state this must be done before making any windows.
-    // however it seems to be working for us here after making the SDL window.
-    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-        std::cout << "main: Process marked as Per Monitor DPI Aware v2 successfully.\n";
-    }
-    else {
-        std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;
-    }
-
-
     if (!pParent) return;
     _pImpl = std::make_unique< Impl >(className, pParent, pView, platformHandle, PlatformFlags, fps);
 }

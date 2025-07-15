@@ -32,8 +32,9 @@ public:
     kParentIsNSWindow = 1
   };
   
-  // window / resolution helpers
+  // static utilities
   //
+  static void initPlatform();
   static Vec2 getPrimaryMonitorCenter();
   static float getDeviceScaleForWindow(void* pParent, int platformFlags = 0);
   static ml::Rect getWindowRect(void* pParent, int platformFlags = 0);
