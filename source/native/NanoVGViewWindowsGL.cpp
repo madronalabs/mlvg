@@ -244,6 +244,8 @@ struct PlatformView::Impl
     void swapBuffers();
     void resizeIfNeeded();
 
+    void handlePaint();
+
     LRESULT handleMessage(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
 };
 
@@ -455,6 +457,11 @@ void PlatformView::Impl::resizeIfNeeded()
 
     if (newSystemSize_ != systemSize_)
     {
+
+        // TEMP
+        std::cout << "new system size: " << newSystemSize_ << "\n";
+
+
         systemSize_ = newSystemSize_;
         needsResize = true;
     }
@@ -567,8 +574,75 @@ void PlatformView::Impl::setMousePosition(Vec2 newPos)
     SetCursorPos(newPos.x(), newPos.y());
 }
 
+void PlatformView::Impl::handlePaint()
+{
+    // TEMP
+    static int frameCtr{ 0 };
+    std::cout << "paint " << frameCtr++ << " \n";
+
+    if (!windowHandle_) return;
+    if (!makeContextCurrent()) return;
+    appView_->animate(nvg_);
+    resizeIfNeeded();
+
+    size_t w = backingLayerSize_.x();
+    size_t h = backingLayerSize_.y();
+
+    PAINTSTRUCT paintStruct;
+    HDC dc = BeginPaint(windowHandle_, &paintStruct);
+
+    if (kDoubleBufferView)
+    {
+        if (!nvgBackingLayer_) return;
+        auto pBackingLayer = nvgBackingLayer_.get();
+        NVGpaint img = nvgImagePattern(nvg_, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
+
+        drawToImage(pBackingLayer);
+        nvgBeginFrame(nvg_, w, h, 1.0f);
+        appView_->render(nvg_);
+        nvgEndFrame(nvg_);
+
+        drawToImage(nullptr);
+        glViewport(0, 0, w, h);
+        glClearColor(0.f, 0.f, 0.f, 0.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        nvgBeginFrame(nvg_, w, h, 1.0f);
+        nvgSave(nvg_);
+        nvgResetTransform(nvg_);
+        nvgBeginPath(nvg_);
+        nvgRect(nvg_, 0, 0, w, h);
+        nvgFillPaint(nvg_, img);
+        nvgFill(nvg_);
+        nvgRestore(nvg_);
+        nvgEndFrame(nvg_);
+    }
+    else
+    {
+        drawToImage(nullptr);
+        glViewport(0, 0, w, h);
+        nvgBeginFrame(nvg_, w, h, 1.0f);
+
+        // set view dirty to redraw entire frame
+        appView_->setDirty(true);
+        appView_->render(nvg_);
+        nvgEndFrame(nvg_);
+    }
+
+    // Validate since we didn't use BeginPaint
+    //ValidateRect(hWnd, NULL);
+
+    EndPaint(windowHandle_, &paintStruct);
+
+
+    swapBuffers();
+
+
+    return;
+}
+
 LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+
     switch (msg)
     {
     case WM_CREATE:
@@ -582,6 +656,9 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
         SetFocus(hWnd);
         DragAcceptFiles(hWnd, true);
+
+        // TEST
+        ShowWindow(hWnd, SW_SHOW);
         
         return 0;
     }
@@ -595,6 +672,8 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         {
             // we invalidate the entire window and do our own update region handling.
             InvalidateRect(hWnd, NULL, false);
+
+            handlePaint();
         }
         return 0;
     }
@@ -615,54 +694,7 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
                                              
     case WM_PAINT:
     {
-        if (!makeContextCurrent()) return 0;
-        appView_->animate(nvg_);
-        resizeIfNeeded();
-
-        size_t w = backingLayerSize_.x();
-        size_t h = backingLayerSize_.y();
-
-        if (kDoubleBufferView)
-        {
-            if (!nvgBackingLayer_) return 0;
-            auto pBackingLayer = nvgBackingLayer_.get();
-            NVGpaint img = nvgImagePattern(nvg_, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
-
-            drawToImage(pBackingLayer);
-            nvgBeginFrame(nvg_, w, h, 1.0f);
-            appView_->render(nvg_);
-            nvgEndFrame(nvg_);
-
-            drawToImage(nullptr);
-            glViewport(0, 0, w, h);
-            glClearColor(0.f, 0.f, 0.f, 0.f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            nvgBeginFrame(nvg_, w, h, 1.0f);
-            nvgSave(nvg_);
-            nvgResetTransform(nvg_);
-            nvgBeginPath(nvg_);
-            nvgRect(nvg_, 0, 0, w, h);
-            nvgFillPaint(nvg_, img);
-            nvgFill(nvg_);
-            nvgRestore(nvg_);
-            nvgEndFrame(nvg_);
-        }
-        else
-        {
-            drawToImage(nullptr);
-            glViewport(0, 0, w, h);
-            nvgBeginFrame(nvg_, w, h, 1.0f);
-
-            // set view dirty to redraw entire frame
-            appView_->setDirty(true);
-            appView_->render(nvg_);
-            nvgEndFrame(nvg_);
-        }
-        swapBuffers();
-
-        // Validate since we didn't use BeginPaint
-        ValidateRect(hWnd, NULL);
-
+        handlePaint();
         return 0;
     }
 
