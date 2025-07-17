@@ -159,7 +159,7 @@ public:
   int createAppView(Rect defaultSize)
   {
     int r{1};
-    
+
     // make SDL window
     int windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
 #if !TEST_RESIZER
@@ -208,64 +208,61 @@ public:
   }
 };
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
+    bool doneFlag{ false };
+    PlatformView::initPlatform();
 
-  
-  bool doneFlag{false};
-  
-  ParameterDescriptionList pdl;
-  readParameterDescriptions(pdl);
+    ParameterDescriptionList pdl;
+    readParameterDescriptions(pdl);
 
-  // get window size in system coords
-  Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
-  Rect systemBoundsRect(0, 0, defaultSize.x(), defaultSize.y());
-  Vec2 screenCenter = PlatformView::getPrimaryMonitorCenter();
-  Rect systemDefaultRect = alignCenterToPoint(systemBoundsRect, screenCenter);
+    // get window size in system coords
+    Vec2 defaultSize = kDefaultGridUnits * kDefaultGridUnitSize;
+    Rect systemBoundsRect(0, 0, defaultSize.x(), defaultSize.y());
+    Vec2 screenCenter = PlatformView::getPrimaryMonitorCenter();
+    Rect systemDefaultRect = alignCenterToPoint(systemBoundsRect, screenCenter);
 
-  // make controller and get instance number. The Controller
-  // creates the ActorRegistry, allowing us to register other Actors.
-  TestAppController appController(getAppName(), pdl);
-  auto appInstanceNum = appController.getInstanceNum();
+    // make controller and get instance number. The Controller
+    // creates the ActorRegistry, allowing us to register other Actors.
+    TestAppController appController(getAppName(), pdl);
+    auto appInstanceNum = appController.getInstanceNum();
 
-  // make view and initialize drawing resources
-  if (!appController.createAppView(systemDefaultRect)) return 1;
-  appController.appView->makeWidgets(pdl);
-  
-  // attach view to parent window, allowing resizing
-  appController.platformView->attachViewToParent();
-  appController.watchForResize();
-  appController.appView->startTimersAndActor();
+    // make view and initialize drawing resources
+    if (!appController.createAppView(systemDefaultRect)) return 1;
+    appController.appView->makeWidgets(pdl);
 
-  // make Processor and register Actor
-  TestAppProcessor appProcessor;
-  AudioContext ctx(kInputChannels, kOutputChannels, kSampleRate);
-  AudioTask testAppTask(&ctx, processTestApp, &appProcessor);
-  
-  appProcessor.buildParams(pdl);
-  appProcessor.setDefaultParams();
-  appProcessor.start();
-  
-  TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(appInstanceNum));
-  registerActor(Path(processorName), &appProcessor);
+    // attach view to parent window, allowing resizing
+    appController.platformView->attachViewToParent();
+    appController.watchForResize();
+    appController.appView->startTimersAndActor();
 
-  // broadcast all params to update display
-  appController.broadcastParams();
-  
-  testAppTask.startAudio();
-  while(!doneFlag)
-  {
-    SDLAppLoop(appController.window, &doneFlag);
-  }
-  testAppTask.stopAudio();
-  
-  appProcessor.stop();
-  appController.appView->stop();
-  SDL_DestroyWindow(appController.window);
-  SDL_Quit();
-  return 0;
+    // make Processor and register Actor
+    TestAppProcessor appProcessor;
+    AudioContext ctx(kInputChannels, kOutputChannels, kSampleRate);
+    AudioTask testAppTask(&ctx, processTestApp, &appProcessor);
+
+    appProcessor.buildParams(pdl);
+    appProcessor.setDefaultParams();
+    appProcessor.start();
+
+    TextFragment processorName(getAppName(), "processor", ml::textUtils::naturalNumberToText(appInstanceNum));
+    registerActor(Path(processorName), &appProcessor);
+
+    // broadcast all params to update display
+    appController.broadcastParams();
+
+    testAppTask.startAudio();
+    while (!doneFlag)
+    {
+        SDLAppLoop(appController.window, &doneFlag);
+    }
+    testAppTask.stopAudio();
+
+    appProcessor.stop();
+    appController.appView->stop();
+    SDL_DestroyWindow(appController.window);
+    SDL_Quit();
+    return 0;
 }
-
-
 
 

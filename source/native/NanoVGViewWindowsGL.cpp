@@ -44,6 +44,19 @@ constexpr bool kDoubleBufferView{ true };
 
 static Vec2 pointToVec2(POINT p) { return Vec2{ float(p.x), float(p.y) }; }
 
+void PlatformView::initPlatform()
+{
+    // set DPI awareness.
+    // NOTE: some docs state this must be done before making any windows.
+    // however it seems to be working for us here after making the SDL window.
+    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+        std::cout << "main: Process marked as Per Monitor DPI Aware v2 successfully.\n";
+    }
+    else {
+        std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;
+    }
+}
+
 Vec2 PlatformView::getPrimaryMonitorCenter()
 {
     float x = GetSystemMetrics(SM_CXSCREEN);
@@ -163,8 +176,9 @@ struct PlatformView::Impl
         instanceCount++;
         if (instanceCount == 1)
         {
-            WNDCLASS windowClass = {};
-            windowClass.style = CS_OWNDC;
+            WNDCLASSEX windowClass = {};
+            windowClass.cbSize = sizeof(WNDCLASSEX);
+            windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
             windowClass.lpfnWndProc = appWindowProc;
             windowClass.cbClsExtra = 0;
             windowClass.cbWndExtra = 0;
@@ -174,7 +188,7 @@ struct PlatformView::Impl
             windowClass.lpszMenuName = nullptr;
             windowClass.lpszClassName = className;
             windowClass.hbrBackground = NULL;
-            RegisterClass(&windowClass);
+            RegisterClassEx(&windowClass);
         }
     }
 
@@ -190,7 +204,7 @@ struct PlatformView::Impl
     static LRESULT CALLBACK appWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         LRESULT result{ 0 };
-        PlatformView::Impl* pImpl = (PlatformView::Impl*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+        PlatformView::Impl* pImpl = (PlatformView::Impl*)(LONG_PTR)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
         switch (msg) {
         case WM_CREATE:
@@ -227,18 +241,21 @@ struct PlatformView::Impl
     void swapBuffers();
     void resizeIfNeeded();
 
+    void handlePaint();
+    void cleanup();
+
     LRESULT handleMessage(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
 };
 
 
 // PlatformView::Impl implementation 
 
-PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps)
+PlatformView::Impl::Impl(const char* windowClassNameCStr, void* pParentWindow, AppView* pView, void* platformHandle, int flags, int fps)
 {
     // store window class name for CreateWindowEx()
-    windowClassName_ = TextFragment(windowClassName);
+    windowClassName_ = TextFragment(windowClassNameCStr);
 
-    PlatformView::Impl::createWindowClass(windowClassName);
+    createWindowClass(windowClassNameCStr);
     InitializeCriticalSection(&drawLock_);
 
     parentPtr_ = (HWND)pParentWindow;
@@ -251,306 +268,13 @@ PlatformView::Impl::Impl(const char* windowClassName, void* pParentWindow, AppVi
 
 PlatformView::Impl::~Impl() noexcept
 {
-    destroyOpenGLContext();
-    destroyWindow();
-
-    DeleteCriticalSection(&drawLock_);
-    PlatformView::Impl::destroyWindowClass(windowClassName_.getText());
+    cleanup();
 }
 
-bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds)
-{
-    int w = bounds.width();
-    int h = bounds.height();
-
-    auto hInst = static_cast<HINSTANCE>(platformHandle);
-
-    // create child window of the parent we are passed.
-    // calls windowProc with WM_CREATE msg
-    windowHandle_ = CreateWindowEx(0, windowClassName_.getText(), TEXT("MLVG"),
-        WS_CHILD | WS_VISIBLE,
-        0, 0, w, h,
-        parentWindow, nullptr, hInst, nullptr); 
-  
-    if (windowHandle_)
-    {
-        SetWindowLongPtr(windowHandle_, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
-        newSystemSize_ = Vec2(w, h);
-        newDpiScale_ = getDpiScaleForWindow(windowHandle_);
-    }
-
-    // Get device context
-    deviceContext_ = GetDC(windowHandle_);
-    if (!deviceContext_) {
-        printf("GetDC failed\n");
-        return false;
-    }
-
-    // Create OpenGL context
-    if (!createOpenGLContext(windowHandle_)) {
-        printf("Failed to create OpenGL context\n");
-        return -1;
-    }
-
-    // setting these sizes will cause resize in resizeIfNeeded()
-    newSystemSize_ = Vec2(w, h);
-    newDpiScale_ = getDpiScaleForWindow(parentWindow);
-
-    return true;
-}
-
-// destroy our child window.
-void PlatformView::Impl::destroyWindow()
-{
-    destroyOpenGLContext();
-
-    if (deviceContext_)
-    {
-        ReleaseDC(windowHandle_, deviceContext_);
-        deviceContext_ = nullptr;
-    }
-    if (windowHandle_)
-    {
-        SetWindowLongPtr(windowHandle_, GWLP_USERDATA, (LONG_PTR)NULL);
-        DestroyWindow(windowHandle_);
-        windowHandle_ = nullptr;
-    }
-}
-
-bool PlatformView::Impl::createOpenGLContext(HWND hwnd) 
-{
-    // Setup pixel format
-    {
-        PIXELFORMATDESCRIPTOR pfd = {};
-
-        pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-        pfd.nVersion = 1;
-        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-        pfd.iPixelType = PFD_TYPE_RGBA;
-        pfd.cColorBits = 32;
-        pfd.cDepthBits = 24;
-
-        // get the device context's best, available pixel format match  
-        auto format = ChoosePixelFormat(deviceContext_, &pfd);
-
-        // make that match the device context's current pixel format  
-        if(!SetPixelFormat(deviceContext_, format, &pfd)) return false;
-    }
-
-    // Create OpenGL context
-    openGLContext_ = wglCreateContext(deviceContext_);
-    if (!openGLContext_) 
-    {
-        printf("wglCreateContext failed: %d\n", GetLastError());
-        return false;
-    }
-
-    // Make context current
-    if (!wglMakeCurrent(deviceContext_, openGLContext_)) 
-    {
-        printf("wglMakeCurrent failed: %d\n", GetLastError());
-        return false;
-    }
-
-    gladLoadGL();
-
-    nvg_ = nvgCreateGL3(NVG_ANTIALIAS);
-    if (!nvg_) return false;
-
-    return true;
-}
-
-void PlatformView::Impl::destroyOpenGLContext()
-{
-    if (nvg_)
-    {
-        nvgBackingLayer_ = nullptr;
-
-        // delete nanovg
-        lockContext();
-        makeContextCurrent();
-        nvgDeleteGL3(nvg_);
-        nvg_ = NULL;
-        unlockContext();
-    }
-
-    if (openGLContext_)
-    {
-        wglMakeCurrent(NULL, NULL);
-        wglDeleteContext(openGLContext_);
-        openGLContext_ = NULL;
-    }
-}
-
-void PlatformView::Impl::updatePlatformScaleMode()
-{
-    HMONITOR hMonitor = MonitorFromWindow(windowHandle_, MONITOR_DEFAULTTONEAREST);
-
-    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
-    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
-
-    if (dpiAwareness == DPI_AWARENESS_PER_MONITOR_AWARE)
-    {
-        platformScaleMode_ = kUseDeviceCoords;
-    }
-    else
-    {
-        platformScaleMode_ = kUseSystemCoords;
-    }
-}
-
-bool PlatformView::Impl::makeContextCurrent() const
-{
-    if (openGLContext_ && deviceContext_)
-    {
-        return wglMakeCurrent(deviceContext_, openGLContext_) ? true : false;
-    }
-    return false;
-}
-
-bool PlatformView::Impl::lockContext()
-{
-    EnterCriticalSection(&drawLock_);
-    return true;
-}
-
-bool PlatformView::Impl::unlockContext()
-{
-    LeaveCriticalSection(&drawLock_);
-    return true;
-}
-
-void PlatformView::Impl::updateDpiScale()
-{
-    if (windowHandle_)
-    {
-        newDpiScale_ = getDpiScaleForWindow(windowHandle_);
-    }
-}
-
-// NOTE: This implementation has a lot of extra logic and always ends up
-// setting a scale of 1.0. I'm leaving the extra logic here because
-// it's likely to be needed in the future. 
-void PlatformView::Impl::resizeIfNeeded()
-{
-    bool needsResize{ false };
-
-    if (newSystemSize_ != systemSize_)
-    {
-        systemSize_ = newSystemSize_;
-        needsResize = true;
-    }
-    if (newDpiScale_ != dpiScale_)
-    {
-        dpiScale_ = newDpiScale_;
-        needsResize = true;
-    }
-
-    if(needsResize)
-    {
-        switch (platformScaleMode_)
-        {
-        case kUseSystemCoords: // non-dpi-aware plugins
-            backingScale_ = 1.0f;
-            eventScale_ = 1.0f;
-            break;
-        case kUseDeviceCoords: // dpi-aware plugin, app
-            backingScale_ = 1.0f;
-            eventScale_ = 1.0f;
-            break;
-        default:
-            backingScale_ = 1.0f;
-            eventScale_ = 1.0f;
-            break;
-        }
-
-        backingLayerSize_ = systemSize_ * backingScale_;
-
-        // resize window, GL, nanovg  
-        if (windowHandle_)
-        {
-            long flags = SWP_NOZORDER | SWP_NOMOVE | SWP_NOCOPYBITS | SWP_NOACTIVATE;
-            lockContext();
-            makeContextCurrent();
-            SetWindowPos(windowHandle_, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags);
-
-            // resize main backing layer
-            if (nvg_)
-            {
-                nvgBackingLayer_ = std::make_unique< DrawableImage >(nvg_, backingLayerSize_.x(), backingLayerSize_.y());
-            }
-            unlockContext();
-        }
-
-        // notify the renderer
-        if (appView_)
-        {
-            appView_->viewResized(nvg_, backingLayerSize_, backingScale_);
-        }
-    }
-}
-
-void PlatformView::Impl::swapBuffers()
-{
-    if (deviceContext_)
-    {
-        wglMakeCurrent(deviceContext_, nullptr);
-        SwapBuffers(deviceContext_);
-    }
-}
-
-void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
-{
-    long x = GET_X_LPARAM(lParam);
-    long y = GET_Y_LPARAM(lParam);
-    POINT viewPos{ x, y };
-
-    POINT screenPos = viewPos;
-    ClientToScreen(windowHandle_, &screenPos);
-
-    vgEvent->screenPos = pointToVec2(screenPos);
-    vgEvent->position = pointToVec2(viewPos) * eventScale_;
-
-   //std::cout << "CLICK viewPos: [" << x << ", " << y << "] -> pos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
-}
-
-void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
-{
-    long x = GET_X_LPARAM(lParam);
-    long y = GET_Y_LPARAM(lParam);
-    POINT screenPos{ x, y };
-
-    POINT viewPos = screenPos;
-
-    ScreenToClient(windowHandle_, &viewPos);
-
-    vgEvent->screenPos = pointToVec2(screenPos);
-    vgEvent->position = pointToVec2(viewPos) * eventScale_;
-
-    //std::cout << "WHEEL screenPos: [" << x << ", " << y << "] -> viewPos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
-}
- 
-void PlatformView::Impl::convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
-{
-    uint32_t myFlags{ 0 };
-    bool shiftDown = (wParam & MK_SHIFT);
-
-    if (shiftDown)
-    {
-        myFlags |= shiftModifier;
-    }
-    vgEvent->keyFlags = myFlags;
-
-    // TODO remaining flags
-}
-
-void PlatformView::Impl::setMousePosition(Vec2 newPos)
-{
-    SetCursorPos(newPos.x(), newPos.y());
-}
 
 LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+
     switch (msg)
     {
     case WM_CREATE:
@@ -564,11 +288,12 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         UINT_PTR  err = SetTimer(hWnd, kTimerID, mSec, NULL);
         SetFocus(hWnd);
         DragAcceptFiles(hWnd, true);
-        
+        ShowWindow(hWnd, SW_SHOW);
         return 0;
     }
     case WM_DESTROY:
     {
+        cleanup();
         break;
     }
     case WM_TIMER:
@@ -577,6 +302,7 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         {
             // we invalidate the entire window and do our own update region handling.
             InvalidateRect(hWnd, NULL, false);
+            handlePaint();
         }
         return 0;
     }
@@ -584,7 +310,7 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
     {
         return 0;
     }
-    
+
     case WM_DPICHANGED:
     {
         UINT dpi = HIWORD(wParam);
@@ -594,57 +320,10 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
         InvalidateRect(windowHandle_, NULL, false);
         return 0;
     }
-                                             
+
     case WM_PAINT:
     {
-        if (!makeContextCurrent()) return 0;
-        appView_->animate(nvg_);
-        resizeIfNeeded();
-
-        size_t w = backingLayerSize_.x();
-        size_t h = backingLayerSize_.y();
-
-        if (kDoubleBufferView)
-        {
-            if (!nvgBackingLayer_) return 0;
-            auto pBackingLayer = nvgBackingLayer_.get();
-            NVGpaint img = nvgImagePattern(nvg_, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
-
-            drawToImage(pBackingLayer);
-            nvgBeginFrame(nvg_, w, h, 1.0f);
-            appView_->render(nvg_);
-            nvgEndFrame(nvg_);
-
-            drawToImage(nullptr);
-            glViewport(0, 0, w, h);
-            glClearColor(0.f, 0.f, 0.f, 0.f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            nvgBeginFrame(nvg_, w, h, 1.0f);
-            nvgSave(nvg_);
-            nvgResetTransform(nvg_);
-            nvgBeginPath(nvg_);
-            nvgRect(nvg_, 0, 0, w, h);
-            nvgFillPaint(nvg_, img);
-            nvgFill(nvg_);
-            nvgRestore(nvg_);
-            nvgEndFrame(nvg_);
-        }
-        else
-        {
-            drawToImage(nullptr);
-            glViewport(0, 0, w, h);
-            nvgBeginFrame(nvg_, w, h, 1.0f);
-
-            // set view dirty to redraw entire frame
-            appView_->setDirty(true);
-            appView_->render(nvg_);
-            nvgEndFrame(nvg_);
-        }
-        swapBuffers();
-
-        // Validate since we didn't use BeginPaint
-        ValidateRect(hWnd, NULL);
-
+        handlePaint();
         return 0;
     }
 
@@ -872,26 +551,377 @@ LRESULT PlatformView::Impl::handleMessage(HWND hWnd, UINT msg, WPARAM wParam, LP
 
 
 
+bool PlatformView::Impl::createWindow(HWND parentWindow, void* platformHandle, ml::Rect bounds)
+{
+    int w = bounds.width();
+    int h = bounds.height();
+
+    auto hInst = static_cast<HINSTANCE>(platformHandle);
+
+    // create child window of the parent we are passed.
+    // calls windowProc with WM_CREATE msg
+    windowHandle_ = CreateWindowEx(0, windowClassName_.getText(), TEXT("MLVG"),
+        WS_CHILD | WS_VISIBLE,
+        0, 0, w, h,
+        parentWindow, nullptr, hInst, nullptr);
+
+    if (windowHandle_)
+    {
+        SetWindowLongPtr(windowHandle_, GWLP_USERDATA, (__int3264)(LONG_PTR)this);
+        newSystemSize_ = Vec2(w, h);
+        newDpiScale_ = getDpiScaleForWindow(windowHandle_);
+        // ? newDpiScale_ = getDpiScaleForWindow(parentWindow);
+    }
+    else
+    {
+        return false;
+    }
+
+    // Get device context
+    deviceContext_ = GetDC(windowHandle_);
+    if (!deviceContext_) {
+        printf("GetDC failed\n");
+        return false;
+    }
+
+    // Create OpenGL context
+    if (!createOpenGLContext(windowHandle_)) {
+        printf("Failed to create OpenGL context\n");
+        return -1;
+    }
+
+    return true;
+}
+
+// destroy our child window.
+void PlatformView::Impl::destroyWindow()
+{
+    destroyOpenGLContext();
+
+    if (deviceContext_)
+    {
+        ReleaseDC(windowHandle_, deviceContext_);
+        deviceContext_ = nullptr;
+    }
+    if (windowHandle_)
+    {
+        SetWindowLongPtr(windowHandle_, GWLP_USERDATA, (LONG_PTR)NULL);
+        DestroyWindow(windowHandle_);
+        windowHandle_ = nullptr;
+    }
+}
+
+bool PlatformView::Impl::createOpenGLContext(HWND hwnd)
+{
+    // Setup pixel format
+    {
+        PIXELFORMATDESCRIPTOR pfd = {};
+
+        pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+        pfd.nVersion = 1;
+        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd.iPixelType = PFD_TYPE_RGBA;
+        pfd.cColorBits = 32;
+        pfd.cDepthBits = 24;
+
+        // get the device context's best, available pixel format match  
+        auto format = ChoosePixelFormat(deviceContext_, &pfd);
+
+        // make that match the device context's current pixel format  
+        if (!SetPixelFormat(deviceContext_, format, &pfd)) return false;
+    }
+
+    // Create OpenGL context
+    openGLContext_ = wglCreateContext(deviceContext_);
+    if (!openGLContext_)
+    {
+        printf("wglCreateContext failed: %d\n", GetLastError());
+        return false;
+    }
+
+    // Make context current
+    if (!wglMakeCurrent(deviceContext_, openGLContext_))
+    {
+        printf("wglMakeCurrent failed: %d\n", GetLastError());
+        return false;
+    }
+
+    gladLoadGL();
+
+    nvg_ = nvgCreateGL3(NVG_ANTIALIAS);
+    if (!nvg_) return false;
+
+    return true;
+}
+
+void PlatformView::Impl::destroyOpenGLContext()
+{
+    if (nvg_)
+    {
+        nvgBackingLayer_ = nullptr;
+
+        // delete nanovg
+        lockContext();
+        makeContextCurrent();
+        nvgDeleteGL3(nvg_);
+        nvg_ = NULL;
+        unlockContext();
+    }
+
+    if (openGLContext_)
+    {
+        wglMakeCurrent(NULL, NULL);
+        wglDeleteContext(openGLContext_);
+        openGLContext_ = NULL;
+    }
+}
+
+void PlatformView::Impl::updatePlatformScaleMode()
+{
+    HMONITOR hMonitor = MonitorFromWindow(windowHandle_, MONITOR_DEFAULTTONEAREST);
+
+    DPI_AWARENESS_CONTEXT dpiAwarenessContext = GetThreadDpiAwarenessContext();
+    DPI_AWARENESS dpiAwareness = GetAwarenessFromDpiAwarenessContext(dpiAwarenessContext);
+
+    if (dpiAwareness == DPI_AWARENESS_PER_MONITOR_AWARE)
+    {
+        platformScaleMode_ = kUseDeviceCoords;
+    }
+    else
+    {
+        platformScaleMode_ = kUseSystemCoords;
+    }
+}
+
+bool PlatformView::Impl::makeContextCurrent() const
+{
+    if (openGLContext_ && deviceContext_)
+    {
+        return wglMakeCurrent(deviceContext_, openGLContext_) ? true : false;
+    }
+    return false;
+}
+
+bool PlatformView::Impl::lockContext()
+{
+    EnterCriticalSection(&drawLock_);
+    return true;
+}
+
+bool PlatformView::Impl::unlockContext()
+{
+    LeaveCriticalSection(&drawLock_);
+    return true;
+}
+
+void PlatformView::Impl::updateDpiScale()
+{
+    if (windowHandle_)
+    {
+        newDpiScale_ = getDpiScaleForWindow(windowHandle_);
+    }
+}
+
+// NOTE: This implementation has a lot of extra logic and always ends up
+// setting a scale of 1.0. I'm leaving the extra logic here because
+// it's likely to be needed in the future. 
+void PlatformView::Impl::resizeIfNeeded()
+{
+    bool needsResize{ false };
+
+    if (newSystemSize_ != systemSize_)
+    {
+        needsResize = true;
+    }
+    if (newDpiScale_ != dpiScale_)
+    {
+        needsResize = true;
+    }
+
+    if (needsResize)
+    {
+        // use newSystemSize_ and newDpiScale_ values to resize view and backing store
+        switch (platformScaleMode_)
+        {
+        case kUseSystemCoords: // non-dpi-aware plugins
+            backingScale_ = 1.0f;
+            eventScale_ = 1.0f;
+            break;
+        case kUseDeviceCoords: // dpi-aware plugin, app
+            backingScale_ = 1.0f;
+            eventScale_ = 1.0f;
+            break;
+        default:
+            backingScale_ = 1.0f;
+            eventScale_ = 1.0f;
+            break;
+        }
+
+        backingLayerSize_ = newSystemSize_ * backingScale_;
+
+        // resize window, GL, nanovg  
+        if (windowHandle_)
+        {
+            long flags = SWP_NOZORDER | SWP_NOMOVE | SWP_NOCOPYBITS | SWP_NOACTIVATE;
+            lockContext();
+            makeContextCurrent();
+            SetWindowPos(windowHandle_, NULL, 0, 0, backingLayerSize_.x(), backingLayerSize_.y(), flags);
+
+            // resize main backing layer
+            if (nvg_)
+            {
+                nvgBackingLayer_ = std::make_unique< DrawableImage >(nvg_, backingLayerSize_.x(), backingLayerSize_.y());
+            }
+            unlockContext();
+        }
+
+        // notify the renderer
+        if (appView_)
+        {
+            appView_->viewResized(nvg_, backingLayerSize_, backingScale_);
+        }
+
+        // change current size and scale 
+        systemSize_ = newSystemSize_;
+        dpiScale_ = newDpiScale_;
+    }
+}
+
+void PlatformView::Impl::swapBuffers()
+{
+    if (deviceContext_)
+    {
+        wglMakeCurrent(deviceContext_, nullptr);
+        SwapBuffers(deviceContext_);
+    }
+}
+
+void PlatformView::Impl::convertEventPositions(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
+{
+    long x = GET_X_LPARAM(lParam);
+    long y = GET_Y_LPARAM(lParam);
+    POINT viewPos{ x, y };
+
+    POINT screenPos = viewPos;
+    ClientToScreen(windowHandle_, &screenPos);
+
+    vgEvent->screenPos = pointToVec2(screenPos);
+    vgEvent->position = pointToVec2(viewPos) * eventScale_;
+
+    //std::cout << "CLICK viewPos: [" << x << ", " << y << "] -> pos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
+}
+
+void PlatformView::Impl::convertEventPositionsFromScreen(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
+{
+    long x = GET_X_LPARAM(lParam);
+    long y = GET_Y_LPARAM(lParam);
+    POINT screenPos{ x, y };
+
+    POINT viewPos = screenPos;
+
+    ScreenToClient(windowHandle_, &viewPos);
+
+    vgEvent->screenPos = pointToVec2(screenPos);
+    vgEvent->position = pointToVec2(viewPos) * eventScale_;
+
+    //std::cout << "WHEEL screenPos: [" << x << ", " << y << "] -> viewPos: " << vgEvent->position << " screen: " << vgEvent->screenPos << " \n";
+}
+
+void PlatformView::Impl::convertEventFlags(WPARAM wParam, LPARAM lParam, GUIEvent* vgEvent)
+{
+    uint32_t myFlags{ 0 };
+    bool shiftDown = (wParam & MK_SHIFT);
+
+    if (shiftDown)
+    {
+        myFlags |= shiftModifier;
+    }
+    vgEvent->keyFlags = myFlags;
+
+    // TODO remaining flags
+}
+
+void PlatformView::Impl::setMousePosition(Vec2 newPos)
+{
+    SetCursorPos(newPos.x(), newPos.y());
+}
+
+void PlatformView::Impl::handlePaint()
+{
+    if (!windowHandle_) return;
+    if (!makeContextCurrent()) return;
+    appView_->animate(nvg_);
+    resizeIfNeeded();
+
+    size_t w = backingLayerSize_.x();
+    size_t h = backingLayerSize_.y();
+
+    if (kDoubleBufferView)
+    {
+        if (!nvgBackingLayer_) return;
+        auto pBackingLayer = nvgBackingLayer_.get();
+        NVGpaint img = nvgImagePattern(nvg_, 0, 0, w, h, 0, pBackingLayer->_buf->image, 1.0f);
+
+        drawToImage(pBackingLayer);
+        nvgBeginFrame(nvg_, w, h, 1.0f);
+        appView_->render(nvg_);
+        nvgEndFrame(nvg_);
+
+        drawToImage(nullptr);
+        glViewport(0, 0, w, h);
+        glClearColor(0.f, 0.f, 0.f, 0.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        nvgBeginFrame(nvg_, w, h, 1.0f);
+        nvgSave(nvg_);
+        nvgResetTransform(nvg_);
+        nvgBeginPath(nvg_);
+        nvgRect(nvg_, 0, 0, w, h);
+        nvgFillPaint(nvg_, img);
+        nvgFill(nvg_);
+        nvgRestore(nvg_);
+        nvgEndFrame(nvg_);
+    }
+    else
+    {
+        drawToImage(nullptr);
+        glViewport(0, 0, w, h);
+        nvgBeginFrame(nvg_, w, h, 1.0f);
+
+        // set view dirty to redraw entire frame
+        appView_->setDirty(true);
+        appView_->render(nvg_);
+        nvgEndFrame(nvg_);
+    }
+
+    // Validate since we didn't use BeginPaint
+    ValidateRect(windowHandle_, NULL);
+
+    swapBuffers();
+
+    return;
+}
+
+
+void PlatformView::Impl::cleanup() 
+{
+    destroyOpenGLContext();
+    destroyWindow();
+
+    DeleteCriticalSection(&drawLock_);
+    destroyWindowClass(windowClassName_.getText());
+}
+
+
+
 // PlatformView
 
 PlatformView::PlatformView(const char* className, void* pParent, AppView* pView, void* platformHandle, int PlatformFlags, int fps)
 {
-    // set DPI awareness.
-    // NOTE: some docs state this must be done before making any windows.
-    // however it seems to be working for us here after making the SDL window.
-    if (SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
-        std::cout << "main: Process marked as Per Monitor DPI Aware v2 successfully.\n";
-    }
-    else {
-        std::cerr << "Failed to set DPI awareness. Error: " << GetLastError() << std::endl;
-    }
-
-
     if (!pParent) return;
     _pImpl = std::make_unique< Impl >(className, pParent, pView, platformHandle, PlatformFlags, fps);
 }
 
-PlatformView::~PlatformView() 
+PlatformView::~PlatformView()
 {
 
 }
