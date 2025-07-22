@@ -3,17 +3,11 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
-#define NS_PRIVATE_IMPLEMENTATION
-#define MTL_PRIVATE_IMPLEMENTATION
-#define MTK_PRIVATE_IMPLEMENTATION
-#define CA_PRIVATE_IMPLEMENTATION
-
 #include <Metal/Metal.hpp>
 #include <MetalKit/MetalKit.hpp>
 
 #include "MLVGView.h"
 #include "MLRenderer.h"
-
 
 class MetalNanoVGRenderer
 {

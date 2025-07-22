@@ -4,6 +4,27 @@
 // This software is provided 'as-is', without any express or implied warranty.
 // See LICENSE.txt for details.
 
+// currently colliding Obj-C symbols:
+// MNVGbuffers
+// MNVGcontext
+// MNVGtexture
+// MyMTKView
+// MetalNanoVGRenderer
+
+// add OBJC_WRAPPER_PREFIX to the @interface names to prevent runtime collisions
+// between different applications including this code as source. If used as a library,
+// there may be different implementations in the Obj-C namespace and which one is
+// used will be undefined. 
+//
+#define JOIN_2(a, b) a ## b
+#define JOIN(item1, item2)  JOIN_2 (item1, item2)
+#ifndef OBJC_WRAPPER_PREFIX
+#define OBJC_WRAPPER_PREFIX UNDEFINED_PREFIX_
+#endif
+#define ADD_PREFIX(NAME)  JOIN(OBJC_WRAPPER_PREFIX, NAME)
+//
+#define MyMTKView ADD_PREFIX(MyMTKView)
+#define MetalNanoVGRenderer ADD_PREFIX(MetalNanoVGRenderer)
 
 #include "nanovg.h"
 #include "nanovg_mtl.h"
@@ -678,6 +699,11 @@ PlatformView::~PlatformView()
     [_pImpl->_mtkView removeFromSuperviewWithoutNeedingDisplay];
     _pImpl->_mtkView = nullptr;
   }
+}
+
+void PlatformView::initPlatform()
+{
+
 }
 
 void PlatformView::attachViewToParent()

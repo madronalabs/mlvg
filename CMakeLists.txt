@@ -249,7 +249,6 @@ add_subdirectory(${MLVG_SOURCE_DIR}/external/filesystem)
 if(APPLE)
   set(MLVG_SOURCES_NATIVE
     ${MLVG_SOURCE_DIR}/native/MLFilesMac.mm
-    ${MLVG_SOURCE_DIR}/native/NanoVGViewMacGL.mm
     ${MLVG_SOURCE_DIR}/native/NanoVGViewMacMetal.mm
    )
 elseif(WIN32)

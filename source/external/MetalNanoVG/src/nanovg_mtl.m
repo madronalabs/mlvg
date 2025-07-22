@@ -21,22 +21,6 @@
 // ---
 // Author: olliwang@ollix.com (Olli Wang)
 
-// add OBJC_WRAPPER_PREFIX to the @interface names to prevent runtime collisions
-// between different applications statically linking this source code or including it directly.
-//
-#define JOIN_2(a, b) a ## b
-#define JOIN(item1, item2)  JOIN_2 (item1, item2)
-#ifndef OBJC_WRAPPER_PREFIX
-#define OBJC_WRAPPER_PREFIX UNDEFINED_PREFIX_
-#endif
-#define ADD_PREFIX(NAME)  JOIN(OBJC_WRAPPER_PREFIX, NAME)
-//
-//#define MNVGtexture ADD_PREFIX(MNVGtexture)
-//#define MNVGbuffers ADD_PREFIX(MNVGbuffers)
-//#define MNVGcontext ADD_PREFIX(MNVGcontext)
-// MyMTKView
-// MetalNanoVGRenderer
-
 #include "nanovg_mtl.h"
 
 #include <math.h>

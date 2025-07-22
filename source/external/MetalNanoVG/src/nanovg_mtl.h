@@ -24,6 +24,24 @@
 #ifndef NANOVG_MTL_H_
 #define NANOVG_MTL_H_
 
+
+// add OBJC_WRAPPER_PREFIX to the @interface names to prevent runtime collisions
+// between different applications including this code as source. If used as a library,
+// there may be different implementations in the Obj-C namespace and which one is
+// used will be undefined.
+//
+#define JOIN_2(a, b) a ## b
+#define JOIN(item1, item2)  JOIN_2 (item1, item2)
+#ifndef OBJC_WRAPPER_PREFIX
+#define OBJC_WRAPPER_PREFIX UNDEFINED_PREFIX_
+#endif
+#define ADD_PREFIX(NAME)  JOIN(OBJC_WRAPPER_PREFIX, NAME)
+//
+#define MNVGtexture ADD_PREFIX(MNVGtexture)
+#define MNVGbuffers ADD_PREFIX(MNVGbuffers)
+#define MNVGcontext ADD_PREFIX(MNVGcontext)
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
