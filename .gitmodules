@@ -4,3 +4,21 @@
 [submodule "source/external/osdialog"]
 	path = source/external/osdialog
 	url = https://github.com/madronalabs/osdialog
+[submodule "source/external/clap"]
+	path = source/external/clap
+	url = https://github.com/free-audio/clap.git
+[submodule "source/external/clap-helpers"]
+	path = source/external/clap-helpers
+	url = https://github.com/free-audio/clap-helpers.git
+[submodule "source/external/readerwriterqueue"]
+	path = source/external/readerwriterqueue
+	url = https://github.com/cameron314/readerwriterqueue.git
+[submodule "examples/clap-plugin/tools/clap-validator"]
+	path = examples/clap-plugin/tools/clap-validator
+	url = https://github.com/free-audio/clap-validator.git
+[submodule "examples/clap-plugin/tools/clap-host"]
+	path = examples/clap-plugin/tools/clap-host
+	url = https://github.com/free-audio/clap-host.git
+[submodule "examples/clap-plugin/tools/clap-info"]
+	path = examples/clap-plugin/tools/clap-info
+	url = https://github.com/free-audio/clap-info.git
