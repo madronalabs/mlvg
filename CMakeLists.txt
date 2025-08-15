@@ -549,7 +549,6 @@ if(BUILD_CLAP_EXAMPLE)
     # Add CLAP dependencies
     add_subdirectory(source/external/clap EXCLUDE_FROM_ALL)
     add_subdirectory(source/external/clap-helpers EXCLUDE_FROM_ALL)
-    add_subdirectory(source/external/readerwriterqueue EXCLUDE_FROM_ALL)
     
     # Create the plugin library
     add_library(${target} MODULE ${clap_plugin_sources})
@@ -570,7 +569,7 @@ if(BUILD_CLAP_EXAMPLE)
     endif()
     
     # Link libraries
-    target_link_libraries(${target} PRIVATE readerwriterqueue clap clap-helpers)
+    target_link_libraries(${target} PRIVATE clap clap-helpers)
     
     # Add madronalib
     target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR})
