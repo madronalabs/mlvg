@@ -74,9 +74,7 @@ private:
   // when AppController is made, we have an ActorRegistry.
   // without this, we can't register Actors!
   SharedResourcePointer< ActorRegistry > _actorRegistry ;
-
   
   // an index to file trees
   Tree< std::unique_ptr< FileTree > > _fileTreeIndex;
-  
 };

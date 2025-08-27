@@ -134,8 +134,6 @@ void AppController::onMessage(Message m)
           // save in our ParameterTree
           params.setFromNormalizedValue(whatParam, m.value);
           broadcastParam(whatParam, m.flags);
-
-
           break;
         }
       }

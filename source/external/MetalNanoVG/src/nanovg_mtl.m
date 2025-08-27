@@ -48,7 +48,6 @@
 #  define MNVG_INVALID_TARGET
 #endif
 
-
 typedef enum MNVGvertexInputIndex {
   MNVG_VERTEX_INPUT_INDEX_VERTICES = 0,
   MNVG_VERTEX_INPUT_INDEX_VIEW_SIZE = 1,
