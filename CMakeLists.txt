@@ -452,6 +452,8 @@ if(BUILD_SDL2_APP)
     target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
     if(APPLE)
         # to use the SDL2 framework in /Library/Frameworks, do this:
+        # Obtain the .dmg file containing the SDL2 development libraries for macOS from the official SDL website.
+        # Open the downloaded .dmg file, which will reveal the SDL2.framework bundle. Copy the bundle into the /Library/Frameworks directory.
         set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "/Library/Frameworks")
         find_package(SDL2 REQUIRED COMPONENTS SDL2)
                 
