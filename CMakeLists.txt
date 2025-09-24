@@ -23,7 +23,7 @@ cmake_policy(SET CMP0177 NEW)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
  
   IF(APPLE)
-   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X")
    SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
   ENDIF(APPLE)
 
@@ -451,12 +451,39 @@ if(BUILD_SDL2_APP)
     # find SDL headers and libraries
     target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
     if(APPLE)
-        # to use the SDL2 framework in /Library/Frameworks, do this:
-        # Obtain the .dmg file containing the SDL2 development libraries for macOS from the official SDL website.
-        # Open the downloaded .dmg file, which will reveal the SDL2.framework bundle. Copy the bundle into the /Library/Frameworks directory.
-        set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "/Library/Frameworks")
-        find_package(SDL2 REQUIRED COMPONENTS SDL2)
-                
+        # Try to find SDL2 via Homebrew first, then fall back to framework
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(SDL2 QUIET sdl2)
+        endif()
+        
+        if(NOT SDL2_FOUND)
+            # Fall back to framework approach
+            set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "/Library/Frameworks")
+            find_package(SDL2 QUIET COMPONENTS SDL2)
+            if(SDL2_FOUND)
+                message(STATUS "Found SDL2 framework")
+            else()
+                # Try Homebrew as final fallback
+                message(STATUS "SDL2 framework not found, trying Homebrew...")
+                if(EXISTS "/opt/homebrew/include/SDL2/SDL.h")
+                    set(SDL2_INCLUDE_DIRS "/opt/homebrew/include/SDL2")
+                    set(SDL2_LIBRARIES "/opt/homebrew/lib/libSDL2.dylib")
+                    set(SDL2MAIN_LIBRARY "/opt/homebrew/lib/libSDL2main.a")
+                    set(SDL2_FOUND FALSE)  # Mark as not framework
+                    message(STATUS "Using Homebrew SDL2")
+                else()
+                    message(FATAL_ERROR "SDL2 not found. Please install SDL2 framework to /Library/Frameworks/ or install via Homebrew")
+                endif()
+            endif()
+        else()
+            # Use Homebrew SDL2 from pkg-config
+            set(SDL2_INCLUDE_DIRS ${SDL2_INCLUDE_DIRS})
+            set(SDL2_LIBRARIES ${SDL2_LIBRARIES})
+            set(SDL2_LIBRARY_DIRS ${SDL2_LIBRARY_DIRS})
+            set(SDL2_FOUND FALSE)  # Mark as not framework
+            message(STATUS "Using Homebrew SDL2 from pkg-config")
+        endif()
         
     elseif(WIN32)
         # it seems like there's no standard place to put the SDL dev tools on Windows.
@@ -514,9 +541,18 @@ if(BUILD_SDL2_APP)
     # add UI libs and frameworks- note that these appear under
     # "other linker flags" in XCode and not in its file browser
     if(APPLE)
-        target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
-            "-framework CoreAudio" "-framework CoreServices"
-            "-framework AppKit" "-framework SDL2" )
+        if(SDL2_FOUND)
+            # Use framework SDL2
+            target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+                "-framework CoreAudio" "-framework CoreServices"
+                "-framework AppKit" "-framework SDL2" )
+        else()
+            # Use Homebrew SDL2
+            target_link_directories(${target} PRIVATE ${SDL2_LIBRARY_DIRS})
+            target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+                "-framework CoreAudio" "-framework CoreServices"
+                "-framework AppKit" ${SDL2_LIBRARIES} ${SDL2MAIN_LIBRARY} )
+        endif()
     elseif(WIN32)
         find_package(OpenGL REQUIRED)
         target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
@@ -617,6 +653,28 @@ if(BUILD_CLAP_EXAMPLE)
     else()
         target_compile_definitions(${target} PRIVATE IS_WIN=1)
         set_target_properties(${target} PROPERTIES SUFFIX ".clap" PREFIX "")
+    endif()
+    
+    # Install target for CLAP plugin
+    if(APPLE)
+        # Install to system CLAP directory on macOS
+        install(TARGETS ${target}
+            BUNDLE DESTINATION /Library/Audio/Plug-Ins/CLAP
+            LIBRARY DESTINATION /Library/Audio/Plug-Ins/CLAP
+        )
+        message(STATUS "CLAP plugin will be installed to /Library/Audio/Plug-Ins/CLAP/")
+    elseif(UNIX)
+        # Install to system CLAP directory on Linux
+        install(TARGETS ${target}
+            LIBRARY DESTINATION /usr/lib/clap
+        )
+        message(STATUS "CLAP plugin will be installed to /usr/lib/clap/")
+    else()
+        # Install to system CLAP directory on Windows
+        install(TARGETS ${target}
+            RUNTIME DESTINATION "C:/Program Files/Common/CLAP"
+        )
+        message(STATUS "CLAP plugin will be installed to C:/Program Files/Common/CLAP/")
     endif()
     
     # Testing infrastructure
