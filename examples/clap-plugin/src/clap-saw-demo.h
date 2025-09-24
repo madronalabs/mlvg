@@ -7,6 +7,10 @@ class ClapSawDemoGUI;
 #endif
 
 class ClapSawDemo : public ml::CLAPSignalProcessor<> {
+public:
+  // Required constants for CLAP plugin
+  static constexpr int kNumVoices = 16;
+  
 private:
   // the AudioContext's EventsToSignals handles state
   ml::AudioContext* audioContext = nullptr;  // Set by wrapper
@@ -17,7 +21,7 @@ private:
     ml::Lopass mLoPass;
     ml::ADSR mADSR;
   };
-  std::array<VoiceDSP, 16> voiceDSP;
+  std::array<VoiceDSP, kNumVoices> voiceDSP;
 
   // Simple voice activity tracking for CLAP
   int activeVoiceCount = 0;
@@ -29,10 +33,12 @@ public:
   ~ClapSawDemo() = default;
 
   // SignalProcessor interface
-  void setSampleRate(double sr);
+  void setSampleRate(double sr) override;
   void buildParameterDescriptions();
 
-  void processAudioContext();
+  // Required processVector method for CLAP
+  void processVector(const ml::DSPVectorDynamic& inputs, ml::DSPVectorDynamic& outputs, void* stateData = nullptr) override;
+
   void setAudioContext(ml::AudioContext* ctx) { audioContext = ctx; }
 
   // Voice activity for CLAP sleep/continue
@@ -45,5 +51,5 @@ public:
 
 private:
   // Helper methods go here
-  ml::DSPVector processVoice(int voiceIndex, ml::EventsToSignals::Voice& voice);
+  ml::DSPVector processVoice(int voiceIndex, ml::EventsToSignals::Voice& voice, ml::AudioContext* audioContext);
 };
