@@ -346,6 +346,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
   bool kShowDirtyWidgets = dc.pProperties->getBoolPropertyWithDefault("draw_dirty_widgets", false);
   if(kShowDirtyWidgets)
   {
+    // every 32 frames
     if ((_frameCounter&0x1F) == 0)
     {
       if(getBoolPropertyWithDefault("draw_background", true))
@@ -357,7 +358,7 @@ void View::drawDirtyWidgets(ml::DrawContext dc)
       return;
     }
   }
-  
+
   std::vector< WidgetGroup > widgetGroups;
   
   // clear needsDraw flags
