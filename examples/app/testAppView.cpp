@@ -183,7 +183,7 @@ void TestAppView::makeWidgets(const ParameterDescriptionList& pdl)
     {"fixed_size", true},
 
     // fixed size rect in system coords with (0, 0) at anchor
-    {"fixed_bounds", { -32, -32, 32, 32 }},
+    {"fixed_bounds", { -16, -16, 16, 16 }},
     {"anchor", {1, 1}} // for fixed-size widgets, anchor is a point on the view from top left {0, 0} to bottom right {1, 1}.
   });
 #endif
