@@ -16,13 +16,14 @@
 # set min version and deployment target -- before project
 #--------------------------------------------------------------------
     
- cmake_minimum_required (VERSION 3.5)
+ cmake_minimum_required(VERSION 3.10)
     
+cmake_policy(SET CMP0177 NEW)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
  
   IF(APPLE)
-   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+   SET(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for Mac OS X")
    SET(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
   ENDIF(APPLE)
 
@@ -42,6 +43,7 @@ set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 option(BUILD_SDL2_APP "Build SDL2 example app" ON)
 option(BUILD_TESTS "Build the tests" ON)
+option(BUILD_CLAP_EXAMPLE "Build CLAP plugin example" OFF)
 
  #--------------------------------------------------------------------
  # Compiler flags
@@ -449,12 +451,39 @@ if(BUILD_SDL2_APP)
     # find SDL headers and libraries
     target_compile_definitions(${target} PRIVATE ML_INCLUDE_SDL=1)
     if(APPLE)
-        # to use the SDL2 framework in /Library/Frameworks, do this:
-        # Obtain the .dmg file containing the SDL2 development libraries for macOS from the official SDL website.
-        # Open the downloaded .dmg file, which will reveal the SDL2.framework bundle. Copy the bundle into the /Library/Frameworks directory.
-        set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "/Library/Frameworks")
-        find_package(SDL2 REQUIRED COMPONENTS SDL2)
-                
+        # Try to find SDL2 via Homebrew first, then fall back to framework
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(SDL2 QUIET sdl2)
+        endif()
+        
+        if(NOT SDL2_FOUND)
+            # Fall back to framework approach
+            set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "/Library/Frameworks")
+            find_package(SDL2 QUIET COMPONENTS SDL2)
+            if(SDL2_FOUND)
+                message(STATUS "Found SDL2 framework")
+            else()
+                # Try Homebrew as final fallback
+                message(STATUS "SDL2 framework not found, trying Homebrew...")
+                if(EXISTS "/opt/homebrew/include/SDL2/SDL.h")
+                    set(SDL2_INCLUDE_DIRS "/opt/homebrew/include/SDL2")
+                    set(SDL2_LIBRARIES "/opt/homebrew/lib/libSDL2.dylib")
+                    set(SDL2MAIN_LIBRARY "/opt/homebrew/lib/libSDL2main.a")
+                    set(SDL2_FOUND FALSE)  # Mark as not framework
+                    message(STATUS "Using Homebrew SDL2")
+                else()
+                    message(FATAL_ERROR "SDL2 not found. Please install SDL2 framework to /Library/Frameworks/ or install via Homebrew")
+                endif()
+            endif()
+        else()
+            # Use Homebrew SDL2 from pkg-config
+            set(SDL2_INCLUDE_DIRS ${SDL2_INCLUDE_DIRS})
+            set(SDL2_LIBRARIES ${SDL2_LIBRARIES})
+            set(SDL2_LIBRARY_DIRS ${SDL2_LIBRARY_DIRS})
+            set(SDL2_FOUND FALSE)  # Mark as not framework
+            message(STATUS "Using Homebrew SDL2 from pkg-config")
+        endif()
         
     elseif(WIN32)
         # it seems like there's no standard place to put the SDL dev tools on Windows.
@@ -512,9 +541,18 @@ if(BUILD_SDL2_APP)
     # add UI libs and frameworks- note that these appear under
     # "other linker flags" in XCode and not in its file browser
     if(APPLE)
-        target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
-            "-framework CoreAudio" "-framework CoreServices"
-            "-framework AppKit" "-framework SDL2" )
+        if(SDL2_FOUND)
+            # Use framework SDL2
+            target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+                "-framework CoreAudio" "-framework CoreServices"
+                "-framework AppKit" "-framework SDL2" )
+        else()
+            # Use Homebrew SDL2
+            target_link_directories(${target} PRIVATE ${SDL2_LIBRARY_DIRS})
+            target_link_libraries(${target} PRIVATE "-framework Cocoa" "-framework Metal" "-framework MetalKit"
+                "-framework CoreAudio" "-framework CoreServices"
+                "-framework AppKit" ${SDL2_LIBRARIES} ${SDL2MAIN_LIBRARY} )
+        endif()
     elseif(WIN32)
         find_package(OpenGL REQUIRED)
         target_link_libraries(${target} PRIVATE ${OPENGL_gl_LIBRARY})
@@ -527,6 +565,206 @@ if(BUILD_SDL2_APP)
         target_link_libraries(${target} PRIVATE debug "msvcrtd.lib" optimized "msvcrt.lib")
     endif()
 
+endif()
+
+#--------------------------------------------------------------------
+# make CLAP plugin example target
+#--------------------------------------------------------------------
+
+if(BUILD_CLAP_EXAMPLE)
+    # Create embedded font resources
+    create_resources(examples/app/resources build/resources/clap-saw-demo)
+    
+    set(target clap-saw-demo)
+    
+    # Gather CLAP plugin source files
+    file(GLOB CLAP_SOURCES "${CMAKE_SOURCE_DIR}/examples/clap-plugin/src/*.cpp")
+    file(GLOB CLAP_HEADERS "${CMAKE_SOURCE_DIR}/examples/clap-plugin/src/*.h")
+    
+    list(APPEND clap_plugin_sources ${CLAP_SOURCES})
+    list(APPEND clap_plugin_sources ${CLAP_HEADERS})
+    
+    # Add CLAP dependencies
+    add_subdirectory(source/external/clap EXCLUDE_FROM_ALL)
+    add_subdirectory(source/external/clap-helpers EXCLUDE_FROM_ALL)
+    
+    # Create the plugin library
+    add_library(${target} MODULE ${clap_plugin_sources})
+    
+    # Add GUI support if enabled
+    option(CLAP_DEMO_GUI "Include a GUI in the CLAP demo plugin" TRUE)
+    
+    if(${CLAP_DEMO_GUI})
+        target_sources(${target} PRIVATE
+            build/resources/clap-saw-demo/resources.c
+        )
+        
+        # Set the generated resource files to compile as C++
+        set_source_files_properties(build/resources/clap-saw-demo/resources.c PROPERTIES COMPILE_FLAGS "-x c++")
+        
+        target_link_libraries(${target} PRIVATE mlvg)
+        target_compile_definitions(${target} PRIVATE HAS_GUI=1)
+    endif()
+    
+    # Link libraries
+    target_link_libraries(${target} PRIVATE clap clap-helpers)
+    
+    # Add madronalib
+    target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR})
+    target_include_directories(${target} PRIVATE ${MADRONALIB_INCLUDE_DIR}/madronalib)
+    if(APPLE)
+        target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/lib${madronalib_NAME}.a")
+    elseif(WIN32)
+        target_link_libraries(${target} PRIVATE "${MADRONALIB_LIBRARY_DIR}/${madronalib_NAME}.lib")
+    endif()
+    
+    # Add include directories
+    target_include_directories(${target} PRIVATE
+        source/external/clap/include
+        source/external/clap-helpers/include
+        ${MLVG_INCLUDE_DIRS}
+    )
+    
+    # Platform-specific settings
+    if(APPLE)
+        set_target_properties(${target} PROPERTIES
+            BUNDLE True
+            BUNDLE_EXTENSION clap
+            MACOSX_BUNDLE_GUI_IDENTIFIER org.surge-synth-team.${target}
+            MACOSX_BUNDLE_BUNDLE_NAME ${target}
+            MACOSX_BUNDLE_BUNDLE_VERSION "0.1"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
+            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/examples/clap-plugin/cmake/${target}.plist.in
+        )
+        target_link_libraries(${target} PRIVATE "-framework CoreFoundation" "-framework AppKit" "-framework CoreGraphics")
+        
+        if(${CLAP_DEMO_GUI})
+            find_library(METAL_FRAMEWORK Metal)
+            find_library(METALKIT_FRAMEWORK MetalKit)
+            if(METAL_FRAMEWORK AND METALKIT_FRAMEWORK)
+                target_link_libraries(${target} PRIVATE ${METAL_FRAMEWORK} ${METALKIT_FRAMEWORK})
+            endif()
+        endif()
+        
+        target_compile_definitions(${target} PRIVATE IS_MAC=1)
+    elseif(UNIX)
+        target_compile_definitions(${target} PRIVATE IS_LINUX=1)
+        set_target_properties(${target} PROPERTIES SUFFIX ".clap" PREFIX "")
+    else()
+        target_compile_definitions(${target} PRIVATE IS_WIN=1)
+        set_target_properties(${target} PROPERTIES SUFFIX ".clap" PREFIX "")
+    endif()
+    
+    # Install target for CLAP plugin
+    if(APPLE)
+        # Install to system CLAP directory on macOS
+        install(TARGETS ${target}
+            BUNDLE DESTINATION /Library/Audio/Plug-Ins/CLAP
+            LIBRARY DESTINATION /Library/Audio/Plug-Ins/CLAP
+        )
+        message(STATUS "CLAP plugin will be installed to /Library/Audio/Plug-Ins/CLAP/")
+    elseif(UNIX)
+        # Install to system CLAP directory on Linux
+        install(TARGETS ${target}
+            LIBRARY DESTINATION /usr/lib/clap
+        )
+        message(STATUS "CLAP plugin will be installed to /usr/lib/clap/")
+    else()
+        # Install to system CLAP directory on Windows
+        install(TARGETS ${target}
+            RUNTIME DESTINATION "C:/Program Files/Common/CLAP"
+        )
+        message(STATUS "CLAP plugin will be installed to C:/Program Files/Common/CLAP/")
+    endif()
+    
+    # Testing infrastructure
+    option(CLAP_DEMO_TESTS "Enable CLAP validation testing" TRUE)
+    
+    if(${CLAP_DEMO_TESTS})
+        # Check if Rust/Cargo is available for clap-validator
+        find_program(CARGO_EXECUTABLE cargo)
+        if(CARGO_EXECUTABLE)
+            message(STATUS "Found Cargo at ${CARGO_EXECUTABLE} - enabling CLAP validation tests")
+            
+            # Build clap-validator
+            add_custom_target(build-clap-validator
+                COMMAND ${CARGO_EXECUTABLE} build --release
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-validator
+                COMMENT "Building clap-validator"
+            )
+            
+            # Test target that runs clap-validator on our plugin
+            add_custom_target(test-clap-plugin
+                COMMAND ${CARGO_EXECUTABLE} run --release -- validate $<TARGET_FILE:${target}> --only-failed
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-validator
+                DEPENDS ${target} build-clap-validator
+                COMMENT "Running CLAP specification validation on ${target}"
+            )
+            
+            # Add to CTest
+            add_test(
+                NAME clap-specification-compliance
+                COMMAND ${CARGO_EXECUTABLE} run --release -- validate $<TARGET_FILE:${target}> --only-failed
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-validator
+            )
+            
+            # Convenience test script targets
+            if(WIN32)
+                add_custom_target(test-plugin
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/scripts/test-plugin.bat
+                    COMMENT "Running full plugin test suite (Windows)"
+                )
+                add_custom_target(debug-plugin
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/scripts/debug-plugin.bat
+                    COMMENT "Running comprehensive plugin debugging suite (Windows)"
+                )
+            else()
+                add_custom_target(test-plugin
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/scripts/test-plugin.sh
+                    COMMENT "Running full plugin test suite (Unix)"
+                )
+                add_custom_target(debug-plugin
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/scripts/debug-plugin.sh
+                    COMMENT "Running comprehensive plugin debugging suite (Unix)"
+                )
+            endif()
+            
+            # CLAP debugging tools integration
+            if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-info/CMakeLists.txt)
+                message(STATUS "Found clap-info - adding debugging targets")
+                add_custom_target(build-clap-info
+                    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-info
+                            ${CMAKE_COMMAND} -Bbuild -DCMAKE_BUILD_TYPE=Release
+                    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-info/build --config Release
+                    COMMENT "Building clap-info debugging tool"
+                )
+                
+                add_custom_target(inspect-plugin
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-info/build/clap-info ${CMAKE_BINARY_DIR}/${target}.clap
+                    DEPENDS ${target} build-clap-info
+                    COMMENT "Inspecting plugin with clap-info"
+                )
+            endif()
+            
+            if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-host/CMakeLists.txt)
+                message(STATUS "Found clap-host - adding host testing targets")
+                add_custom_target(build-clap-host
+                    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-host
+                            ${CMAKE_COMMAND} -Bbuild -DCMAKE_BUILD_TYPE=Release
+                    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-host/build --config Release
+                    COMMENT "Building clap-host testing tool"
+                )
+                
+                add_custom_target(test-plugin-host
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/examples/clap-plugin/tools/clap-host/build/host/clap-host -p $<TARGET_FILE:${target}>
+                    DEPENDS ${target} build-clap-host
+                    COMMENT "Testing plugin with clap-host"
+                )
+            endif()
+        else()
+            message(WARNING "Cargo not found - CLAP validation tests disabled. Install Rust from https://rustup.rs/")
+        endif()
+    endif()
 endif()
 
 #--------------------------------------------------------------------
