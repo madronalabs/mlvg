@@ -62,7 +62,7 @@ using NativeDrawContext = NVGcontext;
 
 namespace ml {
 
-constexpr int kTargetFPS{60};
+constexpr int kTargetFPS{30};
 constexpr float kMinVisibleAlpha{ 0.01f };
 
 // kinds of drawing resources. TODO move

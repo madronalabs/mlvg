@@ -38,7 +38,7 @@ constexpr float kScrollSensitivity{ -1.0f };
 
 // when true, apps keep track of dirty regions and composite to an offscreen buffer.
 // when false, apps redraw the entire view each frame.
-constexpr bool kDoubleBufferView{ true };
+constexpr bool kDoubleBufferView{ true }; 
 
 // static utilities
 
@@ -151,7 +151,7 @@ struct PlatformView::Impl
     ml::AppView* appView_{ nullptr };
     std::unique_ptr< DrawableImage > nvgBackingLayer_;
     CRITICAL_SECTION drawLock_{ nullptr };
-    int targetFPS_{ 60 };
+    int targetFPS_{ 30 };
     HWND parentPtr_{ nullptr };
     Vec2 totalDrag_;
     TextFragment windowClassName_;
